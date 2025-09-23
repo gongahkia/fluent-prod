@@ -168,7 +168,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           </div>
 
           {/* Tab Content with Sliding Animation */}
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden min-h-[600px]">
             <div
               className="flex transition-transform duration-300 ease-in-out"
               style={{
@@ -181,6 +181,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 }%)`
               }}
             >
+              {/* Debug Info */}
+              <div className="fixed top-4 right-4 bg-red-500 text-white p-2 rounded text-xs z-50">
+                Active: {activeTab} | Transform: {activeTab === 'general' ? 0 : activeTab === 'learning' ? 100 : activeTab === 'progress' ? 200 : activeTab === 'goals' ? 300 : activeTab === 'notifications' ? 400 : 500}%
+              </div>
               {/* General Tab */}
               <div className="w-full flex-shrink-0 p-6">
                 <div className="space-y-6">
@@ -284,6 +288,116 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       <BookOpen className="w-4 h-4 mr-2 text-gray-500" />
                       Saved Posts
                     </button>
+                  </div>
+                </div>
+
+                {/* Quick Settings Overview */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Settings Overview</h3>
+
+                  {/* Learning Section */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                        <Brain className="w-4 h-4 mr-2 text-blue-600" />
+                        Learning
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('learning')}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Manage →
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Goal: {formData.studyGoal}</div>
+                      <div>Daily Target: {formData.dailyGoal} minutes</div>
+                      <div>Difficulty: {formData.difficultyPreference}</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Section */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                        <TrendingUp className="w-4 h-4 mr-2 text-green-600" />
+                        Progress
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('progress')}
+                        className="text-xs text-green-600 hover:text-green-800"
+                      >
+                        View Details →
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Current Level: {formData.learningLevel}</div>
+                      <div>This Week: 87 minutes studied</div>
+                      <div>Current Streak: 5 days</div>
+                    </div>
+                  </div>
+
+                  {/* Goals & Streaks Section */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                        <Target className="w-4 h-4 mr-2 text-orange-600" />
+                        Goals & Streaks
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('goals')}
+                        className="text-xs text-orange-600 hover:text-orange-800"
+                      >
+                        Manage →
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Daily Goal: {formData.dailyGoal} minutes</div>
+                      <div>Weekly Goal: {formData.weeklyGoal} hours</div>
+                      <div>Best Streak: 15 days</div>
+                    </div>
+                  </div>
+
+                  {/* Notifications Section */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                        <Bell className="w-4 h-4 mr-2 text-purple-600" />
+                        Notifications
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('notifications')}
+                        className="text-xs text-purple-600 hover:text-purple-800"
+                      >
+                        Configure →
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Email: {formData.emailNotifications ? 'Enabled' : 'Disabled'}</div>
+                      <div>Push: {formData.pushNotifications ? 'Enabled' : 'Disabled'}</div>
+                      <div>Study Reminders: {formData.studyReminders ? 'On' : 'Off'}</div>
+                    </div>
+                  </div>
+
+                  {/* Privacy Section */}
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                        <Shield className="w-4 h-4 mr-2 text-gray-600" />
+                        Privacy
+                      </h4>
+                      <button
+                        onClick={() => setActiveTab('privacy')}
+                        className="text-xs text-gray-600 hover:text-gray-800"
+                      >
+                        Manage →
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Profile: {formData.profileVisibility === 'public' ? 'Public' : 'Private'}</div>
+                      <div>Progress Visible: {formData.showProgress ? 'Yes' : 'No'}</div>
+                      <div>Email Visible: {formData.showEmail ? 'Yes' : 'No'}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -881,6 +995,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           </div>
         </div>
       )}
+              </div>
+              </div>
+              </div>
+              </div>
+              </div>
+              </div>
     </div>
   );
 };
