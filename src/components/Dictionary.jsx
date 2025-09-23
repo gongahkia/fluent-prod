@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
-const Dictionary = ({ onBack }) => {
+const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage }) => {
   const [expandedWord, setExpandedWord] = useState(null);
 
-  // Dictionary words with levels
-  const dictionaryWords = [
+  // Japanese dictionary words
+  const japaneseDictionaryWords = [
     {
       id: 1,
       japanese: "ラーメン",
@@ -88,6 +88,91 @@ const Dictionary = ({ onBack }) => {
     }
   ];
 
+  // Spanish dictionary words
+  const spanishDictionaryWords = [
+    {
+      id: 1,
+      spanish: "paella",
+      pronunciation: "pa-eh-ya",
+      english: "paella",
+      level: 3,
+      example: "Comimos paella en Valencia.",
+      exampleEn: "We ate paella in Valencia.",
+      source: "Spanish Food Culture post"
+    },
+    {
+      id: 2,
+      spanish: "cultura",
+      pronunciation: "kool-too-rah",
+      english: "culture",
+      level: 5,
+      example: "La cultura española es muy rica.",
+      exampleEn: "Spanish culture is very rich.",
+      source: "Flamenco History post"
+    },
+    {
+      id: 3,
+      spanish: "local",
+      pronunciation: "lo-kal",
+      english: "local",
+      level: 4,
+      example: "Preguntamos a la gente local.",
+      exampleEn: "We asked the local people.",
+      source: "Hidden Tapas Bars post"
+    },
+    {
+      id: 4,
+      spanish: "delicioso",
+      pronunciation: "de-li-see-oh-so",
+      english: "delicious",
+      level: 2,
+      example: "Esta paella está deliciosa.",
+      exampleEn: "This paella is delicious.",
+      source: "Street Food Revolution post"
+    },
+    {
+      id: 5,
+      spanish: "maravilloso",
+      pronunciation: "ma-ra-bee-yo-so",
+      english: "wonderful",
+      level: 6,
+      example: "Fue una experiencia maravillosa.",
+      exampleEn: "It was a wonderful experience.",
+      source: "Flamenco Show post"
+    },
+    {
+      id: 6,
+      spanish: "interesante",
+      pronunciation: "in-te-re-san-te",
+      english: "interesting",
+      level: 7,
+      example: "Es una historia muy interesante.",
+      exampleEn: "It's a very interesting story.",
+      source: "Gaudí Architecture post"
+    },
+    {
+      id: 7,
+      spanish: "tradición",
+      pronunciation: "tra-di-see-on",
+      english: "tradition",
+      level: 8,
+      example: "Estoy aprendiendo las tradiciones españolas.",
+      exampleEn: "I am learning Spanish traditions.",
+      source: "Flamenco History post"
+    },
+    {
+      id: 8,
+      spanish: "nuevo",
+      pronunciation: "nue-bo",
+      english: "new",
+      level: 1,
+      example: "Fuimos a un restaurante nuevo.",
+      exampleEn: "We went to a new restaurant.",
+      source: "Modern Spanish Cuisine post"
+    }
+  ];
+
+  const dictionaryWords = selectedLanguage === 'spanish' ? spanishDictionaryWords : japaneseDictionaryWords;
   const sortedWords = [...dictionaryWords].sort((a, b) => a.level - b.level);
 
   const getLevelColor = (level) => {
@@ -109,51 +194,57 @@ const Dictionary = ({ onBack }) => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-800"
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Feed
+            <span className="font-medium">Back to Feed</span>
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">My Dictionary</h1>
-          <div></div>
+          <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
+          <button
+            onClick={onNavigateToFlashcards}
+            className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
+          >
+            <Zap className="w-4 h-4" />
+            <span>Practice Flashcards</span>
+          </button>
         </div>
 
         {/* Dictionary Words */}
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {sortedWords.map((word) => (
-            <div key={word.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4">
+            <div key={word.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all hover:shadow-sm overflow-hidden">
+              <div className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="text-xl font-bold text-gray-900">
-                      {word.japanese}
+                  <div className="flex items-center space-x-6">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {selectedLanguage === 'spanish' ? word.spanish : word.japanese}
                     </div>
-                    <div className="text-gray-600">
-                      {word.hiragana}
+                    <div className="text-gray-500 font-medium">
+                      {selectedLanguage === 'spanish' ? word.pronunciation : word.hiragana}
                     </div>
-                    <div className="text-gray-800 font-medium">
+                    <div className="text-gray-800 font-semibold">
                       {word.english}
                     </div>
-                    <span className={`px-2 py-1 rounded text-white text-xs font-medium ${getLevelColor(word.level)}`}>
+                    <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(word.level)}`}>
                       Level {word.level}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button 
+                    <button
                       onClick={() => toggleExpanded(word.id)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                     >
                       {expandedWord === word.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </button>
-                    <button 
+                    <button
                       onClick={() => removeWord(word.id)}
-                      className="text-red-400 hover:text-red-600"
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -161,22 +252,22 @@ const Dictionary = ({ onBack }) => {
                 </div>
 
                 {expandedWord === word.id && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-1">Example Sentence</h4>
-                        <p className="text-gray-900">{word.example}</p>
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Example Sentence</h4>
+                        <p className="text-gray-900 font-medium mb-1">{word.example}</p>
                         <p className="text-gray-600 text-sm">{word.exampleEn}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-1">Source</h4>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Source</h4>
                         <p className="text-gray-600 text-sm">{word.source}</p>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="flex items-center text-orange-500 text-sm hover:text-orange-600">
-                          <Star className="w-4 h-4 mr-1" />
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">Premium</span>
-                        </button>
+                      <div className="flex items-center">
+                        <div className="flex items-center space-x-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          <span className="text-sm font-medium text-yellow-700">Premium</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -187,10 +278,10 @@ const Dictionary = ({ onBack }) => {
         </div>
 
         {sortedWords.length === 0 && (
-          <div className="text-center py-12">
-            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No words saved yet</h3>
-            <p className="text-gray-600">Start clicking on words in posts to build your dictionary!</p>
+          <div className="text-center py-16">
+            <BookOpen className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-gray-900 mb-3">No words saved yet</h3>
+            <p className="text-gray-600 text-lg">Start clicking on words in posts to build your dictionary!</p>
           </div>
         )}
       </div>
