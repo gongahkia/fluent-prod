@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 
-const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage }) => {
+const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedded = false }) => {
   const [expandedWord, setExpandedWord] = useState(null);
 
   // Japanese dictionary words
@@ -194,26 +194,42 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage }) => {
 
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            <span className="font-medium">Back to Feed</span>
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
-          <button
-            onClick={onNavigateToFlashcards}
-            className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
-          >
-            <Zap className="w-4 h-4" />
-            <span>Practice Flashcards</span>
-          </button>
-        </div>
+    <div className={isEmbedded ? "" : "min-h-screen bg-white p-6"}>
+      <div className={isEmbedded ? "" : "max-w-6xl mx-auto"}>
+        {/* Header - only show when not embedded */}
+        {!isEmbedded && (
+          <div className="flex items-center justify-between mb-8">
+            <button
+              onClick={onBack}
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              <span className="font-medium">Back to Feed</span>
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
+            <button
+              onClick={onNavigateToFlashcards}
+              className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Practice Flashcards</span>
+            </button>
+          </div>
+        )}
+
+        {/* Embedded Header */}
+        {isEmbedded && (
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
+            <button
+              onClick={onNavigateToFlashcards}
+              className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Practice Flashcards</span>
+            </button>
+          </div>
+        )}
 
         {/* Dictionary Words */}
         <div className="grid gap-4">

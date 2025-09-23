@@ -50,26 +50,6 @@ function App() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  // Show dictionary page
-  if (currentView === 'dictionary') {
-    return (
-      <Dictionary
-        onBack={() => setCurrentView('feed')}
-        onNavigateToFlashcards={() => setCurrentView('flashcards')}
-        selectedLanguage={selectedLanguage}
-      />
-    );
-  }
-
-  // Show flashcards page
-  if (currentView === 'flashcards') {
-    return (
-      <Flashcards
-        onBack={() => setCurrentView('feed')}
-        selectedLanguage={selectedLanguage}
-      />
-    );
-  }
 
   // Show profile page
   if (currentView === 'profile') {
@@ -175,7 +155,35 @@ function App() {
           </button>
         </div>
 
-        <NewsFeed selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'} selectedLanguage={selectedLanguage} userProfile={userProfile} />
+        {/* Tab Content with Animations */}
+        <div className="relative overflow-hidden">
+          <div
+            className="flex transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(-${currentView === 'feed' ? 0 : currentView === 'dictionary' ? 100 : 200}%)` }}
+          >
+            {/* Feed Tab */}
+            <div className="w-full flex-shrink-0">
+              <NewsFeed selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'} selectedLanguage={selectedLanguage} userProfile={userProfile} />
+            </div>
+
+            {/* Dictionary Tab */}
+            <div className="w-full flex-shrink-0">
+              <Dictionary
+                onNavigateToFlashcards={() => setCurrentView('flashcards')}
+                selectedLanguage={selectedLanguage}
+                isEmbedded={true}
+              />
+            </div>
+
+            {/* Flashcards Tab */}
+            <div className="w-full flex-shrink-0">
+              <Flashcards
+                selectedLanguage={selectedLanguage}
+                isEmbedded={true}
+              />
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

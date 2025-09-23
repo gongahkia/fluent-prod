@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, RotateCcw, CheckCircle, XCircle, Star, Sparkles } from 'lucide-react';
 
-const Flashcards = ({ onBack, selectedLanguage }) => {
+const Flashcards = ({ onBack, selectedLanguage, isEmbedded = false }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [progress, setProgress] = useState({});
@@ -139,20 +139,43 @@ const Flashcards = ({ onBack, selectedLanguage }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={onBack}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back to Feed</span>
-            </button>
+    <div className={isEmbedded ? "" : "min-h-screen bg-white"}>
+      {/* Header - only show when not embedded */}
+      {!isEmbedded && (
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <button
+                onClick={onBack}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="font-medium">Back to Feed</span>
+              </button>
+              <div className="flex items-center space-x-3">
+                <Star className="w-6 h-6 text-yellow-500" />
+                <span className="text-2xl font-bold text-gray-900">Flashcards</span>
+                <Sparkles className="w-6 h-6 text-purple-500" />
+              </div>
+              <button
+                onClick={resetProgress}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="font-medium">Reset</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className={isEmbedded ? "" : "max-w-6xl mx-auto px-6 lg:px-8 py-8"}>
+        {/* Embedded Header */}
+        {isEmbedded && (
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
               <Star className="w-6 h-6 text-yellow-500" />
-              <span className="text-2xl font-bold text-gray-900">Flashcards</span>
+              <span className="text-3xl font-bold text-gray-900">Flashcards</span>
               <Sparkles className="w-6 h-6 text-purple-500" />
             </div>
             <button
@@ -163,10 +186,7 @@ const Flashcards = ({ onBack, selectedLanguage }) => {
               <span className="font-medium">Reset</span>
             </button>
           </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+        )}
         {/* Progress Bar */}
         <div className="mb-10">
           <div className="flex justify-between items-center mb-3">
@@ -275,7 +295,7 @@ const Flashcards = ({ onBack, selectedLanguage }) => {
             <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium">Custom Decks</span>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
