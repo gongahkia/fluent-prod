@@ -13,6 +13,7 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState('feed'); // 'feed', 'profile', 'dictionary', or 'flashcards'
   const [userProfile, setUserProfile] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('japanese');
 
   const handleAuthComplete = (authData) => {
     setIsAuthenticated(true);
@@ -81,42 +82,49 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">L</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-7 h-7 bg-gray-800 rounded-md flex items-center justify-center">
+                  <span className="text-white font-semibold text-xs">L</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900">LivePeek</span>
+                <span className="text-lg font-semibold text-gray-900">LivePeek</span>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">🇯🇵 Japan</span>
-                <select className="text-sm border border-gray-300 rounded px-2 py-1 bg-white">
-                  <option value="japanese">🇯🇵 Japanese (More languages coming soon!)</option>
+                <span className="text-sm text-gray-500">
+                  {selectedLanguage === 'spanish' ? '🇪🇸 Spain' : '🇯🇵 Japan'}
+                </span>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-md px-3 py-1.5 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="japanese">🇯🇵 Japanese</option>
+                  <option value="spanish">🇪🇸 Spanish</option>
                 </select>
               </div>
               
               {/* User Profile */}
               <div className="flex items-center space-x-3">
-                <div className="text-sm text-gray-600">
-                  Welcome, <span className="font-medium text-gray-900">{userProfile?.name || 'User'}</span>
+                <div className="text-sm text-gray-500">
+                  Welcome, <span className="font-medium text-gray-800">{userProfile?.name || 'User'}</span>
                 </div>
                 <button
                   onClick={() => setCurrentView('profile')}
-                  className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                  className="w-7 h-7 bg-gray-100 rounded-md flex items-center justify-center hover:bg-gray-200 transition-colors"
                 >
-                  <span className="text-sm font-medium text-orange-700">
+                  <span className="text-xs font-medium text-gray-600">
                     {userProfile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </button>
-                <button 
+                <button
                   onClick={handleLogout}
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   Logout
                 </button>
@@ -127,25 +135,25 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setCurrentView('feed')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors ${
               currentView === 'feed'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
             }`}
           >
             Feed
           </button>
           <button
             onClick={() => setCurrentView('dictionary')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
+            className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
               currentView === 'dictionary'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
             }`}
           >
             <span>Dictionary</span>
@@ -153,10 +161,10 @@ function App() {
           </button>
           <button
             onClick={() => setCurrentView('flashcards')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
+            className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
               currentView === 'flashcards'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
             }`}
           >
             <span>Flashcards</span>
@@ -164,7 +172,7 @@ function App() {
           </button>
         </div>
 
-        <NewsFeed selectedCountry="Japan" userProfile={userProfile} />
+        <NewsFeed selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'} selectedLanguage={selectedLanguage} userProfile={userProfile} />
       </main>
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, Sparkles, UserPlus, UserCheck } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 
-const NewsFeed = ({ selectedCountry, userProfile }) => {
+const NewsFeed = ({ selectedCountry, selectedLanguage, userProfile }) => {
   const [showComments, setShowComments] = useState({});
   const [selectedWord, setSelectedWord] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
@@ -145,6 +145,124 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
     }
   ];
 
+  // Spanish articles with mixed Spanish/English content for intermediate learners
+  const spanishArticles = [
+    {
+      id: 101,
+      author: "María García",
+      authorEn: "María García",
+      verified: true,
+      location: "Barcelona, España",
+      time: "hace 2 horas",
+      title: "Los mercados locales que only locals conocen",
+      content: "Barcelona tiene amazing mercados tradicionales donde la gente local shops for authentic productos. Estas family-run businesses han estado serving la comunidad for generations.",
+      image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=600&h=400&fit=crop",
+      tags: ["#comida", "#local", "#tradition"],
+      likes: 1847,
+      comments: 234,
+      shares: 156,
+      source: "instagram",
+      originalSource: "Instagram",
+      externalUrl: "https://instagram.com/p/barcelona_markets_2024",
+      difficulty: 6
+    },
+    {
+      id: 102,
+      author: "Carlos Rodríguez",
+      authorEn: "Carlos Rodríguez",
+      verified: false,
+      location: "Madrid, España",
+      time: "hace 5 horas",
+      title: "Street art revolution en los barrios históricos",
+      content: "Young artists están transforming las paredes of Madrid con incredible murales. Esta fusion de traditional architecture y modern creativity está creating un unique cultural landscape.",
+      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=400&fit=crop",
+      tags: ["#arte", "#cultura", "#juventud"],
+      likes: 923,
+      comments: 67,
+      shares: 89,
+      source: "twitter",
+      originalSource: "Twitter",
+      externalUrl: "https://twitter.com/carlos_art/status/madrid_street_art",
+      difficulty: 5
+    },
+    {
+      id: 103,
+      author: "Ana Martínez",
+      authorEn: "Ana Martínez",
+      verified: true,
+      location: "Sevilla, España",
+      time: "hace 8 horas",
+      title: "Flamenco meets modern technology en los studios",
+      content: "Traditional flamenco dancers están using new digital platforms para teach y share their art. Social media está helping preserve esta beautiful tradition mientras reaching nuevas generaciones.",
+      image: "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=600&h=400&fit=crop",
+      tags: ["#flamenco", "#tradición", "#tecnología"],
+      likes: 2156,
+      comments: 189,
+      shares: 298,
+      source: "tiktok",
+      originalSource: "TikTok",
+      externalUrl: "https://tiktok.com/@ana_flamenco/video/modern_tradition",
+      difficulty: 7
+    },
+    {
+      id: 104,
+      author: "Diego López",
+      authorEn: "Diego López",
+      verified: true,
+      location: "Valencia, España",
+      time: "hace 12 horas",
+      title: "Las Fallas festival prepares for digital transformation",
+      content: "Valencia's famous festival está incorporating AR technology y virtual experiences. Esta combination de ancient traditions y cutting-edge innovation está attracting visitors from around the world.",
+      image: "https://images.unsplash.com/photo-1539650116574-75c0c6dee9d4?w=600&h=400&fit=crop",
+      tags: ["#fallas", "#innovation", "#festival"],
+      likes: 1567,
+      comments: 134,
+      shares: 203,
+      source: "facebook",
+      originalSource: "Facebook",
+      externalUrl: "https://facebook.com/valencia.fallas/posts/digital_transformation_2024",
+      difficulty: 8
+    },
+    {
+      id: 105,
+      author: "Isabel Fernández",
+      authorEn: "Isabel Fernández",
+      verified: false,
+      location: "Granada, España",
+      time: "hace 1 día",
+      title: "Working from home culture en España después de pandemic",
+      content: "Spanish companies han adopted flexible work arrangements. Esta shift hacia remote work está changing traditional office culture mientras maintaining la importance of personal relationships.",
+      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&h=400&fit=crop",
+      tags: ["#trabajo", "#remoto", "#cultura"],
+      likes: 892,
+      comments: 78,
+      shares: 145,
+      source: "linkedin",
+      originalSource: "LinkedIn",
+      externalUrl: "https://linkedin.com/in/isabel-fernandez/posts/remote-work-spain",
+      difficulty: 6
+    },
+    {
+      id: 106,
+      author: "Alejandro Ruiz",
+      authorEn: "Alejandro Ruiz",
+      verified: true,
+      location: "Bilbao, España",
+      time: "hace 2 días",
+      title: "Sustainable tourism en el País Vasco está growing",
+      content: "Basque region está promoting eco-friendly tourism y local experiences. Travelers want authentic connections con la cultura local mientras protecting el beautiful landscape para future generations.",
+      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop",
+      tags: ["#turismo", "#sostenible", "#euskadi"],
+      likes: 1234,
+      comments: 92,
+      shares: 167,
+      source: "reddit",
+      originalSource: "Reddit",
+      externalUrl: "https://reddit.com/r/spain/comments/sustainable_tourism_basque",
+      difficulty: 5
+    }
+  ];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -194,8 +312,9 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       setIsSearching(true);
       // Simulate search delay
       setTimeout(() => {
-        // Return random posts from existing set
-        const shuffled = [...japaneseArticles].sort(() => 0.5 - Math.random());
+        // Return random posts from the appropriate language set
+        const articles = selectedLanguage === 'spanish' ? spanishArticles : japaneseArticles;
+        const shuffled = [...articles].sort(() => 0.5 - Math.random());
         setSearchResults(shuffled.slice(0, 3));
         setIsSearching(false);
       }, 1500);
@@ -203,6 +322,11 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       setSearchResults([]);
       setIsSearching(false);
     }
+  };
+
+  // Get current articles based on selected language
+  const getCurrentArticles = () => {
+    return selectedLanguage === 'spanish' ? spanishArticles : japaneseArticles;
   };
 
   const renderSourceBadge = (source) => {
@@ -235,6 +359,7 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
   const handleWordClick = (word, isJapanese) => {
     // Simple word translation logic
     const translations = {
+      // Japanese translations
       'の': { translation: 'to', level: 2 },
       'が見られます。': { translation: 'is seen', level: 10 },
       '地元の人だけが知る': { translation: 'only locals know', level: 9 },
@@ -297,7 +422,79 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       '日本語': { translation: 'Japanese language', level: 4 },
       '若者': { translation: 'young people', level: 5 },
       '原宿': { translation: 'Harajuku', level: 4 },
-      '桜': { translation: 'cherry blossom', level: 3 }
+      '桜': { translation: 'cherry blossom', level: 3 },
+
+      // Spanish translations
+      'mercados': { translation: 'markets', level: 3 },
+      'locales': { translation: 'local', level: 4 },
+      'que': { translation: 'that/which', level: 2 },
+      'only': { translation: 'only', level: 3 },
+      'locals': { translation: 'locals', level: 4 },
+      'conocen': { translation: 'know', level: 5 },
+      'Barcelona': { translation: 'Barcelona', level: 1 },
+      'tiene': { translation: 'has', level: 3 },
+      'amazing': { translation: 'amazing', level: 4 },
+      'tradicionales': { translation: 'traditional', level: 6 },
+      'donde': { translation: 'where', level: 4 },
+      'la': { translation: 'the', level: 1 },
+      'gente': { translation: 'people', level: 3 },
+      'local': { translation: 'local', level: 4 },
+      'shops': { translation: 'shops', level: 3 },
+      'for': { translation: 'for', level: 2 },
+      'authentic': { translation: 'authentic', level: 6 },
+      'productos': { translation: 'products', level: 5 },
+      'Estas': { translation: 'These', level: 4 },
+      'family-run': { translation: 'family-run', level: 7 },
+      'businesses': { translation: 'businesses', level: 6 },
+      'han': { translation: 'have', level: 4 },
+      'estado': { translation: 'been', level: 5 },
+      'serving': { translation: 'serving', level: 5 },
+      'comunidad': { translation: 'community', level: 6 },
+      'generations': { translation: 'generations', level: 7 },
+      'artistas': { translation: 'artists', level: 5 },
+      'están': { translation: 'are', level: 3 },
+      'transforming': { translation: 'transforming', level: 8 },
+      'las': { translation: 'the', level: 1 },
+      'paredes': { translation: 'walls', level: 6 },
+      'Madrid': { translation: 'Madrid', level: 1 },
+      'con': { translation: 'with', level: 2 },
+      'incredible': { translation: 'incredible', level: 6 },
+      'murales': { translation: 'murals', level: 7 },
+      'Esta': { translation: 'This', level: 3 },
+      'fusion': { translation: 'fusion', level: 6 },
+      'de': { translation: 'of/from', level: 1 },
+      'traditional': { translation: 'traditional', level: 5 },
+      'architecture': { translation: 'architecture', level: 7 },
+      'y': { translation: 'and', level: 1 },
+      'modern': { translation: 'modern', level: 5 },
+      'creativity': { translation: 'creativity', level: 8 },
+      'creating': { translation: 'creating', level: 6 },
+      'un': { translation: 'a', level: 1 },
+      'unique': { translation: 'unique', level: 6 },
+      'cultural': { translation: 'cultural', level: 7 },
+      'landscape': { translation: 'landscape', level: 8 },
+      'flamenco': { translation: 'flamenco', level: 5 },
+      'dancers': { translation: 'dancers', level: 6 },
+      'using': { translation: 'using', level: 4 },
+      'new': { translation: 'new', level: 3 },
+      'digital': { translation: 'digital', level: 6 },
+      'platforms': { translation: 'platforms', level: 7 },
+      'para': { translation: 'to/for', level: 2 },
+      'teach': { translation: 'teach', level: 5 },
+      'share': { translation: 'share', level: 4 },
+      'their': { translation: 'their', level: 3 },
+      'art': { translation: 'art', level: 4 },
+      'Social': { translation: 'Social', level: 5 },
+      'media': { translation: 'media', level: 5 },
+      'helping': { translation: 'helping', level: 6 },
+      'preserve': { translation: 'preserve', level: 8 },
+      'esta': { translation: 'this', level: 3 },
+      'beautiful': { translation: 'beautiful', level: 5 },
+      'tradition': { translation: 'tradition', level: 7 },
+      'mientras': { translation: 'while', level: 6 },
+      'reaching': { translation: 'reaching', level: 7 },
+      'nuevas': { translation: 'new', level: 4 },
+      'generaciones': { translation: 'generations', level: 8 }
     };
 
     const translationData = translations[word.toLowerCase()];
@@ -319,11 +516,12 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       const cleanWord = word.trim();
       if (!cleanWord) return word;
       
-      // Detect if word contains Japanese characters
+      // Detect if word contains Japanese or Spanish characters
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(cleanWord);
+      const hasSpanish = /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/.test(cleanWord);
       const hasEnglish = /[a-zA-Z]/.test(cleanWord);
-      
-      if (hasJapanese || hasEnglish) {
+
+      if (hasJapanese || hasSpanish || hasEnglish) {
         return (
           <span key={index}>
             <span
@@ -361,10 +559,17 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">日本のトレンド</h1>
-            <p className="text-gray-600">地域で何が起こっているかを発見・トレンドニュース</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {selectedLanguage === 'spanish' ? 'Tendencias de España' : '日本のトレンド'}
+            </h1>
+            <p className="text-gray-600">
+              {selectedLanguage === 'spanish'
+                ? 'Descubre qué está pasando en la región • Noticias de tendencias'
+                : '地域で何が起こっているかを発見・トレンドニュース'
+              }
+            </p>
           </div>
-          <div className="text-4xl">🇯🇵</div>
+          <div className="text-4xl">{selectedLanguage === 'spanish' ? '🇪🇸' : '🇯🇵'}</div>
         </div>
 
         {/* Search Bar */}
@@ -463,7 +668,7 @@ const NewsFeed = ({ selectedCountry, userProfile }) => {
       )}
 
       {/* Posts */}
-      {(searchResults.length > 0 ? searchResults : japaneseArticles).map((article) => (
+      {(searchResults.length > 0 ? searchResults : getCurrentArticles()).map((article) => (
         <div key={article.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Article Header */}
           <div className="p-6 pb-4">
