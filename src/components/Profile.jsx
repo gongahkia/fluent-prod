@@ -167,13 +167,25 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             </nav>
           </div>
 
-          {/* Tab Content */}
-          <div className="p-6">
-            {/* General Tab */}
-            {activeTab === 'general' && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Basic Information</h3>
+          {/* Tab Content with Sliding Animation */}
+          <div className="relative overflow-hidden">
+            <div
+              className="flex transition-transform duration-300 ease-in-out"
+              style={{
+                transform: `translateX(-${
+                  activeTab === 'general' ? 0 :
+                  activeTab === 'learning' ? 100 :
+                  activeTab === 'progress' ? 200 :
+                  activeTab === 'goals' ? 300 :
+                  activeTab === 'notifications' ? 400 : 500
+                }%)`
+              }}
+            >
+              {/* General Tab */}
+              <div className="w-full flex-shrink-0 p-6">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Basic Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-gray-600">
@@ -275,10 +287,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Learning Tab */}
-            {activeTab === 'learning' && (
+              {/* Learning Tab */}
+              <div className="w-full flex-shrink-0 p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Language Settings</h3>
@@ -394,10 +405,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Progress Tab */}
-            {activeTab === 'progress' && (
+              {/* Progress Tab */}
+              <div className="w-full flex-shrink-0 p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Learning Statistics</h3>
@@ -468,10 +478,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Goals & Streaks Tab */}
-            {activeTab === 'goals' && (
+              {/* Goals & Streaks Tab */}
+              <div className="w-full flex-shrink-0 p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Daily Goals</h3>
@@ -578,132 +587,215 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Notifications Tab */}
-            {activeTab === 'notifications' && (
+              {/* Notifications Tab */}
+              <div className="w-full flex-shrink-0 p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">Email Notifications</h3>
-                      <p className="text-sm text-gray-500">Receive notifications via email</p>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">General Notifications</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Email Notifications</div>
+                        <div className="text-xs text-gray-500">Receive notifications via email</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="emailNotifications"
+                          checked={formData.emailNotifications}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="emailNotifications"
-                        checked={formData.emailNotifications}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                    </label>
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">Push Notifications</h3>
-                      <p className="text-sm text-gray-500">Receive push notifications on your device</p>
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Push Notifications</div>
+                        <div className="text-xs text-gray-500">Receive push notifications on your device</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="pushNotifications"
+                          checked={formData.pushNotifications}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="pushNotifications"
-                        checked={formData.pushNotifications}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                    </label>
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">Comment Notifications</h3>
-                      <p className="text-sm text-gray-500">Get notified when someone comments on your posts</p>
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Comment Notifications</div>
+                        <div className="text-xs text-gray-500">Get notified when someone comments on your posts</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="commentNotifications"
+                          checked={formData.commentNotifications}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="commentNotifications"
-                        checked={formData.commentNotifications}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Learning Notifications</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Weekly Progress Reports</div>
+                        <div className="text-xs text-gray-500">Get weekly summaries of your learning progress</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="weeklyReports"
+                          checked={formData.weeklyReports}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">New Content Alerts</div>
+                        <div className="text-xs text-gray-500">Be notified when new content is available in your language</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="contentAlerts"
+                          checked={true}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Privacy Tab */}
-            {activeTab === 'privacy' && (
+              {/* Privacy Tab */}
+              <div className="w-full flex-shrink-0 p-6">
               <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile Visibility
-                  </label>
-                  <select
-                    name="profileVisibility"
-                    value={formData.profileVisibility}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="public">Public - Anyone can see your profile</option>
-                    <option value="friends">Friends Only - Only friends can see your profile</option>
-                    <option value="private">Private - Only you can see your profile</option>
-                  </select>
-                </div>
-
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">Show Email Address</h3>
-                      <p className="text-sm text-gray-500">Allow others to see your email address</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="showEmail"
-                        checked={formData.showEmail}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Profile Privacy</h3>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-600">
+                      Profile Visibility
                     </label>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">Show Location</h3>
-                      <p className="text-sm text-gray-500">Allow others to see your location</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="showLocation"
-                        checked={formData.showLocation}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                    </label>
+                    <select
+                      name="profileVisibility"
+                      value={formData.profileVisibility}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors"
+                    >
+                      <option value="public">🌍 Public - Anyone can see your profile</option>
+                      <option value="friends">👥 Friends Only - Only friends can see your profile</option>
+                      <option value="private">🔒 Private - Only you can see your profile</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-200">
-                  <button className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">Delete Account</span>
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">
-                    This action cannot be undone. All your data will be permanently deleted.
-                  </p>
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Information Sharing</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Show Email Address</div>
+                        <div className="text-xs text-gray-500">Allow others to see your email address</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="showEmail"
+                          checked={formData.showEmail}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Show Location</div>
+                        <div className="text-xs text-gray-500">Allow others to see your location</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="showLocation"
+                          checked={formData.showLocation}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Show Learning Progress</div>
+                        <div className="text-xs text-gray-500">Display your streaks and achievements publicly</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="showProgress"
+                          checked={formData.showProgress}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Show Activity Status</div>
+                        <div className="text-xs text-gray-500">Let others see when you're online and active</div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="showActivity"
+                          checked={formData.showActivity}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Account Management</h3>
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                    <button className="flex items-center space-x-2 text-red-700 hover:text-red-800 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm font-medium">Delete Account</span>
+                    </button>
+                    <p className="text-xs text-red-600 mt-2">
+                      This action cannot be undone. All your data, including learning progress, dictionary, and saved posts will be permanently deleted.
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
