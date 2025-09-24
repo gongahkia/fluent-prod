@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, Sparkles, UserPlus, UserCheck } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 
-const NewsFeed = ({ selectedCountry, selectedLanguage, userProfile }) => {
+const NewsFeed = ({ selectedCountry, selectedLanguage, userProfile, isActive = true }) => {
   const [showComments, setShowComments] = useState({});
   const [selectedWord, setSelectedWord] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
@@ -276,22 +276,36 @@ const NewsFeed = ({ selectedCountry, selectedLanguage, userProfile }) => {
 
   const showFeedback = (message, icon) => {
     setFeedbackMessage({ message, icon });
-    setTimeout(() => {
-      setFeedbackMessage(null);
-      setSelectedWord(null);
-    }, 2000);
   };
 
   const handleGotIt = () => {
-    showFeedback('Ganbatte!', '💪');
+    const message = selectedLanguage === 'spanish' ? '¡Entendido!' : 'Ganbatte!';
+    showFeedback(message, '💪');
+    // Close sidebar after showing feedback
+    setTimeout(() => {
+      setSelectedWord(null);
+      setFeedbackMessage(null);
+    }, 2000);
   };
 
   const handleAddToDictionary = () => {
-    showFeedback('Saved to dictionary!', '✓');
+    const message = selectedLanguage === 'spanish' ? '¡Guardado en diccionario!' : 'Saved to dictionary!';
+    showFeedback(message, '✓');
+    // Close sidebar after showing feedback
+    setTimeout(() => {
+      setSelectedWord(null);
+      setFeedbackMessage(null);
+    }, 2000);
   };
 
   const handleMastered = () => {
-    showFeedback('Sugoi!', '😊');
+    const message = selectedLanguage === 'spanish' ? '¡Dominado!' : 'Sugoi!';
+    showFeedback(message, '😊');
+    // Close sidebar after showing feedback
+    setTimeout(() => {
+      setSelectedWord(null);
+      setFeedbackMessage(null);
+    }, 2000);
   };
 
   const handleFollowToggle = (authorName) => {
@@ -621,49 +635,74 @@ const NewsFeed = ({ selectedCountry, selectedLanguage, userProfile }) => {
         </div>
       </div>
 
-      {/* Word Translation Popup */}
-      {selectedWord && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedWord(null)}>
-          <div className="bg-white rounded-lg p-6 max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            {!feedbackMessage ? (
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 mb-2">{selectedWord.original}</div>
-                <div className="text-lg text-gray-600 mb-3">{selectedWord.translation}</div>
-                {selectedWord.level && (
-                  <div className="mb-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}>
-                      Level {selectedWord.level}
-                    </span>
+      {/* Translation Sidebar - only show when NewsFeed is active */}
+      {isActive && (
+        <div className={`fixed top-0 right-0 h-full w-80 bg-white shadow-2xl border-l border-gray-200 z-50 transform transition-transform duration-300 ease-in-out ${
+          selectedWord ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+        {selectedWord && (
+          <div className="h-full flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Translation</h3>
+              <button
+                onClick={() => setSelectedWord(null)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-6">
+              {!feedbackMessage ? (
+                <div className="space-y-6">
+                  {/* Word Display */}
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-gray-900 mb-3">{selectedWord.original}</div>
+                    <div className="text-xl text-gray-600 mb-4">{selectedWord.translation}</div>
+                    {selectedWord.level && (
+                      <div className="mb-6">
+                        <span className={`inline-block px-4 py-2 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}>
+                          Level {selectedWord.level}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="flex space-x-2">
-                  <button
-                    className="flex-1 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-orange-600"
-                    onClick={handleGotIt}
-                  >
-                    Got it!
-                  </button>
-                  <button
-                    className="flex-1 bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600"
-                    onClick={handleMastered}
-                  >
-                    Mastered
-                  </button>
-                  <button
-                    className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-200"
-                    onClick={handleAddToDictionary}
-                  >
-                    Add to Dictionary
-                  </button>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3">
+                    <button
+                      className="w-full bg-orange-500 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+                      onClick={handleGotIt}
+                    >
+                      Got it!
+                    </button>
+                    <button
+                      className="w-full bg-green-500 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
+                      onClick={handleMastered}
+                    >
+                      Mastered
+                    </button>
+                    <button
+                      className="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                      onClick={handleAddToDictionary}
+                    >
+                      Add to Dictionary
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">{feedbackMessage.icon}</div>
-                <div className="text-xl font-semibold text-gray-900">{feedbackMessage.message}</div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-6">{feedbackMessage.icon}</div>
+                  <div className="text-2xl font-semibold text-gray-900">{feedbackMessage.message}</div>
+                </div>
+              )}
+            </div>
           </div>
+        )}
         </div>
       )}
 

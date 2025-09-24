@@ -116,8 +116,8 @@ const Onboarding = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full bg-white border border-gray-200 rounded-lg shadow-sm p-8">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -125,8 +125,8 @@ const Onboarding = ({ onComplete }) => {
             <span className="text-sm text-gray-600">{Math.round((currentStep / 4) * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+            <div
+              className="bg-black h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             ></div>
           </div>
@@ -135,14 +135,14 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 1: Native Language Selection */}
         {currentStep === 1 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Globe className="w-8 h-8 text-orange-600" />
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <Globe className="w-6 h-6 text-gray-700" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to LivePeek!</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Welcome to LivePeek!</h2>
             <p className="text-gray-600 mb-8">Discover authentic content from around the world. We're starting with Japanese and expanding to more languages soon!</p>
-            
+
             <div className="text-left mb-8">
-              <label className="block text-lg font-medium text-gray-900 mb-4">
+              <label className="block text-base font-medium text-gray-900 mb-4">
                 What's your native language(s)?
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -150,9 +150,9 @@ const Onboarding = ({ onComplete }) => {
                   <button
                     key={lang}
                     onClick={() => handleLanguageToggle(lang)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
+                    className={`p-3 rounded-md border transition-all ${
                       nativeLanguages.includes(lang)
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        ? 'border-gray-400 bg-gray-50 text-gray-900'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -162,10 +162,10 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={handleNext}
               disabled={nativeLanguages.length === 0}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -175,19 +175,19 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 2: Target Language Selection */}
         {currentStep === 2 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-8 h-8 text-orange-600" />
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-6 h-6 text-gray-700" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">What do you want to learn?</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">What do you want to learn?</h2>
             <p className="text-gray-600 mb-8">Choose from Japanese and Spanish, with more languages coming soon!</p>
-            
+
             <div className="text-left mb-8">
               <div className="space-y-3">
                 <button
                   onClick={() => setTargetLanguage('Japanese')}
-                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
+                  className={`w-full p-4 rounded-md border transition-all flex items-center justify-between ${
                     targetLanguage === 'Japanese'
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
+                      ? 'border-gray-400 bg-gray-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -199,16 +199,16 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === 'Japanese' && (
-                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
                   )}
                 </button>
                 <button
                   onClick={() => setTargetLanguage('Spanish')}
-                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
+                  className={`w-full p-4 rounded-md border transition-all flex items-center justify-between ${
                     targetLanguage === 'Spanish'
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
+                      ? 'border-gray-400 bg-gray-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -220,7 +220,7 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === 'Spanish' && (
-                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
                   )}
@@ -228,10 +228,10 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={handleNext}
               disabled={!targetLanguage}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -241,10 +241,10 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 3: Interactive Translation Demo */}
         {currentStep === 3 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lightbulb className="w-8 h-8 text-orange-600" />
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <Lightbulb className="w-6 h-6 text-gray-700" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How LivePeek Works</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">How LivePeek Works</h2>
             <p className="text-gray-600 mb-8">Slide to control how much translation you need. Try both languages!</p>
 
             {/* Language Toggle for Demo */}
@@ -340,9 +340,9 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button 
+            <Button
               onClick={handleNext}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
             >
               I understand! <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -352,14 +352,14 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 4: Disclaimer */}
         {currentStep === 4 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-8 h-8 text-orange-600" />
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-6 h-6 text-gray-700" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Before We Begin</h2>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-blue-900 mb-3">Important Notice</h3>
-              <ul className="space-y-2 text-blue-800 text-sm">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Before We Begin</h2>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-gray-900 mb-3">Important Notice</h3>
+              <ul className="space-y-2 text-gray-700 text-sm">
                 <li>• LivePeek is designed for <strong>intermediate to advanced</strong> language learners</li>
                 <li>• We expect you to have a <strong>basic understanding</strong> of your target language</li>
                 <li>• For Japanese: You should be comfortable with hiragana and katakana</li>
@@ -373,9 +373,9 @@ const Onboarding = ({ onComplete }) => {
               <p>Ready to immerse yourself in authentic content and connect with native speakers worldwide?</p>
             </div>
 
-            <Button 
+            <Button
               onClick={handleNext}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
             >
               Start Learning! <ChevronRight className="w-4 h-4 ml-2" />
             </Button>

@@ -67,126 +67,112 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Notion-style Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Settings className="w-4 h-4 text-gray-500" />
-                <h1 className="text-sm font-medium text-gray-900">Profile Settings</h1>
-              </div>
-            </div>
-            <Button
-              onClick={handleSave}
-              disabled={isLoading}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5"
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving</span>
-                </div>
-              ) : (
-                <>
-                  <Save className="w-3 h-3 mr-1" />
-                  Save
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-6 py-6">
-        {/* Notion-style Profile Header */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-6">
-            <div className="flex items-start space-x-4">
-              <div className="relative">
-                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-xl font-semibold text-blue-600">
-                    {formData.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-white hover:bg-gray-700 transition-colors">
-                  <Camera className="w-3 h-3" />
+    <>
+      <div className="min-h-screen bg-gray-50">
+        {/* Notion-style Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="flex items-center justify-between h-14">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={onBack}
+                  className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 text-gray-600" />
                 </button>
+                <div className="flex items-center space-x-2">
+                  <Settings className="w-4 h-4 text-gray-500" />
+                  <h1 className="text-sm font-medium text-gray-900">Profile Settings</h1>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold text-gray-900">{formData.name || 'Your Name'}</h2>
-                <p className="text-sm text-gray-500">{formData.email}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <div className="flex items-center space-x-1 text-xs text-gray-600">
-                    <Languages className="w-3 h-3" />
-                    <span>{formData.targetLanguage}</span>
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5"
+              >
+                {isLoading ? (
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Saving</span>
                   </div>
-                  <div className="flex items-center space-x-1 text-xs text-gray-600">
-                    <Award className="w-3 h-3" />
-                    <span>Level {formData.learningLevel}</span>
+                ) : (
+                  <>
+                    <Save className="w-3 h-3 mr-1" />
+                    Save
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          {/* Notion-style Profile Header */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+            <div className="px-6 py-6">
+              <div className="flex items-start space-x-4">
+                <div className="relative">
+                  <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-xl font-semibold text-blue-600">
+                      {formData.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-1 text-xs text-gray-600">
-                    <Flame className="w-3 h-3 text-orange-500" />
-                    <span>7 day streak</span>
+                  <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-white hover:bg-gray-700 transition-colors">
+                    <Camera className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900">{formData.name || 'Your Name'}</h2>
+                  <p className="text-sm text-gray-500">{formData.email}</p>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-1 text-xs text-gray-600">
+                      <Languages className="w-3 h-3" />
+                      <span>{formData.targetLanguage}</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-gray-600">
+                      <Award className="w-3 h-3" />
+                      <span>Level {formData.learningLevel}</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-gray-600">
+                      <Flame className="w-3 h-3 text-orange-500" />
+                      <span>7 day streak</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Notion-style Tabs */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex px-6">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 py-3 px-3 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600 bg-blue-50'
-                        : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+          {/* Notion-style Tabs */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="border-b border-gray-200">
+              <nav className="flex px-6">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center space-x-2 py-3 px-3 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 text-blue-600 bg-blue-50'
+                          : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
-          {/* Tab Content with Sliding Animation */}
-          <div className="relative overflow-hidden min-h-[600px]">
-            <div
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{
-                transform: `translateX(-${
-                  activeTab === 'general' ? 0 :
-                  activeTab === 'learning' ? 100 :
-                  activeTab === 'progress' ? 200 :
-                  activeTab === 'goals' ? 300 :
-                  activeTab === 'notifications' ? 400 : 500
-                }%)`
-              }}
-            >
-              {/* Debug Info */}
-              <div className="fixed top-4 right-4 bg-red-500 text-white p-2 rounded text-xs z-50">
-                Active: {activeTab} | Transform: {activeTab === 'general' ? 0 : activeTab === 'learning' ? 100 : activeTab === 'progress' ? 200 : activeTab === 'goals' ? 300 : activeTab === 'notifications' ? 400 : 500}%
-              </div>
+            {/* Tab Content */}
+            <div className="min-h-[400px]">
               {/* General Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'general' && (
+              <div className="p-6">
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3">Basic Information</h3>
@@ -401,9 +387,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Learning Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'learning' && (
+              <div className="p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Language Settings</h3>
@@ -519,9 +507,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Progress Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'progress' && (
+              <div className="p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Learning Statistics</h3>
@@ -592,9 +582,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Goals & Streaks Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'goals' && (
+              <div className="p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Daily Goals</h3>
@@ -701,9 +693,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Notifications Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'notifications' && (
+              <div className="p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">General Notifications</h3>
@@ -800,9 +794,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Privacy Tab */}
-              <div className="w-full flex-shrink-0 p-6">
+              {activeTab === 'privacy' && (
+              <div className="p-6">
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Profile Privacy</h3>
@@ -909,6 +905,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -995,13 +992,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           </div>
         </div>
       )}
-              </div>
-              </div>
-              </div>
-              </div>
-              </div>
-              </div>
     </div>
+    </>
   );
 };
 

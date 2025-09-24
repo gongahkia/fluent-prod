@@ -155,34 +155,31 @@ function App() {
           </button>
         </div>
 
-        {/* Tab Content with Animations */}
-        <div className="relative overflow-hidden">
-          <div
-            className="flex transition-transform duration-300 ease-in-out"
-            style={{ transform: `translateX(-${currentView === 'feed' ? 0 : currentView === 'dictionary' ? 100 : 200}%)` }}
-          >
-            {/* Feed Tab */}
-            <div className="w-full flex-shrink-0">
-              <NewsFeed selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'} selectedLanguage={selectedLanguage} userProfile={userProfile} />
-            </div>
+        {/* Tab Content */}
+        <div>
+          {currentView === 'feed' && (
+            <NewsFeed
+              selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'}
+              selectedLanguage={selectedLanguage}
+              userProfile={userProfile}
+              isActive={currentView === 'feed'}
+            />
+          )}
 
-            {/* Dictionary Tab */}
-            <div className="w-full flex-shrink-0">
-              <Dictionary
-                onNavigateToFlashcards={() => setCurrentView('flashcards')}
-                selectedLanguage={selectedLanguage}
-                isEmbedded={true}
-              />
-            </div>
+          {currentView === 'dictionary' && (
+            <Dictionary
+              onNavigateToFlashcards={() => setCurrentView('flashcards')}
+              selectedLanguage={selectedLanguage}
+              isEmbedded={true}
+            />
+          )}
 
-            {/* Flashcards Tab */}
-            <div className="w-full flex-shrink-0">
-              <Flashcards
-                selectedLanguage={selectedLanguage}
-                isEmbedded={true}
-              />
-            </div>
-          </div>
+          {currentView === 'flashcards' && (
+            <Flashcards
+              selectedLanguage={selectedLanguage}
+              isEmbedded={true}
+            />
+          )}
         </div>
       </main>
     </div>
