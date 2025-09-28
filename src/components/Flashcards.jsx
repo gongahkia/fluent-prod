@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RotateCcw, CheckCircle, XCircle, Star, Sparkles } from 'lucide-react';
+import { ArrowLeft, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
 
 const Flashcards = ({ onBack, userDictionary }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -128,7 +128,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
                   onClick={() => handleStudyModeChange('all')}
                   className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                     studyMode === 'all' 
-                      ? 'bg-orange-500 text-white' 
+                      ? 'bg-green-500 text-white' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -137,8 +137,8 @@ const Flashcards = ({ onBack, userDictionary }) => {
                 <button
                   onClick={() => handleStudyModeChange('new')}
                   className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    studyMode === 'new' 
-                      ? 'bg-green-500 text-white' 
+                    studyMode === 'new'
+                      ? 'bg-blue-500 text-white' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -179,7 +179,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${((currentCardIndex + 1) / flashcards.length) * 100}%` }}
                 ></div>
               </div>
@@ -201,14 +201,14 @@ const Flashcards = ({ onBack, userDictionary }) => {
 
             {showAnswer ? (
               <div className="space-y-4">
-                <div className="text-2xl font-semibold text-orange-600">
+                <div className="text-2xl font-semibold text-green-600">
                   {currentCard.meaning}
                 </div>
               </div>
             ) : (
               <button
                 onClick={() => setShowAnswer(true)}
-                className="bg-orange-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                className="bg-green-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-600 transition-colors"
               >
                 Show Answer
               </button>
@@ -257,7 +257,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
         ) : (
           /* Empty State */
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🃏</span>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -274,7 +274,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
             </p>
             <button
               onClick={onBack}
-              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+              className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
             >
               Go to Feed
             </button>
