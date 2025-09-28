@@ -1,13 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { Heart, MessageCircle, Languages, BookOpen, Sparkles, Send, Check } from 'lucide-react';
-import { handleWordClick as sharedHandleWordClick, addWordToDictionary } from '../lib/wordDatabase';
+import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 
 const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWordToDictionary }) => {
-  const [showDictionary, setShowDictionary] = useState(false);
   const [showAIHelp, setShowAIHelp] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [selectedWord, setSelectedWord] = useState(null);
-  const [showTranslation, setShowTranslation] = useState({});
   const [showSuccessMessage, setShowSuccessMessage] = useState('');
   const [comments, setComments] = useState([]);
   const [feedbackMessage, setFeedbackMessage] = useState(null);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, Sparkles, UserPlus, UserCheck } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
-import { handleWordClick as sharedHandleWordClick, addWordToDictionary } from '../lib/wordDatabase';
+import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
   const [showComments, setShowComments] = useState({});
@@ -240,25 +240,6 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     }
   };
 
-  const renderSourceBadge = (source) => {
-    const sourceConfig = {
-      twitter: { color: 'bg-gray-600', icon: '🐦', name: 'Twitter' },
-      reddit: { color: 'bg-gray-600', icon: '🤖', name: 'Reddit' },
-      instagram: { color: 'bg-gray-600', icon: '📷', name: 'Instagram' },
-      line: { color: 'bg-gray-600', icon: '💬', name: 'LINE' },
-      tiktok: { color: 'bg-gray-800', icon: '🎵', name: 'TikTok' },
-      facebook: { color: 'bg-gray-600', icon: '👥', name: 'Facebook' }
-    };
-
-    const config = sourceConfig[source] || { color: 'bg-gray-500', icon: '📱', name: 'Social' };
-    
-    return (
-      <div className={`inline-flex items-center space-x-1 ${config.color} text-white px-2 py-1 rounded-full text-xs font-medium`}>
-        <span>{config.icon}</span>
-        <span>{config.name}</span>
-      </div>
-    );
-  };
 
   const toggleComments = (articleId) => {
     setShowComments(prev => ({
@@ -284,11 +265,9 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     await sharedHandleWordClick(word, setSelectedWord, isJapanese, context, null, setIsTranslating);
   };
 
-  const handleWordClickOld = (word, isJapanese) => {
-    // Comprehensive Japanese word database with words from actual posts
-    const japaneseWords = {
-      // Basic particles and grammar (particles are small words that show relationships between words)
-      'の': { japanese: 'の', hiragana: 'の', english: 'possessive particle (shows ownership, like "\'s" in English)', level: 1, example: '地元の人だけがこの店を知っています。', exampleEn: 'Only local people know about this shop.' },
+  // Removed unused handleWordClickOld function
+
+  // Function to segment Japanese text into meaningful words/phrases
       'が': { japanese: 'が', hiragana: 'が', english: 'subject particle (marks who/what does the action)', level: 1, example: '地元の人が秘密の場所を教えてくれました。', exampleEn: 'Local people taught me about the secret place.' },
       'は': { japanese: 'は', hiragana: 'は', english: 'topic marker (shows what we\'re talking about)', level: 1, example: 'この店は本当に美味しいです。', exampleEn: 'This shop is really delicious.' },
       'を': { japanese: 'を', hiragana: 'を', english: 'object particle (marks what receives the action)', level: 1, example: '毎日美味しいラーメンを提供しています。', exampleEn: 'They provide delicious ramen every day.' },

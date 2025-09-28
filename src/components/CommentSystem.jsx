@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, MessageCircle, Languages, BookOpen, Send, User } from 'lucide-react';
 
-const CommentSystem = ({ articleId, isJapanese = false }) => {
+const CommentSystem = ({ isJapanese = false }) => {
   const [comments, setComments] = useState([
     {
       id: 1,
