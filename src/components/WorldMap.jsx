@@ -83,7 +83,7 @@ const WorldMap = ({ onCountryClick, selectedCountry }) => {
         </Geographies>
         
         {/* Popular destination markers */}
-        {popularDestinations.map(({ name, coordinates, trending }) => (
+        {popularDestinations.map(({ name, coordinates }) => (
           <Marker key={name} coordinates={coordinates}>
             <g>
               <circle
