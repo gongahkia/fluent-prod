@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { addWordToDictionary } from '../lib/wordDatabase';
 
-const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedded = false }) => {
+const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedded = false, onAddWordToDictionary }) => {
   const [expandedWord, setExpandedWord] = useState(null);
+  const [userDictionary, setUserDictionary] = useState([]);
+  const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
-  // Japanese dictionary words
+  // Load saved dictionary from localStorage
+  useEffect(() => {
+    const savedDictionary = localStorage.getItem(`livepeek_dictionary_${selectedLanguage}`);
+    if (savedDictionary) {
+      setUserDictionary(JSON.parse(savedDictionary));
+    }
+  }, [selectedLanguage]);
+
+  // Save dictionary to localStorage whenever it changes
+  useEffect(() => {
+    if (userDictionary.length > 0) {
+      localStorage.setItem(`livepeek_dictionary_${selectedLanguage}`, JSON.stringify(userDictionary));
+    }
+  }, [userDictionary, selectedLanguage]);
+
+  // Sample Japanese dictionary words (fallback)
   const japaneseDictionaryWords = [
     {
       id: 1,
@@ -172,7 +191,9 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
     }
   ];
 
-  const dictionaryWords = selectedLanguage === 'spanish' ? spanishDictionaryWords : japaneseDictionaryWords;
+  // Use user dictionary if available, otherwise use sample data
+  const sampleWords = selectedLanguage === 'spanish' ? spanishDictionaryWords : japaneseDictionaryWords;
+  const dictionaryWords = userDictionary.length > 0 ? userDictionary : sampleWords;
   const sortedWords = [...dictionaryWords].sort((a, b) => a.level - b.level);
 
   const getLevelColor = (level) => {
@@ -183,8 +204,11 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
   };
 
   const removeWord = (wordId) => {
-    // In a real app, this would update the dictionary
-    console.log('Removing word:', wordId);
+    setUserDictionary(prev => prev.filter(word => word.id !== wordId));
+  };
+
+  const addWordToUserDictionary = (wordData) => {
+    addWordToDictionary(wordData, userDictionary, setUserDictionary, setFeedbackMessage, setShowFeedback);
   };
 
   const toggleExpanded = (wordId) => {
@@ -293,11 +317,26 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
           ))}
         </div>
 
+        {/* Feedback Message */}
+        {showFeedback && feedbackMessage && (
+          <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">{feedbackMessage.icon}</span>
+              <span className="text-sm font-medium text-gray-900">{feedbackMessage.message}</span>
+            </div>
+          </div>
+        )}
+
         {sortedWords.length === 0 && (
           <div className="text-center py-16">
             <BookOpen className="w-20 h-20 text-gray-300 mx-auto mb-6" />
             <h3 className="text-xl font-bold text-gray-900 mb-3">No words saved yet</h3>
             <p className="text-gray-600 text-lg">Start clicking on words in posts to build your dictionary!</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto mt-6">
+              <div className="text-sm text-blue-800">
+                <strong>💡 Tip:</strong> Click on any {selectedLanguage === 'spanish' ? 'Spanish' : 'Japanese'} word in the news feed to see its meaning, pronunciation, and add it to your dictionary for later review.
+              </div>
+            </div>
           </div>
         )}
       </div>

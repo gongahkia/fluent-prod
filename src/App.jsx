@@ -14,6 +14,7 @@ function App() {
   const [currentView, setCurrentView] = useState('feed'); // 'feed', 'profile', 'dictionary', or 'flashcards'
   const [userProfile, setUserProfile] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState('japanese');
+  const [userDictionary, setUserDictionary] = useState([]);
 
   const handleAuthComplete = (authData) => {
     setIsAuthenticated(true);
@@ -39,6 +40,46 @@ function App() {
     setShowOnboarding(false);
     setCurrentView('feed');
   };
+
+  const addWordToDictionary = (wordData) => {
+    const newWord = {
+      id: Date.now() + Math.random(),
+      dateAdded: new Date().toISOString(),
+      source: "LivePeek Post",
+      ...wordData
+    };
+
+    setUserDictionary(prev => {
+      // Check if word already exists
+      const wordKey = selectedLanguage === 'japanese' ? 'japanese' : 'spanish';
+      const exists = prev.some(word => word[wordKey] === newWord[wordKey]);
+      if (exists) {
+        return prev; // Don't add duplicates
+      }
+      return [...prev, newWord];
+    });
+  };
+
+  const removeWordFromDictionary = (wordId) => {
+    setUserDictionary(prev => prev.filter(word => word.id !== wordId));
+  };
+
+  // Load dictionary from localStorage on startup
+  useEffect(() => {
+    const savedDictionary = localStorage.getItem(`livepeek_dictionary_${selectedLanguage}`);
+    if (savedDictionary) {
+      setUserDictionary(JSON.parse(savedDictionary));
+    } else {
+      setUserDictionary([]);
+    }
+  }, [selectedLanguage]);
+
+  // Save dictionary to localStorage whenever it changes
+  useEffect(() => {
+    if (userDictionary.length >= 0) {
+      localStorage.setItem(`livepeek_dictionary_${selectedLanguage}`, JSON.stringify(userDictionary));
+    }
+  }, [userDictionary, selectedLanguage]);
 
   // Show authentication if not authenticated
   if (!isAuthenticated) {
@@ -163,6 +204,8 @@ function App() {
               selectedLanguage={selectedLanguage}
               userProfile={userProfile}
               isActive={currentView === 'feed'}
+              onAddWordToDictionary={addWordToDictionary}
+              userDictionary={userDictionary}
             />
           )}
 
@@ -171,6 +214,9 @@ function App() {
               onNavigateToFlashcards={() => setCurrentView('flashcards')}
               selectedLanguage={selectedLanguage}
               isEmbedded={true}
+              userDictionary={userDictionary}
+              onAddWordToDictionary={addWordToDictionary}
+              onRemoveWord={removeWordFromDictionary}
             />
           )}
 
@@ -178,6 +224,7 @@ function App() {
             <Flashcards
               selectedLanguage={selectedLanguage}
               isEmbedded={true}
+              userDictionary={userDictionary}
             />
           )}
         </div>
