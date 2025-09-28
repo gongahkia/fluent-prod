@@ -3,7 +3,7 @@ import {
   fetchPosts,
   checkApiConfiguration
 } from '../services/newsService';
-import { ExternalLink, Clock, User, Tag, Settings, Refresh } from 'lucide-react';
+import { ExternalLink, Clock, User, Tag, Settings, RefreshCw } from 'lucide-react';
 import LoadingSpinner from './ui/LoadingSpinner';
 
 export default function RealNewsFeed() {
@@ -102,7 +102,7 @@ export default function RealNewsFeed() {
           onClick={loadPosts}
           className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto"
         >
-          <Refresh className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4" />
           <span>Try Again</span>
         </button>
       </div>
@@ -124,7 +124,7 @@ export default function RealNewsFeed() {
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
             >
-              <Refresh className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
             <button
