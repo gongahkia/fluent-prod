@@ -1,3 +1,12 @@
+// Get environment variables safely
+const getEnvVar = (name) => {
+  try {
+    return import.meta.env?.[name] || '';
+  } catch {
+    return '';
+  }
+};
+
 // API Configuration
 const API_CONFIG = {
   hackernews: {
@@ -11,21 +20,21 @@ const API_CONFIG = {
     name: 'NewsAPI.org',
     baseUrl: 'https://newsapi.org/v2',
     // API key should be set via environment variable or config
-    apiKey: (typeof process !== 'undefined' && process.env ? process.env.REACT_APP_NEWSAPI_KEY : '') || '',
+    apiKey: getEnvVar('VITE_NEWSAPI_KEY'),
     enabled: false // Enable when API key is available
   },
   guardian: {
     name: 'The Guardian',
     baseUrl: 'https://content.guardianapis.com',
     // API key should be set via environment variable or config
-    apiKey: (typeof process !== 'undefined' && process.env ? process.env.REACT_APP_GUARDIAN_API_KEY : '') || '',
+    apiKey: getEnvVar('VITE_GUARDIAN_API_KEY'),
     enabled: false // Enable when API key is available
   },
   nytimes: {
     name: 'NY Times',
     baseUrl: 'https://api.nytimes.com/svc',
     // API key should be set via environment variable or config
-    apiKey: (typeof process !== 'undefined' && process.env ? process.env.REACT_APP_NYTIMES_API_KEY : '') || '',
+    apiKey: getEnvVar('VITE_NYTIMES_API_KEY'),
     enabled: false // Enable when API key is available
   },
   reddit: {
@@ -37,14 +46,14 @@ const API_CONFIG = {
     name: 'Mediastack',
     baseUrl: 'http://api.mediastack.com/v1',
     // API key should be set via environment variable or config
-    apiKey: (typeof process !== 'undefined' && process.env ? process.env.REACT_APP_MEDIASTACK_API_KEY : '') || '',
+    apiKey: getEnvVar('VITE_MEDIASTACK_API_KEY'),
     enabled: false // Enable when API key is available
   },
   gnews: {
     name: 'GNews',
     baseUrl: 'https://gnews.io/api/v4',
     // API key should be set via environment variable or config
-    apiKey: (typeof process !== 'undefined' && process.env ? process.env.REACT_APP_GNEWS_API_KEY : '') || '',
+    apiKey: getEnvVar('VITE_GNEWS_API_KEY'),
     enabled: false // Enable when API key is available
   }
 };
@@ -383,9 +392,9 @@ export async function fetchPosts(options = {}) {
 // Helper function to get available sources
 export function getAvailableSources() {
   return Object.entries(API_CONFIG)
-    .filter(([key, config]) => config.enabled)
-    .map(([key, config]) => ({
-      id: key,
+    .filter(([, config]) => config.enabled)
+    .map(([sourceKey, config]) => ({
+      id: sourceKey,
       name: config.name,
       enabled: config.enabled
     }));

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   fetchPosts,
-  getAvailableSources,
   checkApiConfiguration
 } from '../services/newsService';
 import { ExternalLink, Clock, User, Tag, Settings, Refresh } from 'lucide-react';
@@ -51,7 +50,9 @@ export default function RealNewsFeed() {
   };
 
   useEffect(() => {
-    loadPosts();
+    if (Object.keys(apiStatus).length > 0) {
+      loadPosts();
+    }
   }, [selectedSources, query, apiStatus]);
 
   const handleSourceToggle = (sourceId) => {

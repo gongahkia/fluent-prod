@@ -240,25 +240,6 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     }
   };
 
-  const renderSourceBadge = (source) => {
-    const sourceConfig = {
-      twitter: { color: 'bg-blue-500', icon: '🐦', name: 'Twitter' },
-      reddit: { color: 'bg-orange-600', icon: '🤖', name: 'Reddit' },
-      instagram: { color: 'bg-pink-500', icon: '📷', name: 'Instagram' },
-      line: { color: 'bg-green-500', icon: '💬', name: 'LINE' },
-      tiktok: { color: 'bg-black', icon: '🎵', name: 'TikTok' },
-      facebook: { color: 'bg-blue-600', icon: '👥', name: 'Facebook' }
-    };
-
-    const config = sourceConfig[source] || { color: 'bg-gray-500', icon: '📱', name: 'Social' };
-    
-    return (
-      <div className={`inline-flex items-center space-x-1 ${config.color} text-white px-2 py-1 rounded-full text-xs font-medium`}>
-        <span>{config.icon}</span>
-        <span>{config.name}</span>
-      </div>
-    );
-  };
 
   const toggleComments = (articleId) => {
     setShowComments(prev => ({
