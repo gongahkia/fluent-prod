@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Heart, MessageCircle, Languages, BookOpen, Sparkles, Send, Check } from 'lucide-react';
+import LoadingSpinner from './ui/LoadingSpinner';
 import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 
 const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWordToDictionary }) => {
@@ -11,6 +12,7 @@ const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWo
   const [feedbackMessage, setFeedbackMessage] = useState(null);
   const [commentLikes, setCommentLikes] = useState({});
   const [likedComments, setLikedComments] = useState(new Set());
+  const [isTranslating, setIsTranslating] = useState(false);
   const commentInputRef = useRef(null);
 
   // Mock comments with complete sentences in both languages
@@ -285,16 +287,16 @@ const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWo
   const handleWordClick = async (word, isJapanese, context = null) => {
     // Find the comment that contains this word to get full context
     const comment = allComments.find(c => c.content.includes(word));
-    
+
     let fullContext = context;
     let fullContextTranslation = null;
-    
+
     if (comment) {
       fullContext = comment.content; // Use the comment content as context
       // Let the translation API handle the translation
     }
-    
-    await sharedHandleWordClick(word, setSelectedWord, isJapanese, fullContext, fullContextTranslation);
+
+    await sharedHandleWordClick(word, setSelectedWord, isJapanese, fullContext, fullContextTranslation, setIsTranslating);
   };
 
   const showFeedback = (message, icon) => {
@@ -554,15 +556,24 @@ const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWo
       </div>
 
       {/* Word Learning Popup */}
-      {selectedWord && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="text-center mb-6">
-              <div className="text-3xl font-bold text-gray-900 mb-2">{selectedWord.japanese}</div>
-              <div className="text-lg text-gray-600 mb-2">{selectedWord.hiragana}</div>
-              <div className="text-sm text-gray-500 mb-2">Meaning:</div>
-              <div className="text-xl text-orange-600 font-semibold">{selectedWord.english}</div>
-            </div>
+      {(selectedWord || isTranslating) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => {
+          setSelectedWord(null);
+          setIsTranslating(false);
+        }}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            {isTranslating ? (
+              <div className="text-center py-8">
+                <LoadingSpinner size="lg" text="Translating..." />
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-6">
+                  <div className="text-3xl font-bold text-gray-900 mb-2">{selectedWord.japanese}</div>
+                  <div className="text-lg text-gray-600 mb-2">{selectedWord.hiragana}</div>
+                  <div className="text-sm text-gray-500 mb-2">Meaning:</div>
+                  <div className="text-xl text-green-600 font-semibold">{selectedWord.english}</div>
+                </div>
 
             {/* Level Badge */}
             {selectedWord.level && (
@@ -602,12 +613,14 @@ const EnhancedCommentSystem = ({ articleId, userProfile, userDictionary, onAddWo
               </button>
             </div>
 
-            {/* Feedback Message */}
-            {feedbackMessage && (
-              <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-center">
-                <span className="text-lg mr-2">{feedbackMessage.icon}</span>
-                {feedbackMessage.message}
-              </div>
+                {/* Feedback Message */}
+                {feedbackMessage && (
+                  <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-center">
+                    <span className="text-lg mr-2">{feedbackMessage.icon}</span>
+                    {feedbackMessage.message}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
