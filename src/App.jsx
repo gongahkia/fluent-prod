@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Auth from './components/Auth';
 import NewsFeed from './components/NewsFeed';
 import Onboarding from './components/Onboarding';
 import Profile from './components/Profile';
 import Dictionary from './components/Dictionary';
 import Flashcards from './components/Flashcards';
-import { Star } from 'lucide-react';
+import { Star, Menu } from 'lucide-react';
+import { useIsMobile } from './hooks/use-mobile';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from './components/ui/sheet';
 import './App.css';
 
 function App() {
@@ -16,6 +24,8 @@ function App() {
   const [userDictionary, setUserDictionary] = useState([
     // Start with empty dictionary - users will build their own
   ]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleAuthComplete = (authData) => {
     setIsAuthenticated(true);
@@ -69,6 +79,11 @@ function App() {
     setUserDictionary(prev => prev.filter(word => word.id !== wordId));
   };
 
+  const handleNavigation = (view) => {
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+  };
+
   // Show authentication if not authenticated
   if (!isAuthenticated) {
     return <Auth onAuthComplete={handleAuthComplete} />;
@@ -83,7 +98,7 @@ function App() {
   if (currentView === 'dictionary') {
     return (
       <Dictionary
-        onBack={() => setCurrentView('feed')}
+        onBack={() => handleNavigation('feed')}
         userDictionary={userDictionary}
         onRemoveWord={removeWordFromDictionary}
       />
@@ -94,7 +109,7 @@ function App() {
   if (currentView === 'flashcards') {
     return (
       <Flashcards
-        onBack={() => setCurrentView('feed')}
+        onBack={() => handleNavigation('feed')}
         userDictionary={userDictionary}
       />
     );
@@ -103,10 +118,10 @@ function App() {
   // Show profile page
   if (currentView === 'profile') {
     return (
-      <Profile 
+      <Profile
         userProfile={userProfile}
         onProfileUpdate={handleProfileUpdate}
-        onBack={() => setCurrentView('feed')}
+        onBack={() => handleNavigation('feed')}
       />
     );
   }
@@ -119,11 +134,66 @@ function App() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">L</span>
-                </div>
+                <img
+                  src="/livepeek-logo.png"
+                  alt="LivePeek Logo"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
                 <span className="text-xl font-bold text-gray-900">LivePeek</span>
               </div>
+
+              {/* Mobile Menu Button */}
+              {isMobile && (
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <button className="p-2 hover:bg-gray-100 rounded-md">
+                      <Menu className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[280px]">
+                    <SheetHeader>
+                      <SheetTitle>Navigation</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex flex-col space-y-4 mt-6">
+                      <button
+                        onClick={() => handleNavigation('feed')}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === 'feed'
+                            ? 'bg-blue-100 text-blue-900'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-lg">📰</span>
+                        <span className="font-medium">Feed</span>
+                      </button>
+                      <button
+                        onClick={() => handleNavigation('dictionary')}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === 'dictionary'
+                            ? 'bg-green-100 text-green-900'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-lg">📚</span>
+                        <span className="font-medium">Dictionary</span>
+                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
+                      </button>
+                      <button
+                        onClick={() => handleNavigation('flashcards')}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === 'flashcards'
+                            ? 'bg-blue-100 text-blue-900'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-lg">🃏</span>
+                        <span className="font-medium">Flashcards</span>
+                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
+                      </button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
             </div>
             
             <div className="flex items-center space-x-4">
@@ -140,10 +210,10 @@ function App() {
                   Welcome, <span className="font-medium text-gray-900">{userProfile?.name || 'User'}</span>
                 </div>
                 <button
-                  onClick={() => setCurrentView('profile')}
-                  className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                  onClick={() => handleNavigation('profile')}
+                  className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
                 >
-                  <span className="text-sm font-medium text-orange-700">
+                  <span className="text-sm font-medium text-blue-700">
                     {userProfile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </button>
@@ -161,41 +231,43 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setCurrentView('feed')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              currentView === 'feed'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Feed
-          </button>
-          <button
-            onClick={() => setCurrentView('dictionary')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
-              currentView === 'dictionary'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span>Dictionary</span>
-            <Star className="w-4 h-4 text-yellow-500" />
-          </button>
-          <button
-            onClick={() => setCurrentView('flashcards')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
-              currentView === 'flashcards'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span>Flashcards</span>
-            <Star className="w-4 h-4 text-yellow-500" />
-          </button>
-        </div>
+        {/* Navigation Tabs - Hidden on mobile */}
+        {!isMobile && (
+          <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => handleNavigation('feed')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                currentView === 'feed'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Feed
+            </button>
+            <button
+              onClick={() => handleNavigation('dictionary')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
+                currentView === 'dictionary'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <span>Dictionary</span>
+              <Star className="w-4 h-4 text-yellow-500" />
+            </button>
+            <button
+              onClick={() => handleNavigation('flashcards')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
+                currentView === 'flashcards'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <span>Flashcards</span>
+              <Star className="w-4 h-4 text-yellow-500" />
+            </button>
+          </div>
+        )}
 
         <NewsFeed 
           selectedCountry="Japan" 
