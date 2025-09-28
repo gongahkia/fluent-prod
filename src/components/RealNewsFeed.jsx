@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import RealNewsFeed from './RealNewsFeed';
 import { fetchPosts } from '../services/newsService';
 
 export default function RealNewsFeed() {
