@@ -31,11 +31,12 @@ const Flashcards = ({ onBack, userDictionary }) => {
   // Filter flashcards based on study mode
   const getFilteredFlashcards = () => {
     switch (studyMode) {
-      case 'new':
+      case 'new': {
         // Words added in the last 7 days
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         return allFlashcards.filter(card => new Date(card.dateAdded) > weekAgo);
+      }
       case 'review':
         // Words that have been marked as "learning" (not mastered)
         return allFlashcards.filter(card => progress[card.id] === 'learning');
