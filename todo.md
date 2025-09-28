@@ -6,6 +6,14 @@ LivePeek is a React-based Japanese language learning platform that combines news
 
 ## 🚀 High Priority Improvements
 
+### Do these first
+
+- Research available free APIs from social media platforms
+- Design API integration architecture
+- Implement API data fetching service
+- Update UI components to use real API data
+- Test API integration and data flow
+
 ### Code Quality & Development Experience
 
 - [ ] **Add TypeScript** - Convert from JavaScript to TypeScript for better type safety
