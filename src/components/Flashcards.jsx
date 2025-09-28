@@ -104,9 +104,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
               </button>
             </div>
             <div className="flex items-center space-x-2">
-              <Star className="w-5 h-5 text-yellow-500" />
               <span className="text-lg font-bold text-gray-900">Flashcards</span>
-              <Sparkles className="w-5 h-5 text-purple-500" />
             </div>
             <button
               onClick={resetProgress}
@@ -260,7 +258,7 @@ const Flashcards = ({ onBack, userDictionary }) => {
           /* Empty State */
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Star className="w-8 h-8 text-orange-500" />
+              <span className="text-2xl">🃏</span>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {studyMode === 'all' ? 'No Words in Dictionary' :
