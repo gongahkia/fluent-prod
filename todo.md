@@ -8,6 +8,26 @@ LivePeek is a React-based Japanese language learning platform that combines news
 
 ### Do these first
 
+- Ask claude code to debug broken hackernews implementation
+- Ask claude code to implement posts from here
+    1. **NewsAPI.org**
+    Offers a free tier to retrieve headlines and articles from various sources.
+    [NewsAPI Documentation](https://newsapi.org/docs)
+    2. **The Guardian Open Platform**
+    Provides access to content from The Guardian with flexible query features.
+    [The Guardian API](https://open-platform.theguardian.com/)
+    3. **New York Times API**
+    Features a range of APIs for articles, reviews, and more. A free tier is available with registration.
+    [NY Times Developer Network](https://developer.nytimes.com/)
+    4. **Reddit API**
+    Allows you to fetch posts from various subreddits which can be used like forum articles.
+    [Reddit API Documentation](https://www.reddit.com/dev/api/)
+    5. **Mediastack API**
+    Offers real-time news and historical data via a free tier with usage limits.
+    [Mediastack API](https://mediastack.com/)
+    6. **GNews API**
+    Provides a free API to retrieve global news articles suitable for dashboards.
+    [GNews API](https://gnews.io/)
 - Research available free APIs from social media platforms
 - Design API integration architecture
 - Implement API data fetching service
