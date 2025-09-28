@@ -8,43 +8,25 @@ const Onboarding = ({ onComplete }) => {
   const [targetLanguage, setTargetLanguage] = useState('');
   const [translationLevel, setTranslationLevel] = useState(1);
 
-  // Sample posts for the demo
-  const japanesePost = {
-    original: {
-      author: "田中雪",
-      location: "渋谷、東京",
-      time: "2時間前",
-      content: "今日は友達と一緒に新しいラーメン店に行きました。とても美味しかったです！店の雰囲気も素晴らしくて、また行きたいと思います。皆さんにもおすすめします。",
-      image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop"
-    },
-    translated: {
-      author: "Yuki Tanaka",
-      location: "Shibuya, Tokyo",
-      time: "2 hours ago",
-      content: "Today I went to a new ramen shop with my friends. It was very delicious! The atmosphere of the shop was also wonderful, and I want to go again. I recommend it to everyone too.",
-      image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop"
-    }
+  // Sample Japanese post for the demo
+  const originalPost = {
+    author: "田中雪",
+    location: "渋谷、東京",
+    time: "2時間前",
+    content: "今日は友達と一緒に新しいラーメン店に行きました。とても美味しかったです！店の雰囲気も素晴らしくて、また行きたいと思います。皆さんにもおすすめします。",
+    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop"
   };
 
-  const spanishPost = {
-    original: {
-      author: "María García",
-      location: "Barcelona, España",
-      time: "hace 3 horas",
-      content: "Ayer probé un restaurante nuevo en el barrio gótico con mis amigos. ¡La paella estaba increíble! El ambiente era muy acogedor y el servicio excelente. Definitivamente volveré pronto.",
-      image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=400&h=200&fit=crop"
-    },
-    translated: {
-      author: "María García",
-      location: "Barcelona, Spain",
-      time: "3 hours ago",
-      content: "Yesterday I tried a new restaurant in the gothic quarter with my friends. The paella was incredible! The atmosphere was very cozy and the service excellent. I will definitely return soon.",
-      image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=400&h=200&fit=crop"
-    }
+  const translatedPost = {
+    author: "Yuki Tanaka",
+    location: "Shibuya, Tokyo", 
+    time: "2 hours ago",
+    content: "Today I went to a new ramen shop with my friends. It was very delicious! The atmosphere of the shop was also wonderful, and I want to go again. I recommend it to everyone too.",
+    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop"
   };
 
-  const getInterpolatedContent = (level, language) => {
-    const japaneseWords = [
+  const getInterpolatedContent = (level) => {
+    const words = [
       { jp: "今日は", en: "Today" },
       { jp: "友達と", en: "with friends" },
       { jp: "一緒に", en: "together" },
@@ -62,33 +44,13 @@ const Onboarding = ({ onComplete }) => {
       { jp: "おすすめします", en: "recommend" }
     ];
 
-    const spanishWords = [
-      { es: "Ayer", en: "Yesterday" },
-      { es: "probé", en: "I tried" },
-      { es: "un restaurante", en: "a restaurant" },
-      { es: "nuevo", en: "new" },
-      { es: "en el barrio gótico", en: "in the gothic quarter" },
-      { es: "con mis amigos", en: "with my friends" },
-      { es: "La paella", en: "The paella" },
-      { es: "estaba increíble", en: "was incredible" },
-      { es: "El ambiente", en: "The atmosphere" },
-      { es: "era muy acogedor", en: "was very cozy" },
-      { es: "y el servicio", en: "and the service" },
-      { es: "excelente", en: "excellent" },
-      { es: "Definitivamente", en: "Definitely" },
-      { es: "volveré pronto", en: "I will return soon" }
-    ];
-
-    const words = language === 'Spanish' ? spanishWords : japaneseWords;
-    const originalKey = language === 'Spanish' ? 'es' : 'jp';
-
     let result = "";
     words.forEach((word, index) => {
       const threshold = (index + 1) / words.length * 10; // Convert to 1-10 scale
       if (level >= threshold) {
         result += word.en + " ";
       } else {
-        result += word[originalKey] + " ";
+        result += word.jp + " ";
       }
     });
 
@@ -116,8 +78,8 @@ const Onboarding = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white border border-gray-200 rounded-lg shadow-sm p-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -125,8 +87,8 @@ const Onboarding = ({ onComplete }) => {
             <span className="text-sm text-gray-600">{Math.round((currentStep / 4) * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-black h-2 rounded-full transition-all duration-300"
+            <div 
+              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             ></div>
           </div>
@@ -135,14 +97,14 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 1: Native Language Selection */}
         {currentStep === 1 && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <Globe className="w-6 h-6 text-gray-700" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Globe className="w-8 h-8 text-orange-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Welcome to LivePeek!</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to LivePeek!</h2>
             <p className="text-gray-600 mb-8">Discover authentic content from around the world. We're starting with Japanese and expanding to more languages soon!</p>
-
+            
             <div className="text-left mb-8">
-              <label className="block text-base font-medium text-gray-900 mb-4">
+              <label className="block text-lg font-medium text-gray-900 mb-4">
                 What's your native language(s)?
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -150,9 +112,9 @@ const Onboarding = ({ onComplete }) => {
                   <button
                     key={lang}
                     onClick={() => handleLanguageToggle(lang)}
-                    className={`p-3 rounded-md border transition-all ${
+                    className={`p-3 rounded-lg border-2 transition-all ${
                       nativeLanguages.includes(lang)
-                        ? 'border-gray-400 bg-gray-50 text-gray-900'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -162,10 +124,10 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button
+            <Button 
               onClick={handleNext}
               disabled={nativeLanguages.length === 0}
-              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
+              className="w-full bg-orange-500 hover:bg-orange-600"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -175,19 +137,19 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 2: Target Language Selection */}
         {currentStep === 2 && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-6 h-6 text-gray-700" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-8 h-8 text-orange-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">What do you want to learn?</h2>
-            <p className="text-gray-600 mb-8">Choose from Japanese and Spanish, with more languages coming soon!</p>
-
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">What do you want to learn?</h2>
+            <p className="text-gray-600 mb-8">We're launching with Japanese first, with more languages coming soon!</p>
+            
             <div className="text-left mb-8">
               <div className="space-y-3">
                 <button
                   onClick={() => setTargetLanguage('Japanese')}
-                  className={`w-full p-4 rounded-md border transition-all flex items-center justify-between ${
+                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
                     targetLanguage === 'Japanese'
-                      ? 'border-gray-400 bg-gray-50'
+                      ? 'border-orange-500 bg-orange-50 text-orange-700'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -199,28 +161,7 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === 'Japanese' && (
-                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  )}
-                </button>
-                <button
-                  onClick={() => setTargetLanguage('Spanish')}
-                  className={`w-full p-4 rounded-md border transition-all flex items-center justify-between ${
-                    targetLanguage === 'Spanish'
-                      ? 'border-gray-400 bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🇪🇸</span>
-                    <div className="text-left">
-                      <div className="font-medium">Spanish</div>
-                      <div className="text-sm text-gray-500">Español</div>
-                    </div>
-                  </div>
-                  {targetLanguage === 'Spanish' && (
-                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
                   )}
@@ -228,10 +169,10 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button
+            <Button 
               onClick={handleNext}
               disabled={!targetLanguage}
-              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
+              className="w-full bg-orange-500 hover:bg-orange-600"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -241,77 +182,37 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 3: Interactive Translation Demo */}
         {currentStep === 3 && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <Lightbulb className="w-6 h-6 text-gray-700" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lightbulb className="w-8 h-8 text-orange-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">How LivePeek Works</h2>
-            <p className="text-gray-600 mb-8">Slide to control how much translation you need. Try both languages!</p>
-
-            {/* Language Toggle for Demo */}
-            <div className="flex justify-center mb-6">
-              <div className="bg-gray-100 p-1 rounded-lg flex space-x-1">
-                <button
-                  onClick={() => setTargetLanguage('Japanese')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    targetLanguage === 'Japanese'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  🇯🇵 Japanese Demo
-                </button>
-                <button
-                  onClick={() => setTargetLanguage('Spanish')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    targetLanguage === 'Spanish'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  🇪🇸 Spanish Demo
-                </button>
-              </div>
-            </div>
-
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">How LivePeek Works</h2>
+            <p className="text-gray-600 mb-8">Slide to control how much translation you need. Stop when you understand!</p>
+            
             {/* Sample Post */}
             <div className="bg-yellow-50 rounded-lg p-6 mb-6 text-left border border-yellow-200">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-orange-700">
-                    {targetLanguage === 'Spanish' ? 'MG' : 'YT'}
-                  </span>
+                  <span className="text-sm font-medium text-orange-700">YT</span>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {translationLevel > 8
-                      ? (targetLanguage === 'Spanish' ? spanishPost.translated.author : japanesePost.translated.author)
-                      : (targetLanguage === 'Spanish' ? spanishPost.original.author : japanesePost.original.author)
-                    }
+                    {translationLevel > 8 ? translatedPost.author : originalPost.author}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {translationLevel > 8
-                      ? (targetLanguage === 'Spanish' ? spanishPost.translated.location : japanesePost.translated.location)
-                      : (targetLanguage === 'Spanish' ? spanishPost.original.location : japanesePost.original.location)
-                    } • {translationLevel > 8
-                      ? (targetLanguage === 'Spanish' ? spanishPost.translated.time : japanesePost.translated.time)
-                      : (targetLanguage === 'Spanish' ? spanishPost.original.time : japanesePost.original.time)
-                    }
+                    {translationLevel > 8 ? translatedPost.location : originalPost.location} • {translationLevel > 8 ? translatedPost.time : originalPost.time}
                   </div>
                 </div>
               </div>
-
+              
               <p className="text-gray-800 mb-4 leading-relaxed">
-                {translationLevel === 1
-                  ? (targetLanguage === 'Spanish' ? spanishPost.original.content : japanesePost.original.content)
-                  : translationLevel === 10
-                  ? (targetLanguage === 'Spanish' ? spanishPost.translated.content : japanesePost.translated.content)
-                  : getInterpolatedContent(translationLevel, targetLanguage)
-                }
+                {translationLevel === 1 ? originalPost.content : 
+                 translationLevel === 10 ? translatedPost.content :
+                 getInterpolatedContent(translationLevel)}
               </p>
-
-              <img
-                src={targetLanguage === 'Spanish' ? spanishPost.original.image : japanesePost.original.image}
-                alt={targetLanguage === 'Spanish' ? 'Paella' : 'Ramen'}
+              
+              <img 
+                src={originalPost.image} 
+                alt="Ramen" 
                 className="w-full h-48 object-cover rounded-lg"
               />
             </div>
@@ -319,9 +220,7 @@ const Onboarding = ({ onComplete }) => {
             {/* Translation Slider */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">
-                  Level 1 ({targetLanguage === 'Spanish' ? 'Español' : '日本語'})
-                </span>
+                <span className="text-sm text-gray-600">Level 1 (Japanese)</span>
                 <span className="text-sm text-gray-600">Level 10 (English)</span>
               </div>
               <input
@@ -340,9 +239,9 @@ const Onboarding = ({ onComplete }) => {
               </div>
             </div>
 
-            <Button
+            <Button 
               onClick={handleNext}
-              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
+              className="w-full bg-orange-500 hover:bg-orange-600"
             >
               I understand! <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -352,14 +251,14 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 4: Disclaimer */}
         {currentStep === 4 && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-6 h-6 text-gray-700" />
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-8 h-8 text-orange-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Before We Begin</h2>
-
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-gray-900 mb-3">Important Notice</h3>
-              <ul className="space-y-2 text-gray-700 text-sm">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Before We Begin</h2>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-blue-900 mb-3">Important Notice</h3>
+              <ul className="space-y-2 text-blue-800 text-sm">
                 <li>• LivePeek is designed for <strong>intermediate to advanced</strong> language learners</li>
                 <li>• We expect you to have a <strong>basic understanding</strong> of your target language</li>
                 <li>• For Japanese: You should be comfortable with hiragana and katakana</li>
@@ -373,9 +272,9 @@ const Onboarding = ({ onComplete }) => {
               <p>Ready to immerse yourself in authentic content and connect with native speakers worldwide?</p>
             </div>
 
-            <Button
+            <Button 
               onClick={handleNext}
-              className="w-full bg-black hover:bg-gray-800 text-white py-2.5 text-sm font-medium rounded-md transition-colors"
+              className="w-full bg-orange-500 hover:bg-orange-600"
             >
               Start Learning! <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
