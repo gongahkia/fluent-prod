@@ -22,10 +22,10 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
   const sortedWords = getSortedWords();
 
   const getLevelColor = (level) => {
-    if (level <= 3) return 'bg-green-500';
-    if (level <= 6) return 'bg-blue-500';
-    if (level <= 8) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (level <= 3) return 'bg-gray-400';
+    if (level <= 6) return 'bg-gray-500';
+    if (level <= 8) return 'bg-gray-600';
+    return 'bg-gray-800';
   };
 
   const removeWord = (wordId) => {
@@ -62,19 +62,19 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{sortedWords.filter(w => w.level <= 3).length}</div>
+                <div className="text-2xl font-bold text-gray-500">{sortedWords.filter(w => w.level <= 3).length}</div>
                 <div className="text-xs text-gray-600">Beginner</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{sortedWords.filter(w => w.level > 3 && w.level <= 6).length}</div>
+                <div className="text-2xl font-bold text-gray-600">{sortedWords.filter(w => w.level > 3 && w.level <= 6).length}</div>
                 <div className="text-xs text-gray-600">Intermediate</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{sortedWords.filter(w => w.level > 6 && w.level <= 8).length}</div>
+                <div className="text-2xl font-bold text-gray-700">{sortedWords.filter(w => w.level > 6 && w.level <= 8).length}</div>
                 <div className="text-xs text-gray-600">Advanced</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{sortedWords.filter(w => w.level > 8).length}</div>
+                <div className="text-2xl font-bold text-gray-900">{sortedWords.filter(w => w.level > 8).length}</div>
                 <div className="text-xs text-gray-600">Expert</div>
               </div>
             </div>

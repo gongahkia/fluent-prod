@@ -46,11 +46,11 @@ const Auth = ({ onAuthComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
             <Globe className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">LivePeek</h1>
@@ -87,7 +87,7 @@ const Auth = ({ onAuthComplete }) => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
@@ -107,7 +107,7 @@ const Auth = ({ onAuthComplete }) => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
                   placeholder="Enter your email"
                   required
                 />
@@ -126,7 +126,7 @@ const Auth = ({ onAuthComplete }) => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
                   placeholder="Enter your password"
                   required
                 />
@@ -153,7 +153,7 @@ const Auth = ({ onAuthComplete }) => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
                     placeholder="Confirm your password"
                     required={!isLogin}
                   />
@@ -179,7 +179,7 @@ const Auth = ({ onAuthComplete }) => {
                 <input
                   type="checkbox"
                   id="terms"
-                  className="mt-1 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  className="mt-1 rounded border-gray-300 text-orange-600 focus:ring-gray-400"
                   required
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600">
@@ -199,7 +199,7 @@ const Auth = ({ onAuthComplete }) => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 text-base font-medium"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-base font-medium"
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, Sparkles, UserPlus, UserCheck } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
+import LoadingSpinner from './ui/LoadingSpinner';
 import { handleWordClick as sharedHandleWordClick, addWordToDictionary } from '../lib/wordDatabase';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
@@ -8,6 +9,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [selectedWord, setSelectedWord] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
   const [followingUsers, setFollowingUsers] = useState(new Set(['佐藤博', '高橋美咲']));
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Enhanced Japanese posts with mixed Japanese/English content for intermediate learners
   const japaneseArticles = [
@@ -151,10 +153,10 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [searchResults, setSearchResults] = useState([]);
 
   const getLevelColor = (level) => {
-    if (level <= 3) return 'bg-green-500';
-    if (level <= 6) return 'bg-blue-500';
-    if (level <= 8) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (level <= 3) return 'bg-gray-400';
+    if (level <= 6) return 'bg-gray-500';
+    if (level <= 8) return 'bg-gray-600';
+    return 'bg-gray-800';
   };
 
   const showFeedback = (message, icon) => {
@@ -240,12 +242,12 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
 
   const renderSourceBadge = (source) => {
     const sourceConfig = {
-      twitter: { color: 'bg-blue-500', icon: '🐦', name: 'Twitter' },
-      reddit: { color: 'bg-orange-600', icon: '🤖', name: 'Reddit' },
-      instagram: { color: 'bg-pink-500', icon: '📷', name: 'Instagram' },
-      line: { color: 'bg-green-500', icon: '💬', name: 'LINE' },
-      tiktok: { color: 'bg-black', icon: '🎵', name: 'TikTok' },
-      facebook: { color: 'bg-blue-600', icon: '👥', name: 'Facebook' }
+      twitter: { color: 'bg-gray-600', icon: '🐦', name: 'Twitter' },
+      reddit: { color: 'bg-gray-600', icon: '🤖', name: 'Reddit' },
+      instagram: { color: 'bg-gray-600', icon: '📷', name: 'Instagram' },
+      line: { color: 'bg-gray-600', icon: '💬', name: 'LINE' },
+      tiktok: { color: 'bg-gray-800', icon: '🎵', name: 'TikTok' },
+      facebook: { color: 'bg-gray-600', icon: '👥', name: 'Facebook' }
     };
 
     const config = sourceConfig[source] || { color: 'bg-gray-500', icon: '📱', name: 'Social' };
@@ -279,7 +281,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   };
 
   const handleWordClick = async (word, isJapanese, context = null) => {
-    await sharedHandleWordClick(word, setSelectedWord, isJapanese, context);
+    await sharedHandleWordClick(word, setSelectedWord, isJapanese, context, null, setIsTranslating);
   };
 
   const handleWordClickOld = (word, isJapanese) => {
@@ -573,7 +575,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
+              className="cursor-pointer hover:bg-gray-100 hover:shadow-sm border-b border-transparent hover:border-gray-300 rounded px-1 py-0.5 transition-all duration-200"
               onClick={() => handleWordClick(segment.trim(), false, text)}
               title={`Click to learn: ${segment.trim()}`}
               style={{ textDecoration: 'none' }}
@@ -592,7 +594,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🌍</span>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to LivePeek</h3>
@@ -637,8 +639,8 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 font-semibold">7</span>
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-semibold">7</span>
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Free Sources</h3>
@@ -663,8 +665,19 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         </div>
       </div>
 
+      {/* Translation Loading Popup */}
+      {isTranslating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+            <div className="text-center">
+              <LoadingSpinner size="lg" text="Translating..." />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Japanese Word Learning Popup */}
-      {selectedWord && (
+      {selectedWord && !isTranslating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedWord(null)}>
           <div className="bg-white rounded-lg p-6 max-w-md mx-4" onClick={e => e.stopPropagation()}>
             {!feedbackMessage ? (
@@ -697,7 +710,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                       Level {selectedWord.level}
                     </span>
                     {selectedWord.isApiTranslated && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
                         🌐 Live Translation
                       </span>
                     )}
@@ -714,13 +727,13 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                 {/* Action Buttons */}
                 <div className="space-y-2">
                   <button
-                    className="w-full bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
+                    className="w-full bg-gray-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-700 transition-colors"
                     onClick={handleMastered}
                   >
                     Mastered! ✨
                   </button>
                   <button
-                    className="w-full bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
+                    className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-800 transition-colors flex items-center justify-center space-x-1"
                     onClick={handleAddToDictionary}
                   >
                     <BookOpen className="w-4 h-4" />
@@ -757,8 +770,8 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
           <div className="p-6 pb-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-orange-700">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-gray-700">
                     {article.author.charAt(0)}
                   </span>
                 </div>
@@ -766,7 +779,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                   <div className="flex items-center space-x-2">
                     <span className="font-medium text-gray-900">{article.author}</span>
                     {article.verified && (
-                      <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      <div className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-medium">
                         Verified
                       </div>
                     )}
@@ -779,8 +792,8 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                   onClick={() => handleFollowToggle(article.author)}
                   className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                     followingUsers.has(article.author)
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {followingUsers.has(article.author) ? (
@@ -808,7 +821,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
-                <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                <span className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-medium">
                   Level {article.difficulty}
                 </span>
               </div>

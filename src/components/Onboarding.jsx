@@ -78,7 +78,7 @@ const Onboarding = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Progress Bar */}
         <div className="mb-8">
@@ -87,8 +87,8 @@ const Onboarding = ({ onComplete }) => {
             <span className="text-sm text-gray-600">{Math.round((currentStep / 4) * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+            <div
+              className="bg-gray-900 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             ></div>
           </div>
@@ -97,8 +97,8 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 1: Native Language Selection */}
         {currentStep === 1 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Globe className="w-8 h-8 text-orange-600" />
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Globe className="w-8 h-8 text-gray-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to LivePeek!</h2>
             <p className="text-gray-600 mb-8">Discover authentic content from around the world. We're starting with Japanese and expanding to more languages soon!</p>
@@ -114,7 +114,7 @@ const Onboarding = ({ onComplete }) => {
                     onClick={() => handleLanguageToggle(lang)}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       nativeLanguages.includes(lang)
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        ? 'border-gray-900 bg-gray-100 text-gray-900'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
