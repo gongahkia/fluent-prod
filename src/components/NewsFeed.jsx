@@ -268,37 +268,99 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   // Removed unused handleWordClickOld function
 
   // Function to segment Japanese text into meaningful words/phrases
-      'が': { japanese: 'が', hiragana: 'が', english: 'subject particle (marks who/what does the action)', level: 1, example: '地元の人が秘密の場所を教えてくれました。', exampleEn: 'Local people taught me about the secret place.' },
-      'は': { japanese: 'は', hiragana: 'は', english: 'topic marker (shows what we\'re talking about)', level: 1, example: 'この店は本当に美味しいです。', exampleEn: 'This shop is really delicious.' },
-      'を': { japanese: 'を', hiragana: 'を', english: 'object particle (marks what receives the action)', level: 1, example: '毎日美味しいラーメンを提供しています。', exampleEn: 'They provide delicious ramen every day.' },
-      'に': { japanese: 'に', hiragana: 'に', english: 'direction/location particle (to/at/in)', level: 1, example: '東京に住んでいる友達がいます。', exampleEn: 'I have a friend who lives in Tokyo.' },
-      'で': { japanese: 'で', hiragana: 'で', english: 'location/method particle (at/in/by means of)', level: 2, example: 'この地区で新しい文化を探索できます。', exampleEn: 'You can explore new culture in this district.' },
-      'と': { japanese: 'と', hiragana: 'と', english: 'connecting particle (and/with)', level: 2, example: '友達と一緒にラーメンを食べました。', exampleEn: 'I ate ramen together with my friend.' },
-      'も': { japanese: 'も', hiragana: 'も', english: 'addition particle (also/too)', level: 2, example: '伝統的な文化も新しい文化も大切です。', exampleEn: 'Both traditional culture and new culture are important.' },
-      
-      // Common hiragana characters
-      'ま': { japanese: 'ま', hiragana: 'ま', english: 'ma (hiragana character)', level: 1, example: 'まだ', exampleEn: 'still/yet' },
-      'す': { japanese: 'す', hiragana: 'す', english: 'su (hiragana character)', level: 1, example: 'します', exampleEn: 'to do (polite)' },
-      'た': { japanese: 'た', hiragana: 'た', english: 'ta (hiragana character)', level: 1, example: 'した', exampleEn: 'did (past tense)' },
-      'だ': { japanese: 'だ', hiragana: 'だ', english: 'da (hiragana character)', level: 1, example: 'だけ', exampleEn: 'only' },
-      'け': { japanese: 'け', hiragana: 'け', english: 'ke (hiragana character)', level: 1, example: 'だけ', exampleEn: 'only' },
-      'れ': { japanese: 'れ', hiragana: 'れ', english: 're (hiragana character)', level: 1, example: 'これ', exampleEn: 'this' },
-      'ら': { japanese: 'ら', hiragana: 'ら', english: 'ra (hiragana character)', level: 1, example: 'これら', exampleEn: 'these' },
-      'し': { japanese: 'し', hiragana: 'し', english: 'shi (hiragana character)', level: 1, example: 'します', exampleEn: 'to do' },
-      'て': { japanese: 'て', hiragana: 'て', english: 'te (hiragana character)', level: 1, example: 'して', exampleEn: 'doing' },
-      'き': { japanese: 'き', hiragana: 'き', english: 'ki (hiragana character)', level: 1, example: 'してきました', exampleEn: 'have been doing' },
-      
-      // Individual kanji characters
-      '地': { japanese: '地', hiragana: 'ち', english: 'ground/land', level: 3, example: '地面', exampleEn: 'ground' },
-      '元': { japanese: '元', hiragana: 'もと', english: 'origin/base', level: 4, example: '元気', exampleEn: 'healthy' },
-      '人': { japanese: '人', hiragana: 'ひと', english: 'person', level: 1, example: '日本人', exampleEn: 'Japanese person' },
-      '知': { japanese: '知', hiragana: 'し', english: 'know', level: 3, example: '知識', exampleEn: 'knowledge' },
-      '東': { japanese: '東', hiragana: 'ひがし', english: 'east', level: 2, example: '東京', exampleEn: 'Tokyo' },
-      '京': { japanese: '京', hiragana: 'きょう', english: 'capital', level: 3, example: '東京', exampleEn: 'Tokyo' },
-      '最': { japanese: '最', hiragana: 'さい', english: 'most', level: 4, example: '最高', exampleEn: 'best' },
-      '区': { japanese: '区', hiragana: 'く', english: 'ward/district', level: 3, example: '地区', exampleEn: 'district' },
-      '下': { japanese: '下', hiragana: 'した', english: 'under/below', level: 2, example: '地下', exampleEn: 'underground' },
-      '何': { japanese: '何', hiragana: 'なに', english: 'what', level: 2, example: '何時', exampleEn: 'what time' },
+  const segmentJapaneseText = (text) => {
+    // Define common Japanese word patterns and boundaries
+    const wordPatterns = [
+      '地元の人だけが知る', '何世代にもわたって', 'これらの', 'family-run', 'self-expression',
+      'limited-time', 'constantly', 'Traditional', 'businesses', 'generation',
+      '地元', '人だけが', 'だけが', '知る', 'ラーメン', '東京', '最も', '地区', '地下', '探索',
+      '何世代', 'にもわたって', '提供', 'してきました', '若者', 'creativity', 'させています',
+      '変化', '見られます', '文化', '伝統', '桜', '季節', '原宿', '渋谷', '大阪', '京都', '九州',
+      '古い', '生活', 'tradition', 'elements', 'products', 'visitors', 'attract',
+      'Young', 'people', 'Tokyo', 'modern', 'trends', 'fusion', 'Sakura', 'tourism',
+      'industry', 'massive', 'boost', 'Local', 'special', 'events', 'hidden',
+      'gems', 'incredible', 'cultural', 'expressions', 'blend', 'perfectly'
+    ];
+
+    let result = [];
+    let remaining = text;
+
+    while (remaining.length > 0) {
+      let matched = false;
+
+      // Try to match longer patterns first
+      for (let pattern of wordPatterns.sort((a, b) => b.length - a.length)) {
+        if (remaining.startsWith(pattern)) {
+          result.push({ text: pattern, isWord: true });
+          remaining = remaining.slice(pattern.length);
+          matched = true;
+          break;
+        }
+      }
+
+      // If no pattern matched, take one character
+      if (!matched) {
+        result.push({ text: remaining[0], isWord: false });
+        remaining = remaining.slice(1);
+      }
+    }
+
+    return result;
+  };
+
+  const renderClickableText = (text) => {
+    // Split by spaces and punctuation first
+    const segments = text.split(/(\s+|[。、！？])/);
+
+    return segments.map((segment, segmentIndex) => {
+      if (!segment.trim()) return <span key={segmentIndex}>{segment}</span>;
+
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment);
+      const hasEnglish = /[a-zA-Z]/.test(segment);
+
+      if (hasJapanese) {
+        // Use intelligent segmentation for Japanese text
+        const words = segmentJapaneseText(segment);
+
+        return (
+          <span key={segmentIndex}>
+            {words.map((wordObj, wordIndex) => {
+              const { text, isWord } = wordObj;
+
+              return (
+                <span
+                  key={`${segmentIndex}-${wordIndex}`}
+                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+                  onClick={() => handleWordClick(text, true, text)}
+                  title={`Click to learn: ${text}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {text}
+                </span>
+              );
+            })}
+          </span>
+        );
+      } else if (hasEnglish) {
+        return (
+          <span key={segmentIndex}>
+            <span
+              className="cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
+              onClick={() => handleWordClick(segment.trim(), false, text)}
+              title={`Click to learn: ${segment.trim()}`}
+              style={{ textDecoration: 'none' }}
+            >
+              {segment}
+            </span>
+          </span>
+        );
+      }
+
+      return <span key={segmentIndex}>{segment}</span>;
+    });
+  };
+
+  // Mock articles data
       '世': { japanese: '世', hiragana: 'せ', english: 'world/generation', level: 4, example: '世界', exampleEn: 'world' },
       '代': { japanese: '代', hiragana: 'だい', english: 'generation/era', level: 4, example: '時代', exampleEn: 'era' },
       '提': { japanese: '提', hiragana: 'てい', english: 'present/offer', level: 5, example: '提供', exampleEn: 'provide' },
