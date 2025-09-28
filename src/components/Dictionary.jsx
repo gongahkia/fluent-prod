@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookOpen, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
   const [expandedWord, setExpandedWord] = useState(null);
@@ -141,12 +141,6 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
                       <div>
                         <h4 className="text-sm font-medium text-gray-700 mb-1">Source</h4>
                         <p className="text-gray-600 text-sm">{word.source}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="flex items-center text-orange-500 text-sm hover:text-orange-600">
-                          <Star className="w-4 h-4 mr-1" />
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">Premium</span>
-                        </button>
                       </div>
                     </div>
                   </div>

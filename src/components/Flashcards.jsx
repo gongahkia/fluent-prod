@@ -255,23 +255,6 @@ const Flashcards = ({ onBack, userDictionary }) => {
           )}
         </div>
 
-            {/* Premium Features Notice */}
-            <div className="mt-8 bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg p-6 border border-purple-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <Star className="w-6 h-6 text-yellow-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Premium Flashcards</h3>
-                <Sparkles className="w-6 h-6 text-purple-500" />
-              </div>
-              <p className="text-gray-700 mb-3">
-                You're using premium flashcards with advanced features including spaced repetition,
-                difficulty tracking, and personalized learning paths.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">Spaced Repetition</span>
-                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">Progress Tracking</span>
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">Custom Decks</span>
-              </div>
-            </div>
           </>
         ) : (
           /* Empty State */
