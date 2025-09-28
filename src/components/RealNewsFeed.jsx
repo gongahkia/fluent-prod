@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   fetchPosts,
   getAvailableSources,
-  checkApiConfiguration,
-  fetchRedditPosts
+  checkApiConfiguration
 } from '../services/newsService';
 import { ExternalLink, Clock, User, Tag, Settings, Refresh } from 'lucide-react';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -16,8 +15,6 @@ export default function RealNewsFeed() {
   const [query, setQuery] = useState('technology');
   const [showSettings, setShowSettings] = useState(false);
   const [apiStatus, setApiStatus] = useState({});
-
-  const availableSources = getAvailableSources();
 
   useEffect(() => {
     const status = checkApiConfiguration();
@@ -55,7 +52,7 @@ export default function RealNewsFeed() {
 
   useEffect(() => {
     loadPosts();
-  }, [selectedSources, query]);
+  }, [selectedSources, query, apiStatus]);
 
   const handleSourceToggle = (sourceId) => {
     setSelectedSources(prev =>

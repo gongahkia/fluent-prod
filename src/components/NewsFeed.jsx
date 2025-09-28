@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
-import { handleWordClick as sharedHandleWordClick, addWordToDictionary } from '../lib/wordDatabase';
+import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
   const [showComments, setShowComments] = useState({});
@@ -554,7 +554,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         return (
           <span key={segmentIndex}>
             {words.map((wordObj, wordIndex) => {
-              const { text, isWord } = wordObj;
+              const { text } = wordObj;
               
               return (
                 <span
