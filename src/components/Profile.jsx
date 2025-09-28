@@ -905,6 +905,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                   </div>
                 </div>
               </div>
+              </div>
               )}
             </div>
           </div>
@@ -992,7 +993,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           </div>
         </div>
       )}
-    </div>
     </>
   );
 };
