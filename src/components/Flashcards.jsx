@@ -48,10 +48,10 @@ const Flashcards = ({ onBack, userDictionary }) => {
   const currentCard = flashcards[currentCardIndex];
 
   const getLevelColor = (level) => {
-    if (level <= 3) return 'bg-green-500';
-    if (level <= 6) return 'bg-blue-500';
-    if (level <= 8) return 'bg-orange-500';
-    return 'bg-red-500';
+    if (level <= 3) return 'bg-gray-400';
+    if (level <= 6) return 'bg-gray-500';
+    if (level <= 8) return 'bg-gray-600';
+    return 'bg-gray-800';
   };
 
   const handleNext = () => {

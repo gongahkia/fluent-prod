@@ -71,11 +71,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             <Button
               onClick={handleSave}
               disabled={isLoading}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-gray-900 hover:bg-gray-800 text-white"
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
                   <span>Saving...</span>
                 </div>
               ) : (
@@ -92,23 +92,23 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Profile Header */}
-          <div className="bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-8">
+          <div className="bg-gray-50 px-6 py-8 border-b border-gray-200">
             <div className="flex items-center space-x-6">
               <div className="relative">
-                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-3xl font-bold text-orange-500">
+                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-3xl font-bold text-gray-700">
                     {formData.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <button className="absolute bottom-0 right-0 w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white hover:bg-orange-700 transition-colors">
+                <button className="absolute bottom-0 right-0 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white hover:bg-gray-700 transition-colors">
                   <Camera className="w-4 h-4" />
                 </button>
               </div>
-              <div className="text-white">
+              <div className="text-gray-900">
                 <h2 className="text-2xl font-bold">{formData.name}</h2>
-                <p className="text-orange-100">{formData.email}</p>
-                <p className="text-orange-100 text-sm mt-1">
-                  Learning {formData.targetLanguage} • {formData.learningLevel}
+                <p className="text-gray-600">{formData.email}</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Learning {formData.targetLanguage} • Level {formData.learningLevel}
                 </p>
               </div>
             </div>
@@ -125,7 +125,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
-                        ? 'border-orange-500 text-orange-600'
+                        ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
@@ -152,7 +152,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -164,7 +164,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="e.g. New York, USA"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -207,7 +207,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       value={formData.website}
                       onChange={handleInputChange}
                       placeholder="https://yourwebsite.com"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -254,7 +254,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       name="nativeLanguage"
                       value={formData.nativeLanguage}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     >
                       <option value="English">English</option>
                       <option value="Spanish">Spanish</option>
@@ -272,7 +272,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       name="targetLanguage"
                       value={formData.targetLanguage}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     >
                       <option value="Japanese">Japanese (Available now)</option>
                       <option value="Korean" disabled>Korean (Coming soon)</option>
@@ -324,7 +324,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
                     </label>
                   </div>
 
@@ -341,7 +341,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
                     </label>
                   </div>
 
@@ -358,7 +358,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
                     </label>
                   </div>
                 </div>
@@ -398,7 +398,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
                     </label>
                   </div>
 
@@ -415,7 +415,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
                     </label>
                   </div>
                 </div>
@@ -453,7 +453,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             </div>
             <button 
               onClick={() => setShowFollowers(false)}
-              className="mt-4 w-full bg-orange-500 text-white py-2 rounded-lg"
+              className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
               Close
             </button>
@@ -476,7 +476,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             </div>
             <button 
               onClick={() => setShowFollowing(false)}
-              className="mt-4 w-full bg-orange-500 text-white py-2 rounded-lg"
+              className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
               Close
             </button>
@@ -509,7 +509,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             </div>
             <button 
               onClick={() => setShowSavedPosts(false)}
-              className="mt-4 w-full bg-orange-500 text-white py-2 rounded-lg"
+              className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
               Close
             </button>
