@@ -5,7 +5,7 @@ import Onboarding from './components/Onboarding';
 import Profile from './components/Profile';
 import Dictionary from './components/Dictionary';
 import Flashcards from './components/Flashcards';
-import { Star, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useIsMobile } from './hooks/use-mobile';
 import {
   Sheet,
@@ -176,7 +176,6 @@ function App() {
                       >
                         <span className="text-lg">📚</span>
                         <span className="font-medium">Dictionary</span>
-                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
                       </button>
                       <button
                         onClick={() => handleNavigation('flashcards')}
@@ -188,7 +187,6 @@ function App() {
                       >
                         <span className="text-lg">🃏</span>
                         <span className="font-medium">Flashcards</span>
-                        <Star className="w-4 h-4 text-yellow-500 ml-auto" />
                       </button>
                     </div>
                   </SheetContent>
@@ -253,7 +251,6 @@ function App() {
               }`}
             >
               <span>Dictionary</span>
-              <Star className="w-4 h-4 text-yellow-500" />
             </button>
             <button
               onClick={() => handleNavigation('flashcards')}
@@ -264,7 +261,6 @@ function App() {
               }`}
             >
               <span>Flashcards</span>
-              <Star className="w-4 h-4 text-yellow-500" />
             </button>
           </div>
         )}
