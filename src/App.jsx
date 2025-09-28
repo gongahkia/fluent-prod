@@ -13,8 +13,9 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState('feed'); // 'feed', 'profile', 'dictionary', or 'flashcards'
   const [userProfile, setUserProfile] = useState(null);
-  const [selectedLanguage, setSelectedLanguage] = useState('japanese');
-  const [userDictionary, setUserDictionary] = useState([]);
+  const [userDictionary, setUserDictionary] = useState([
+    // Start with empty dictionary - users will build their own
+  ]);
 
   const handleAuthComplete = (authData) => {
     setIsAuthenticated(true);
@@ -43,16 +44,20 @@ function App() {
 
   const addWordToDictionary = (wordData) => {
     const newWord = {
-      id: Date.now() + Math.random(),
-      dateAdded: new Date().toISOString(),
-      source: "LivePeek Post",
-      ...wordData
+      id: Date.now(),
+      japanese: wordData.japanese,
+      hiragana: wordData.hiragana || wordData.japanese,
+      english: wordData.english,
+      level: wordData.level || 5,
+      example: wordData.example || `${wordData.japanese}の例文です。`,
+      exampleEn: wordData.exampleEn || `Example sentence with ${wordData.english}.`,
+      source: wordData.source || "LivePeek Post",
+      dateAdded: new Date().toISOString()
     };
 
     setUserDictionary(prev => {
       // Check if word already exists
-      const wordKey = selectedLanguage === 'japanese' ? 'japanese' : 'spanish';
-      const exists = prev.some(word => word[wordKey] === newWord[wordKey]);
+      const exists = prev.some(word => word.japanese === newWord.japanese);
       if (exists) {
         return prev; // Don't add duplicates
       }
@@ -64,23 +69,6 @@ function App() {
     setUserDictionary(prev => prev.filter(word => word.id !== wordId));
   };
 
-  // Load dictionary from localStorage on startup
-  useEffect(() => {
-    const savedDictionary = localStorage.getItem(`livepeek_dictionary_${selectedLanguage}`);
-    if (savedDictionary) {
-      setUserDictionary(JSON.parse(savedDictionary));
-    } else {
-      setUserDictionary([]);
-    }
-  }, [selectedLanguage]);
-
-  // Save dictionary to localStorage whenever it changes
-  useEffect(() => {
-    if (userDictionary.length >= 0) {
-      localStorage.setItem(`livepeek_dictionary_${selectedLanguage}`, JSON.stringify(userDictionary));
-    }
-  }, [userDictionary, selectedLanguage]);
-
   // Show authentication if not authenticated
   if (!isAuthenticated) {
     return <Auth onAuthComplete={handleAuthComplete} />;
@@ -91,6 +79,26 @@ function App() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
+  // Show dictionary page
+  if (currentView === 'dictionary') {
+    return (
+      <Dictionary
+        onBack={() => setCurrentView('feed')}
+        userDictionary={userDictionary}
+        onRemoveWord={removeWordFromDictionary}
+      />
+    );
+  }
+
+  // Show flashcards page
+  if (currentView === 'flashcards') {
+    return (
+      <Flashcards
+        onBack={() => setCurrentView('feed')}
+        userDictionary={userDictionary}
+      />
+    );
+  }
 
   // Show profile page
   if (currentView === 'profile') {
@@ -104,51 +112,44 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">L</span>
                 </div>
                 <span className="text-xl font-bold text-gray-900">LivePeek</span>
               </div>
             </div>
-
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-600">
-                  {selectedLanguage === 'spanish' ? '🇪🇸 Spain' : '🇯🇵 Japan'}
-                </span>
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                >
-                  <option value="japanese">🇯🇵 Japanese</option>
-                  <option value="spanish">🇪🇸 Spanish</option>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">🇯🇵 Japan</span>
+                <select className="text-sm border border-gray-300 rounded px-2 py-1 bg-white">
+                  <option value="japanese">🇯🇵 Japanese (More languages coming soon!)</option>
                 </select>
               </div>
-
+              
               {/* User Profile */}
-              <div className="flex items-center space-x-4">
-                <div className="text-sm font-medium text-gray-600">
-                  {userProfile?.name || 'User'}
+              <div className="flex items-center space-x-3">
+                <div className="text-sm text-gray-600">
+                  Welcome, <span className="font-medium text-gray-900">{userProfile?.name || 'User'}</span>
                 </div>
                 <button
                   onClick={() => setCurrentView('profile')}
-                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                 >
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-medium text-orange-700">
                     {userProfile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </button>
-                <button
+                <button 
                   onClick={handleLogout}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors px-3 py-1 rounded-md hover:bg-gray-50"
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   Logout
                 </button>
@@ -159,25 +160,25 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation Tabs */}
-        <div className="flex space-x-2 mb-8">
+        <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setCurrentView('feed')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               currentView === 'feed'
-                ? 'bg-black text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             Feed
           </button>
           <button
             onClick={() => setCurrentView('dictionary')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
               currentView === 'dictionary'
-                ? 'bg-black text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <span>Dictionary</span>
@@ -185,10 +186,10 @@ function App() {
           </button>
           <button
             onClick={() => setCurrentView('flashcards')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
               currentView === 'flashcards'
-                ? 'bg-black text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <span>Flashcards</span>
@@ -196,38 +197,12 @@ function App() {
           </button>
         </div>
 
-        {/* Tab Content */}
-        <div>
-          {currentView === 'feed' && (
-            <NewsFeed
-              selectedCountry={selectedLanguage === 'spanish' ? 'Spain' : 'Japan'}
-              selectedLanguage={selectedLanguage}
-              userProfile={userProfile}
-              isActive={currentView === 'feed'}
-              onAddWordToDictionary={addWordToDictionary}
-              userDictionary={userDictionary}
-            />
-          )}
-
-          {currentView === 'dictionary' && (
-            <Dictionary
-              onNavigateToFlashcards={() => setCurrentView('flashcards')}
-              selectedLanguage={selectedLanguage}
-              isEmbedded={true}
-              userDictionary={userDictionary}
-              onAddWordToDictionary={addWordToDictionary}
-              onRemoveWord={removeWordFromDictionary}
-            />
-          )}
-
-          {currentView === 'flashcards' && (
-            <Flashcards
-              selectedLanguage={selectedLanguage}
-              isEmbedded={true}
-              userDictionary={userDictionary}
-            />
-          )}
-        </div>
+        <NewsFeed 
+          selectedCountry="Japan" 
+          userProfile={userProfile} 
+          onAddWordToDictionary={addWordToDictionary}
+          userDictionary={userDictionary}
+        />
       </main>
     </div>
   );

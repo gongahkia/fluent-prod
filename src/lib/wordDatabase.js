@@ -1,12 +1,13 @@
 import translationService from '../services/translationService';
 
-// Shared multi-language word database for the entire application
-// Enhanced with real-time translation API support for Japanese and Spanish
+// Shared Japanese-English word database for the entire application
+// This eliminates duplication between NewsFeed and EnhancedCommentSystem
+// Now enhanced with real-time translation API
 
 export const japaneseWords = {
   // Basic Japanese words
   '地': { japanese: '地', hiragana: 'ち', english: 'ground/earth', level: 2, example: '地元の人だけが知る', exampleEn: 'Only locals know' },
-  'じ': { japanese: 'じ', hiragana: 'じ', english: 'ji (hiragana character)', level: 1, example: '先月、これらの場所の一つを訪問しました！', exampleEn: 'I visited one of these places last month!' },
+  'じ': { japanese: 'じ', hiragana: 'じ', english: 'ji (hiragana character)', level: 1, example: '先月、これらの場所の一つを訪問しました！それを経営していたおじいさんは、私の下手な日本語にとても親切で忍耐強くしてくれました。', exampleEn: 'I visited one of these places last month! The grandpa who ran it was so kind and patient with my broken Japanese.' },
   'ま': { japanese: 'ま', hiragana: 'ま', english: 'ma (hiragana character)', level: 1, example: '先月、これらの場所の一つを訪問しました！', exampleEn: 'I visited one of these places last month!' },
   'は': { japanese: 'は', hiragana: 'は', english: 'wa (topic particle)', level: 1, example: 'この場所は本当に本格的です！', exampleEn: 'This place is really authentic!' },
   'の': { japanese: 'の', hiragana: 'の', english: 'no (possessive particle)', level: 1, example: '地元の人だけが知る隠れた宝石ですね。', exampleEn: 'It\'s a hidden gem that only locals know about.' },
@@ -17,11 +18,36 @@ export const japaneseWords = {
   '店': { japanese: '店', hiragana: 'みせ', english: 'shop/store', level: 2, example: 'ラーメン店', exampleEn: 'ramen shop' },
   '東': { japanese: '東', hiragana: 'ひがし', english: 'east', level: 2, example: '東京', exampleEn: 'Tokyo (Eastern capital)' },
   '京': { japanese: '京', hiragana: 'きょう', english: 'capital', level: 3, example: '東京', exampleEn: 'Tokyo (Eastern capital)' },
+  '最': { japanese: '最', hiragana: 'さい', english: 'most/extreme', level: 4, example: '最も busy', exampleEn: 'most busy' },
+  '区': { japanese: '区', hiragana: 'く', english: 'ward/district', level: 3, example: 'な地区で', exampleEn: 'in the district' },
+  '下': { japanese: '下', hiragana: 'した', english: 'under/below', level: 2, example: '地下の food', exampleEn: 'underground food' },
+  '何': { japanese: '何', hiragana: 'なに', english: 'what/how many', level: 1, example: '何世代にも', exampleEn: 'for many generations' },
+  '世': { japanese: '世', hiragana: 'せ', english: 'world/generation', level: 4, example: '何世代にも', exampleEn: 'for many generations' },
+  '代': { japanese: '代', hiragana: 'だい', english: 'generation/era', level: 3, example: '何世代にも', exampleEn: 'for many generations' },
+  '提': { japanese: '提', hiragana: 'てい', english: 'offer/present', level: 5, example: '提供してきました', exampleEn: 'have been providing' },
+  '供': { japanese: '供', hiragana: 'きょう', english: 'offer/supply', level: 4, example: '提供してきました', exampleEn: 'have been providing' },
+  '若': { japanese: '若', hiragana: 'わか', english: 'young', level: 3, example: '若者', exampleEn: 'young people' },
+  '者': { japanese: '者', hiragana: 'しゃ', english: 'person/people', level: 3, example: '若者', exampleEn: 'young people' },
+  '変': { japanese: '変', hiragana: 'へん', english: 'change/strange', level: 3, example: '変化させています', exampleEn: 'are changing' },
+  '化': { japanese: '化', hiragana: 'か', english: 'change/transform', level: 4, example: '変化させています', exampleEn: 'are changing' },
+  '文': { japanese: '文', hiragana: 'ぶん', english: 'writing/culture', level: 2, example: '文化', exampleEn: 'culture' },
+  '見': { japanese: '見', hiragana: 'み', english: 'see/look', level: 1, example: '見られます', exampleEn: 'can be seen' },
 
   // Compound Japanese words
   '地元': { japanese: '地元', hiragana: 'じもと', english: 'local', level: 3, example: '地元の人だけが知る', exampleEn: 'Only locals know' },
+  '地元の人だけが知る': { japanese: '地元の人だけが知る', hiragana: 'じもとのひとだけがしる', english: 'only locals know', level: 6, example: '地元の人だけが知る hidden ラーメン店', exampleEn: 'Hidden ramen shops that only locals know' },
   'ラーメン': { japanese: 'ラーメン', hiragana: 'らーめん', english: 'ramen', level: 2, example: 'authentic ラーメンを提供', exampleEn: 'providing authentic ramen' },
   '東京': { japanese: '東京', hiragana: 'とうきょう', english: 'Tokyo', level: 1, example: '東京の最も busy な地区', exampleEn: 'Tokyo\'s busiest districts' },
+  '最も': { japanese: '最も', hiragana: 'もっとも', english: 'most', level: 4, example: '東京の最も busy な地区', exampleEn: 'Tokyo\'s busiest districts' },
+  '地区': { japanese: '地区', hiragana: 'ちく', english: 'district/area', level: 4, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  '地下': { japanese: '地下', hiragana: 'ちか', english: 'underground/basement', level: 3, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  '探索': { japanese: '探索', hiragana: 'たんさく', english: 'exploration/investigation', level: 6, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  'これらの': { japanese: 'これらの', hiragana: 'これらの', english: 'these', level: 3, example: 'これらの family-run business の店', exampleEn: 'These family-run business shops' },
+  '何世代にもわたって': { japanese: '何世代にもわたって', hiragana: 'なんせだいにもわたって', english: 'for many generations', level: 6, example: '何世代にもわたって authentic ラーメンを提供してきました', exampleEn: 'Have been providing authentic ramen for many generations' },
+  '提供してきました': { japanese: '提供してきました', hiragana: 'ていきょうしてきました', english: 'have been providing', level: 6, example: '何世代にもわたって authentic ラーメンを提供してきました', exampleEn: 'Have been providing authentic ramen for many generations' },
+  '若者': { japanese: '若者', hiragana: 'わかもの', english: 'young people', level: 4, example: '若者の creativity', exampleEn: 'young people\'s creativity' },
+  '変化させています': { japanese: '変化させています', hiragana: 'へんかさせています', english: 'are changing', level: 6, example: 'Tokyo の fashion scene を constantly に変化させています', exampleEn: 'Are constantly changing Tokyo\'s fashion scene' },
+  '見られます': { japanese: '見られます', hiragana: 'みられます', english: 'can be seen', level: 5, example: 'fusion が見られます', exampleEn: 'fusion can be seen' },
   '文化': { japanese: '文化', hiragana: 'ぶんか', english: 'culture', level: 3, example: 'food culture を探索', exampleEn: 'exploring food culture' },
   '伝統': { japanese: '伝統', hiragana: 'でんとう', english: 'tradition', level: 3, example: 'blends 伝統 with', exampleEn: 'blends tradition with' },
   '桜': { japanese: '桜', hiragana: 'さくら', english: 'cherry blossom', level: 2, example: '桜の季節', exampleEn: 'cherry blossom season' },
@@ -30,60 +56,101 @@ export const japaneseWords = {
   '渋谷': { japanese: '渋谷', hiragana: 'しぶや', english: 'Shibuya', level: 3, example: '渋谷で会いましょう', exampleEn: 'Let\'s meet in Shibuya' },
   '大阪': { japanese: '大阪', hiragana: 'おおさか', english: 'Osaka', level: 2, example: '大阪\'s 創造性', exampleEn: 'Osaka\'s creativity' },
   '京都': { japanese: '京都', hiragana: 'きょうと', english: 'Kyoto', level: 2, example: '京都の伝統', exampleEn: 'Kyoto\'s tradition' },
-  '美味しい': { japanese: '美味しい', hiragana: 'おいしい', english: 'delicious', level: 2, example: 'このラーメンはとても美味しいです。', exampleEn: 'This ramen is very delicious.' },
-  '素晴らしい': { japanese: '素晴らしい', hiragana: 'すばらしい', english: 'wonderful', level: 6, example: '素晴らしい経験でした。', exampleEn: 'It was a wonderful experience.' },
-  '興味深い': { japanese: '興味深い', hiragana: 'きょうみぶかい', english: 'interesting', level: 7, example: 'とても興味深い話でした。', exampleEn: 'It was a very interesting story.' },
-  '新しい': { japanese: '新しい', hiragana: 'あたらしい', english: 'new', level: 1, example: '新しいレストランに行きました。', exampleEn: 'I went to a new restaurant.' },
+  '九州': { japanese: '九州', hiragana: 'きゅうしゅう', english: 'Kyushu', level: 3, example: '九州\'s combination', exampleEn: 'Kyushu\'s combination' },
   '古い': { japanese: '古い', hiragana: 'ふるい', english: 'old', level: 2, example: 'respecting 古い ones', exampleEn: 'respecting old ones' },
   '生活': { japanese: '生活', hiragana: 'せいかつ', english: 'life/lifestyle', level: 3, example: 'new generation の生活 style', exampleEn: 'new generation\'s lifestyle' },
-  '日本': { japanese: '日本', hiragana: 'にほん', english: 'Japan', level: 1, example: 'how 日本 blends', exampleEn: 'how Japan blends' }
+  '日本': { japanese: '日本', hiragana: 'にほん', english: 'Japan', level: 1, example: 'how 日本 blends', exampleEn: 'how Japan blends' },
+  'イノベーション': { japanese: 'イノベーション', hiragana: 'いのべーしょん', english: 'innovation', level: 4, example: 'with イノベーション', exampleEn: 'with innovation' },
+
+  // English words with proper Japanese translations
+  'hidden': { japanese: 'hidden', hiragana: 'ひでん', english: '隠れた', level: 4, example: '地元の人だけが知る hidden ラーメン店', exampleEn: 'Hidden ramen shops that only locals know' },
+  'culture': { japanese: 'culture', hiragana: 'かるちゃー', english: '文化', level: 4, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  'business': { japanese: 'business', hiragana: 'びじねす', english: 'ビジネス', level: 5, example: 'これらの family-run business の店は何世代にもわたって authentic ラーメンを提供してきました。', exampleEn: 'These family-run business shops have been providing authentic ramen for many generations.' },
+  'authentic': { japanese: 'authentic', hiragana: 'おーせんてぃっく', english: '本格的な', level: 6, example: 'これらの family-run business の店は何世代にもわたって authentic ラーメンを提供してきました。', exampleEn: 'These family-run business shops have been providing authentic ramen for many generations.' },
+  'family-run': { japanese: 'family-run', hiragana: 'ふぁみりーらん', english: '家族経営の', level: 6, example: 'これらの family-run business の店は何世代にもわたって authentic ラーメンを提供してきました。', exampleEn: 'These family-run business shops have been providing authentic ramen for many generations.' },
+  'food': { japanese: 'food', hiragana: 'ふーど', english: '食べ物', level: 3, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  'busy': { japanese: 'busy', hiragana: 'びじー', english: '忙しい', level: 4, example: '東京の最も busy な地区で地下の food culture を探索。', exampleEn: 'Exploring underground food culture in Tokyo\'s busiest districts.' },
+  'creativity': { japanese: 'creativity', hiragana: 'くりえいてぃびてぃ', english: '創造性', level: 5, example: 'Young people の creativity と self-expression', exampleEn: 'Young people\'s creativity and self-expression' },
+  'self-expression': { japanese: 'self-expression', hiragana: 'せるふえくすぷれっしょん', english: '自己表現', level: 6, example: 'Young people の creativity と self-expression', exampleEn: 'Young people\'s creativity and self-expression' },
+  'constantly': { japanese: 'constantly', hiragana: 'こんすたんとりー', english: '絶えず', level: 5, example: 'Tokyo の fashion scene を constantly に変化させています', exampleEn: 'Are constantly changing Tokyo\'s fashion scene' },
+  'Traditional': { japanese: 'Traditional', hiragana: 'とらでぃしょなる', english: '伝統的な', level: 4, example: 'Traditional elements と modern trends', exampleEn: 'Traditional elements and modern trends' },
+  'elements': { japanese: 'elements', hiragana: 'えれめんつ', english: '要素', level: 5, example: 'Traditional elements と modern trends の fusion', exampleEn: 'Fusion of traditional elements and modern trends' },
+  'modern': { japanese: 'modern', hiragana: 'もだん', english: '現代の', level: 4, example: 'Traditional elements と modern trends', exampleEn: 'Traditional elements and modern trends' },
+  'trends': { japanese: 'trends', hiragana: 'とれんず', english: 'トレンド', level: 4, example: 'Traditional elements と modern trends の fusion', exampleEn: 'Fusion of traditional elements and modern trends' },
+  'fusion': { japanese: 'fusion', hiragana: 'ふゅーじょん', english: '融合', level: 5, example: 'Traditional elements と modern trends の fusion が見られます', exampleEn: 'Fusion of traditional elements and modern trends can be seen' },
+  'Sakura': { japanese: 'Sakura', hiragana: 'さくら', english: '桜', level: 2, example: 'Sakura の季節は tourism industry に massive な boost をもたらします', exampleEn: 'Sakura season brings a massive boost to the tourism industry' },
+  'sakura': { japanese: 'sakura', hiragana: 'さくら', english: '桜', level: 2, example: 'sakura season in Japan is legendary', exampleEn: '日本の桜の季節は伝説的です' },
+  'tourism': { japanese: 'tourism', hiragana: 'つーりずむ', english: '観光', level: 3, example: 'Sakura の季節は tourism industry に massive な boost をもたらします', exampleEn: 'Sakura season brings a massive boost to the tourism industry' },
+  'industry': { japanese: 'industry', hiragana: 'いんだすとりー', english: '産業', level: 4, example: 'Sakura の季節は tourism industry に massive な boost をもたらします', exampleEn: 'Sakura season brings a massive boost to the tourism industry' },
+  'massive': { japanese: 'massive', hiragana: 'ますぃぶ', english: '大規模な', level: 5, example: 'Sakura の季節は tourism industry に massive な boost をもたらします', exampleEn: 'Sakura season brings a massive boost to the tourism industry' },
+  'boost': { japanese: 'boost', hiragana: 'ぶーすと', english: '押し上げ', level: 5, example: 'Sakura の季節は tourism industry に massive な boost をもたらします', exampleEn: 'Sakura season brings a massive boost to the tourism industry' },
+  'Local': { japanese: 'Local', hiragana: 'ろーかる', english: '地元の', level: 3, example: 'Local businesses は special events と limited-time products で visitors を attract しています', exampleEn: 'Local businesses are attracting visitors with special events and limited-time products' },
+  'special': { japanese: 'special', hiragana: 'すぺしゃる', english: '特別な', level: 3, example: 'Local businesses は special events と limited-time products で visitors を attract しています', exampleEn: 'Local businesses are attracting visitors with special events and limited-time products' },
+  'events': { japanese: 'events', hiragana: 'いべんつ', english: 'イベント', level: 3, example: 'Local businesses は special events と limited-time products で visitors を attract しています', exampleEn: 'Local businesses are attracting visitors with special events and limited-time products' },
+  'limited-time': { japanese: 'limited-time', hiragana: 'りみてっどたいむ', english: '期間限定の', level: 6, example: 'Local businesses は special events と limited-time products で visitors を attract しています', exampleEn: 'Local businesses are attracting visitors with special events and limited-time products' },
+  'products': { japanese: 'products', hiragana: 'ぷろだくつ', english: '商品', level: 4, example: 'Local businesses は special events と limited-time products で visitors を attract しています', exampleEn: 'Local businesses are attracting visitors with special events and limited-time products' },
+  'visitors': { japanese: 'visitors', hiragana: 'びじたーず', english: '訪問者', level: 4, example: 'limited-time products で visitors を attract', exampleEn: 'Attract visitors with limited-time products' },
+  'attract': { japanese: 'attract', hiragana: 'あとらくと', english: '引きつける', level: 5, example: 'limited-time products で visitors を attract', exampleEn: 'Attract visitors with limited-time products' },
+  'tradition': { japanese: 'tradition', hiragana: 'とらでぃしょん', english: '伝統', level: 3, example: '古い tradition と new generation', exampleEn: 'Old tradition and new generation' },
+  'generation': { japanese: 'generation', hiragana: 'じぇねれーしょん', english: '世代', level: 4, example: 'new generation の生活 style', exampleEn: 'new generation\'s lifestyle' },
+  'style': { japanese: 'style', hiragana: 'すたいる', english: 'スタイル', level: 3, example: 'new generation の生活 style が融合', exampleEn: 'new generation\'s lifestyle merges' },
+  'Young': { japanese: 'Young', hiragana: 'やんぐ', english: '若い', level: 2, example: 'Young Japanese people は tea ceremony を modern way で楽しんでいます', exampleEn: 'Young Japanese people enjoy tea ceremony in a modern way' },
+  'people': { japanese: 'people', hiragana: 'ぴーぷる', english: '人々', level: 2, example: 'Young people の creativity', exampleEn: 'Young people\'s creativity' },
+  'Tokyo': { japanese: 'Tokyo', hiragana: 'とうきょう', english: '東京', level: 1, example: 'Tokyo の fashion scene', exampleEn: 'Tokyo\'s fashion scene' },
+
+  // Common English words that might appear in comments
+  'ran': { japanese: 'ran', hiragana: 'らん', english: '走った', level: 3, example: 'I ran to the store', exampleEn: '私は店に走りました' },
+  'run': { japanese: 'run', hiragana: 'らん', english: '走る', level: 2, example: 'I like to run', exampleEn: '私は走るのが好きです' },
+  'running': { japanese: 'running', hiragana: 'らんにんぐ', english: '走っている', level: 3, example: 'I am running', exampleEn: '私は走っています' },
+  'this': { japanese: 'this', hiragana: 'でぃす', english: 'これ', level: 1, example: 'This is good', exampleEn: 'これは良いです' },
+  'that': { japanese: 'that', hiragana: 'ざっと', english: 'それ', level: 1, example: 'That is interesting', exampleEn: 'それは面白いです' },
+  'and': { japanese: 'and', hiragana: 'あんど', english: 'そして', level: 1, example: 'You and me', exampleEn: 'あなたと私' },
+  'good': { japanese: 'good', hiragana: 'ぐっど', english: '良い', level: 1, example: 'This is good', exampleEn: 'これは良いです' },
+  'wait': { japanese: 'wait', hiragana: 'うぇいと', english: '待つ', level: 2, example: 'Please wait', exampleEn: '待ってください' },
+  'can': { japanese: 'can', hiragana: 'きゃん', english: 'できる', level: 2, example: 'I can do it', exampleEn: '私はそれができます' },
+  'will': { japanese: 'will', hiragana: 'うぃる', english: 'するでしょう', level: 2, example: 'I will go', exampleEn: '私は行くでしょう' },
+  'my': { japanese: 'my', hiragana: 'まい', english: '私の', level: 1, example: 'This is my book', exampleEn: 'これは私の本です' },
+  'you': { japanese: 'you', hiragana: 'ゆー', english: 'あなた', level: 1, example: 'How are you?', exampleEn: 'あなたは元気ですか？' },
+  'it': { japanese: 'it', hiragana: 'いっと', english: 'それ', level: 1, example: 'I like it', exampleEn: '私はそれが好きです' },
+  
+  // Additional words from comments
+  'Italy': { japanese: 'Italy', hiragana: 'いたりー', english: 'イタリア', level: 2, example: 'Italy has beautiful springs', exampleEn: 'イタリアには美しい泉があります' },
+  'has': { japanese: 'has', hiragana: 'はず', english: '持っている', level: 2, example: 'Italy has beautiful springs', exampleEn: 'イタリアには美しい泉があります' },
+  'beautiful': { japanese: 'beautiful', hiragana: 'びゅーてぃふる', english: '美しい', level: 3, example: 'Italy has beautiful springs', exampleEn: 'イタリアには美しい泉があります' },
+  'springs': { japanese: 'springs', hiragana: 'すぷりんぐず', english: '泉', level: 4, example: 'Italy has beautiful springs', exampleEn: 'イタリアには美しい泉があります' },
+  'too': { japanese: 'too', hiragana: 'とぅー', english: 'も', level: 1, example: 'Italy has beautiful springs too', exampleEn: 'イタリアにも美しい泉があります' },
+  'but': { japanese: 'but', hiragana: 'ばっと', english: 'しかし', level: 2, example: 'Italy has beautiful springs too, but sakura season in Japan is legendary', exampleEn: 'イタリアにも美しい泉がありますが、日本の桜の季節は伝説的です' },
+  'season': { japanese: 'season', hiragana: 'しーずん', english: '季節', level: 3, example: 'sakura season in Japan is legendary', exampleEn: '日本の桜の季節は伝説的です' },
+  'in': { japanese: 'in', hiragana: 'いん', english: 'で', level: 1, example: 'sakura season in Japan', exampleEn: '日本での桜の季節' },
+  'Japan': { japanese: 'Japan', hiragana: 'じゃぱん', english: '日本', level: 1, example: 'sakura season in Japan is legendary', exampleEn: '日本の桜の季節は伝説的です' },
+  'is': { japanese: 'is', hiragana: 'いず', english: 'です', level: 1, example: 'sakura season in Japan is legendary', exampleEn: '日本の桜の季節は伝説的です' },
+  'legendary': { japanese: 'legendary', hiragana: 'れじぇんだりー', english: '伝説的な', level: 5, example: 'sakura season in Japan is legendary', exampleEn: '日本の桜の季節は伝説的です' },
+  'The': { japanese: 'The', hiragana: 'ざ', english: 'その', level: 1, example: 'The limited time makes it even more special', exampleEn: '限られた時間がそれをさらに特別にします' },
+  'limited': { japanese: 'limited', hiragana: 'りみてっど', english: '限られた', level: 4, example: 'The limited time makes it even more special', exampleEn: '限られた時間がそれをさらに特別にします' },
+  'time': { japanese: 'time', hiragana: 'たいむ', english: '時間', level: 2, example: 'The limited time makes it even more special', exampleEn: '限られた時間がそれをさらに特別にします' },
+  'makes': { japanese: 'makes', hiragana: 'めいくす', english: 'する', level: 2, example: 'The limited time makes it even more special', exampleEn: '限られた時間がそれをさらに特別にします' },
+  'even': { japanese: 'even', hiragana: 'いーぶん', english: 'さらに', level: 3, example: 'makes it even more special', exampleEn: 'それをさらに特別にします' },
+  'more': { japanese: 'more', hiragana: 'もあ', english: 'もっと', level: 2, example: 'makes it even more special', exampleEn: 'それをさらに特別にします' },
+  'special': { japanese: 'special', hiragana: 'すぺしゃる', english: '特別な', level: 3, example: 'makes it even more special', exampleEn: 'それをさらに特別にします' },
+  'and': { japanese: 'and', hiragana: 'あんど', english: 'そして', level: 1, example: 'special and valuable', exampleEn: '特別で価値のある' },
+  'valuable': { japanese: 'valuable', hiragana: 'ばりゅあぶる', english: '価値のある', level: 4, example: 'makes it even more special and valuable', exampleEn: 'それをさらに特別で価値のあるものにします' },
+  
+  // Common words that might appear
+  'Thank': { japanese: 'Thank', hiragana: 'さんく', english: 'ありがとう', level: 1, example: 'Thank you for your help', exampleEn: 'あなたの助けをありがとう' },
+  'cuisine': { japanese: 'cuisine', hiragana: 'くいじーん', english: '料理', level: 3, example: 'Traditional takoyaki と okonomiyaki に加えて、fusion cuisine が人気。Korean-Japanese と Italian-Japanese の combination が特に popular です。', exampleEn: 'In addition to traditional takoyaki and okonomiyaki, fusion cuisine is popular. Korean-Japanese and Italian-Japanese combinations are especially popular.' },
+  'thank': { japanese: 'thank', hiragana: 'さんく', english: 'ありがとう', level: 1, example: 'I thank you', exampleEn: '私はあなたに感謝します' },
+  'Thanks': { japanese: 'Thanks', hiragana: 'さんくす', english: 'ありがとう', level: 1, example: 'Thanks for everything', exampleEn: 'すべてをありがとう' },
+  'thanks': { japanese: 'thanks', hiragana: 'さんくす', english: 'ありがとう', level: 1, example: 'thanks for your time', exampleEn: 'あなたの時間をありがとう' }
 };
 
-export const spanishWords = {
-  // Basic Spanish words
-  'el': { spanish: 'el', pronunciation: 'el', english: 'the (masculine)', level: 1, example: 'El restaurante es bueno', exampleEn: 'The restaurant is good' },
-  'la': { spanish: 'la', pronunciation: 'la', english: 'the (feminine)', level: 1, example: 'La paella está deliciosa', exampleEn: 'The paella is delicious' },
-  'un': { spanish: 'un', pronunciation: 'oon', english: 'a/an (masculine)', level: 1, example: 'Un lugar especial', exampleEn: 'A special place' },
-  'una': { spanish: 'una', pronunciation: 'oo-na', english: 'a/an (feminine)', level: 1, example: 'Una experiencia maravillosa', exampleEn: 'A wonderful experience' },
-  'es': { spanish: 'es', pronunciation: 'es', english: 'is', level: 1, example: 'Es muy interesante', exampleEn: 'It is very interesting' },
-  'son': { spanish: 'son', pronunciation: 'son', english: 'are', level: 1, example: 'Son tradiciones importantes', exampleEn: 'They are important traditions' },
-  'muy': { spanish: 'muy', pronunciation: 'moo-ee', english: 'very', level: 1, example: 'Muy delicioso', exampleEn: 'Very delicious' },
-  'de': { spanish: 'de', pronunciation: 'de', english: 'of/from', level: 1, example: 'De España', exampleEn: 'From Spain' },
-  'en': { spanish: 'en', pronunciation: 'en', english: 'in/on', level: 1, example: 'En Madrid', exampleEn: 'In Madrid' },
-  'y': { spanish: 'y', pronunciation: 'ee', english: 'and', level: 1, example: 'Tradición y modernidad', exampleEn: 'Tradition and modernity' },
-
-  // Compound Spanish words and phrases
-  'paella': { spanish: 'paella', pronunciation: 'pa-eh-ya', english: 'paella', level: 3, example: 'Comimos paella en Valencia', exampleEn: 'We ate paella in Valencia' },
-  'tapas': { spanish: 'tapas', pronunciation: 'ta-pas', english: 'tapas', level: 2, example: 'Las tapas son deliciosas', exampleEn: 'The tapas are delicious' },
-  'flamenco': { spanish: 'flamenco', pronunciation: 'fla-men-ko', english: 'flamenco', level: 3, example: 'El flamenco es una tradición', exampleEn: 'Flamenco is a tradition' },
-  'cultura': { spanish: 'cultura', pronunciation: 'kool-too-rah', english: 'culture', level: 5, example: 'La cultura española es rica', exampleEn: 'Spanish culture is rich' },
-  'tradición': { spanish: 'tradición', pronunciation: 'tra-di-see-on', english: 'tradition', level: 8, example: 'Una tradición muy antigua', exampleEn: 'A very ancient tradition' },
-  'local': { spanish: 'local', pronunciation: 'lo-kal', english: 'local', level: 4, example: 'La gente local es amable', exampleEn: 'Local people are friendly' },
-  'delicioso': { spanish: 'delicioso', pronunciation: 'de-li-see-oh-so', english: 'delicious', level: 2, example: 'Esta comida está deliciosa', exampleEn: 'This food is delicious' },
-  'maravilloso': { spanish: 'maravilloso', pronunciation: 'ma-ra-bee-yo-so', english: 'wonderful', level: 6, example: 'Un lugar maravilloso', exampleEn: 'A wonderful place' },
-  'interesante': { spanish: 'interesante', pronunciation: 'in-te-re-san-te', english: 'interesting', level: 7, example: 'Una historia interesante', exampleEn: 'An interesting story' },
-  'auténtico': { spanish: 'auténtico', pronunciation: 'ow-ten-ti-ko', english: 'authentic', level: 8, example: 'Comida auténtica española', exampleEn: 'Authentic Spanish food' },
-  'nuevo': { spanish: 'nuevo', pronunciation: 'nue-bo', english: 'new', level: 1, example: 'Un restaurante nuevo', exampleEn: 'A new restaurant' },
-  'viejo': { spanish: 'viejo', pronunciation: 'bee-eh-ho', english: 'old', level: 2, example: 'Un edificio viejo', exampleEn: 'An old building' },
-  'España': { spanish: 'España', pronunciation: 'es-pa-nya', english: 'Spain', level: 1, example: 'España es hermosa', exampleEn: 'Spain is beautiful' },
-  'Madrid': { spanish: 'Madrid', pronunciation: 'ma-drid', english: 'Madrid', level: 1, example: 'Madrid es la capital', exampleEn: 'Madrid is the capital' },
-  'Barcelona': { spanish: 'Barcelona', pronunciation: 'bar-se-lo-na', english: 'Barcelona', level: 1, example: 'Barcelona tiene playa', exampleEn: 'Barcelona has beach' },
-  'Sevilla': { spanish: 'Sevilla', pronunciation: 'se-bee-ya', english: 'Seville', level: 2, example: 'Sevilla es famosa por el flamenco', exampleEn: 'Seville is famous for flamenco' },
-  'Valencia': { spanish: 'Valencia', pronunciation: 'ba-len-see-a', english: 'Valencia', level: 2, example: 'Valencia es el origen de la paella', exampleEn: 'Valencia is the origin of paella' },
-  'comida': { spanish: 'comida', pronunciation: 'ko-mee-da', english: 'food', level: 2, example: 'La comida española es variada', exampleEn: 'Spanish food is varied' },
-  'restaurante': { spanish: 'restaurante', pronunciation: 're-stow-ran-te', english: 'restaurant', level: 3, example: 'Un restaurante típico', exampleEn: 'A typical restaurant' },
-  'experiencia': { spanish: 'experiencia', pronunciation: 'eks-pe-ree-en-see-a', english: 'experience', level: 5, example: 'Una experiencia única', exampleEn: 'A unique experience' },
-  'gente': { spanish: 'gente', pronunciation: 'hen-te', english: 'people', level: 2, example: 'La gente es muy amable', exampleEn: 'People are very friendly' },
-  'lugar': { spanish: 'lugar', pronunciation: 'loo-gar', english: 'place', level: 2, example: 'Un lugar especial', exampleEn: 'A special place' }
-};
-
-// Helper function to provide basic English-to-target language translations
-const getBasicEnglishTranslation = (word, targetLang = 'ja') => {
-  const japaneseTranslations = {
+// Helper function to provide basic English-to-Japanese translations
+const getBasicEnglishTranslation = (word) => {
+  const basicTranslations = {
     // Common verbs
     'thank': 'ありがとう',
-    'Thanks': 'ありがとう',
+    'Thank': 'ありがとう', 
     'thanks': 'ありがとう',
+    'Thanks': 'ありがとう',
     'help': '助ける',
     'like': '好き',
     'love': '愛する',
@@ -107,7 +174,7 @@ const getBasicEnglishTranslation = (word, targetLang = 'ja') => {
     'do': 'する',
     'have': '持つ',
     'be': 'である',
-
+    
     // Common adjectives
     'good': '良い',
     'bad': '悪い',
@@ -123,14 +190,7 @@ const getBasicEnglishTranslation = (word, targetLang = 'ja') => {
     'hard': '難しい',
     'happy': '幸せ',
     'sad': '悲しい',
-    'beautiful': '美しい',
-    'delicious': '美味しい',
-    'interesting': '興味深い',
-    'wonderful': '素晴らしい',
-    'authentic': '本格的な',
-    'traditional': '伝統的な',
-    'local': '地元の',
-
+    
     // Common nouns
     'person': '人',
     'people': '人々',
@@ -150,206 +210,179 @@ const getBasicEnglishTranslation = (word, targetLang = 'ja') => {
     'country': '国',
     'city': '都市',
     'world': '世界',
-    'culture': '文化',
-    'tradition': '伝統',
-    'season': '季節'
+  'cuisine': '料理',
+  'traditional': '伝統的な',
+  'fusion': '融合',
+  'popular': '人気',
+  'combination': 'コンビネーション'
+  };
+  
+  return basicTranslations[word] || `${word}の日本語`;
+};
+
+// Predefined sentence translations for common contexts
+const getSentenceTranslation = (sentence, targetWord, wordTranslation) => {
+  // Common sentence patterns with their translations
+  const sentenceTranslations = {
+    'Italy has beautiful springs too, but sakura season in Japan is legendary!': 'イタリアにも美しい泉がありますが、日本の桜の季節は伝説的です！',
+    'The limited time makes it even more special and valuable.': '限られた時間がそれをさらに特別で価値のあるものにします。',
+    'Thank you for your help': 'あなたの助けをありがとう',
+    'Thank you': 'ありがとう',
+    'This is amazing': 'これは素晴らしいです',
+    'I love this place': 'この場所が大好きです',
+    'sakura season in Japan is legendary': '日本の桜の季節は伝説的です'
   };
 
-  const spanishTranslations = {
-    // Common verbs
-    'thank': 'gracias',
-    'Thanks': 'gracias',
-    'thanks': 'gracias',
-    'help': 'ayudar',
-    'like': 'gustar',
-    'love': 'amar',
-    'want': 'querer',
-    'need': 'necesitar',
-    'know': 'saber',
-    'think': 'pensar',
-    'feel': 'sentir',
-    'see': 'ver',
-    'hear': 'oír',
-    'say': 'decir',
-    'tell': 'contar',
-    'ask': 'preguntar',
-    'answer': 'responder',
-    'come': 'venir',
-    'go': 'ir',
-    'get': 'obtener',
-    'give': 'dar',
-    'take': 'tomar',
-    'make': 'hacer',
-    'do': 'hacer',
-    'have': 'tener',
-    'be': 'ser',
+  // Check for exact matches first
+  const exactMatch = sentenceTranslations[sentence];
+  if (exactMatch) {
+    return exactMatch;
+  }
 
-    // Common adjectives
-    'good': 'bueno',
-    'bad': 'malo',
-    'big': 'grande',
-    'small': 'pequeño',
-    'new': 'nuevo',
-    'old': 'viejo',
-    'hot': 'caliente',
-    'cold': 'frío',
-    'fast': 'rápido',
-    'slow': 'lento',
-    'easy': 'fácil',
-    'hard': 'difícil',
-    'happy': 'feliz',
-    'sad': 'triste',
-    'beautiful': 'hermoso',
-    'delicious': 'delicioso',
-    'interesting': 'interesante',
-    'wonderful': 'maravilloso',
-    'authentic': 'auténtico',
-    'traditional': 'tradicional',
-    'local': 'local',
+  // Check for partial matches
+  for (const [englishSentence, japaneseSentence] of Object.entries(sentenceTranslations)) {
+    if (sentence.includes(englishSentence) || englishSentence.includes(sentence)) {
+      return japaneseSentence;
+    }
+  }
 
-    // Common nouns
-    'person': 'persona',
-    'people': 'gente',
-    'man': 'hombre',
-    'woman': 'mujer',
-    'child': 'niño',
-    'family': 'familia',
-    'friend': 'amigo',
-    'house': 'casa',
-    'car': 'coche',
-    'book': 'libro',
-    'food': 'comida',
-    'water': 'agua',
-    'money': 'dinero',
-    'work': 'trabajo',
-    'school': 'escuela',
-    'country': 'país',
-    'city': 'ciudad',
-    'world': 'mundo',
-    'culture': 'cultura',
-    'tradition': 'tradición',
-    'season': 'temporada'
+  // Fallback: simple word replacement for unknown sentences
+  const basicTranslations = {
+    'Italy': 'イタリア',
+    'has': 'には',
+    'beautiful': '美しい',
+    'springs': '泉が',
+    'too': 'も',
+    'but': 'ありますが',
+    'sakura': '桜の',
+    'season': '季節は',
+    'in': '',
+    'Japan': '日本の',
+    'is': '',
+    'legendary': '伝説的です',
+    'The': '',
+    'limited': '限られた',
+    'time': '時間が',
+    'makes': '',
+    'it': 'それを',
+    'even': 'さらに',
+    'more': 'もっと',
+    'special': '特別で',
+    'and': '',
+    'valuable': '価値のあるものにします',
+    'Thank': 'ありがとう',
+    'you': '',
+    'for': 'を',
+    'your': 'あなたの',
+    'help': '助け'
   };
 
-  const translations = targetLang === 'es' ? spanishTranslations : japaneseTranslations;
-  return translations[word] || `${word} en ${targetLang === 'es' ? 'español' : '日本語'}`;
+  // Add the target word translation
+  basicTranslations[targetWord] = wordTranslation;
+
+  // Simple word replacement as fallback
+  let result = sentence;
+  Object.keys(basicTranslations).forEach(englishWord => {
+    if (basicTranslations[englishWord]) {
+      const regex = new RegExp(`\\b${englishWord}\\b`, 'gi');
+      result = result.replace(regex, basicTranslations[englishWord]);
+    }
+  });
+
+  return result;
 };
 
 // Function to handle word clicks with real-time translation API
-export const handleWordClick = async (word, setSelectedWord, language = 'japanese', context = null, contextTranslation = null) => {
-  // Determine source and target languages
-  const isTargetLanguage = language === 'japanese'
-    ? /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word)
-    : /[ñáéíóúü]/.test(word) || (language === 'spanish' && !/^[A-Za-z\s]*$/.test(word));
-
-  const fromLang = isTargetLanguage ? (language === 'japanese' ? 'ja' : 'es') : 'en';
-  const toLang = isTargetLanguage ? 'en' : (language === 'japanese' ? 'ja' : 'es');
+export const handleWordClick = async (word, setSelectedWord, isJapanese = null, context = null, contextTranslation = null) => {
+  // Auto-detect if word is Japanese or English if not specified
+  if (isJapanese === null) {
+    isJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word);
+  }
 
   // Clean the word (remove punctuation)
-  const cleanWord = word.replace(/[。、！？¡¿.,!?]/g, '');
-
-  // Check existing database first
-  const wordDatabase = language === 'japanese' ? japaneseWords : spanishWords;
-  const wordData = wordDatabase[cleanWord];
-
+  const cleanWord = word.replace(/[。、！？]/g, '');
+  const wordData = japaneseWords[cleanWord];
+  
   if (wordData) {
     // Use existing database entry if available
-    setSelectedWord({
-      ...wordData,
-      original: cleanWord,
-      isTargetLanguage: isTargetLanguage,
-      language: language
-    });
+    if (!isJapanese) {
+      setSelectedWord({
+        japanese: wordData.japanese, // Keep original English word
+        hiragana: wordData.hiragana, // Katakana pronunciation
+        english: wordData.english, // Japanese translation
+        level: wordData.level,
+        example: wordData.example,
+        exampleEn: wordData.exampleEn,
+        original: cleanWord,
+        isJapanese: false,
+        showJapaneseTranslation: true
+      });
+    } else {
+      setSelectedWord({
+        ...wordData,
+        original: cleanWord,
+        isJapanese: isJapanese
+      });
+    }
   } else {
     // Use translation API for unknown words
     try {
       console.log(`Translating word: ${cleanWord} using API...`);
-
-      let translation, pronunciation, contextTranslationResult;
-
-      if (isTargetLanguage) {
-        // Target language to English
-        translation = await translationService.translateText(cleanWord, fromLang, toLang);
-
-        if (language === 'japanese') {
-          pronunciation = translationService.getBasicReading(cleanWord);
-        } else {
-          pronunciation = translationService.getSpanishPronunciation(cleanWord);
-        }
-
+      
+      let translation, pronunciation, contextTranslation;
+      
+      if (isJapanese) {
+        // Japanese to English
+        translation = await translationService.translateText(cleanWord, 'ja', 'en');
+        pronunciation = translationService.getBasicReading(cleanWord);
+        
         if (context && !contextTranslation) {
-          contextTranslationResult = await translationService.translateText(context, fromLang, toLang);
+          contextTranslation = await translationService.translateText(context, 'ja', 'en');
         }
       } else {
-        // English to target language
-        translation = await translationService.translateText(cleanWord, fromLang, toLang);
-
-        if (language === 'japanese') {
-          pronunciation = translationService.getEnglishPronunciation(cleanWord);
-        } else {
-          pronunciation = translationService.getSpanishPronunciation(translation);
-        }
-
+        // English to Japanese
+        translation = await translationService.translateText(cleanWord, 'en', 'ja');
+        pronunciation = translationService.getEnglishPronunciation(cleanWord);
+        
         if (context && !contextTranslation) {
-          contextTranslationResult = await translationService.translateText(context, fromLang, toLang);
+          contextTranslation = await translationService.translateText(context, 'en', 'ja');
         }
       }
-
+      
       const level = translationService.estimateLevel(cleanWord);
-
-      const wordInfo = {
-        original: cleanWord,
+      
+      setSelectedWord({
+        japanese: isJapanese ? cleanWord : cleanWord,
+        hiragana: pronunciation,
+        english: translation,
         level: level,
         example: context || `Example with "${cleanWord}".`,
-        exampleEn: contextTranslationResult || (isTargetLanguage ? `Example with ${cleanWord}.` : `Example with "${cleanWord}".`),
-        isTargetLanguage: isTargetLanguage,
-        language: language,
+        exampleEn: contextTranslation || (isJapanese ? `Example with ${cleanWord}.` : `「${cleanWord}」を使った例文。`),
+        original: cleanWord,
+        isJapanese: isJapanese,
+        showJapaneseTranslation: !isJapanese,
         isApiTranslated: true // Flag to indicate this came from API
-      };
-
-      if (language === 'japanese') {
-        wordInfo.japanese = isTargetLanguage ? cleanWord : cleanWord;
-        wordInfo.hiragana = pronunciation;
-        wordInfo.english = translation;
-      } else {
-        wordInfo.spanish = isTargetLanguage ? cleanWord : translation;
-        wordInfo.pronunciation = pronunciation;
-        wordInfo.english = isTargetLanguage ? translation : cleanWord;
-      }
-
-      setSelectedWord(wordInfo);
-
+      });
+      
     } catch (error) {
       console.error('Translation API failed:', error);
-
+      
       // Fallback to basic translation if API fails
-      const basicTranslation = isTargetLanguage
-        ? (language === 'japanese' ? 'Japanese word' : 'Spanish word')
-        : getBasicEnglishTranslation(cleanWord, language === 'japanese' ? 'ja' : 'es');
-
-      const basicPronunciation = isTargetLanguage ? cleanWord : cleanWord.toLowerCase();
-
-      const fallbackInfo = {
-        original: cleanWord,
+      const basicTranslation = isJapanese ? 'Japanese word' : getBasicEnglishTranslation(cleanWord);
+      const basicPronunciation = isJapanese ? cleanWord : cleanWord.toLowerCase();
+      
+      setSelectedWord({
+        japanese: cleanWord,
+        hiragana: basicPronunciation,
+        english: basicTranslation,
         level: 5,
         example: context || `Example with "${cleanWord}".`,
-        exampleEn: context || `Example with "${cleanWord}".`,
-        isTargetLanguage: isTargetLanguage,
-        language: language,
+        exampleEn: context || `「${cleanWord}」を使った例文。`,
+        original: cleanWord,
+        isJapanese: isJapanese,
+        showJapaneseTranslation: !isJapanese,
         isApiFallback: true // Flag to indicate API failed
-      };
-
-      if (language === 'japanese') {
-        fallbackInfo.japanese = cleanWord;
-        fallbackInfo.hiragana = basicPronunciation;
-        fallbackInfo.english = basicTranslation;
-      } else {
-        fallbackInfo.spanish = isTargetLanguage ? cleanWord : basicTranslation;
-        fallbackInfo.pronunciation = basicPronunciation;
-        fallbackInfo.english = isTargetLanguage ? basicTranslation : cleanWord;
-      }
-
-      setSelectedWord(fallbackInfo);
+      });
     }
   }
 };
@@ -358,37 +391,34 @@ export const handleWordClick = async (word, setSelectedWord, language = 'japanes
 export const addWordToDictionary = (selectedWord, userDictionary, setUserDictionary, setFeedbackMessage, setShowFeedback) => {
   if (selectedWord) {
     let wordToAdd;
-
-    if (selectedWord.language === 'japanese') {
+    
+    if (selectedWord.showJapaneseTranslation) {
+      // English word - add the Japanese translation to dictionary
       wordToAdd = {
-        id: Date.now(),
-        japanese: selectedWord.isTargetLanguage ? selectedWord.japanese : selectedWord.english,
-        hiragana: selectedWord.hiragana,
-        english: selectedWord.isTargetLanguage ? selectedWord.english : selectedWord.japanese,
+        japanese: selectedWord.english, // Japanese translation
+        hiragana: selectedWord.hiragana, // Katakana pronunciation
+        english: selectedWord.japanese, // Original English word
         level: selectedWord.level,
         example: selectedWord.example,
         exampleEn: selectedWord.exampleEn,
-        source: "LivePeek",
-        dateAdded: new Date().toISOString()
+        source: "LivePeek"
       };
     } else {
+      // Japanese word - add normally
       wordToAdd = {
-        id: Date.now(),
-        spanish: selectedWord.isTargetLanguage ? selectedWord.spanish : selectedWord.english,
-        pronunciation: selectedWord.pronunciation,
-        english: selectedWord.isTargetLanguage ? selectedWord.english : selectedWord.spanish,
+        japanese: selectedWord.japanese,
+        hiragana: selectedWord.hiragana,
+        english: selectedWord.english,
         level: selectedWord.level,
         example: selectedWord.example,
         exampleEn: selectedWord.exampleEn,
-        source: "LivePeek",
-        dateAdded: new Date().toISOString()
+        source: "LivePeek"
       };
     }
 
     // Check if word already exists
-    const wordKey = selectedWord.language === 'japanese' ? 'japanese' : 'spanish';
-    const wordExists = userDictionary.some(word => word[wordKey] === wordToAdd[wordKey]);
-
+    const wordExists = userDictionary.some(word => word.japanese === wordToAdd.japanese);
+    
     if (!wordExists) {
       setUserDictionary(prev => [...prev, wordToAdd]);
       setFeedbackMessage({
@@ -401,7 +431,7 @@ export const addWordToDictionary = (selectedWord, userDictionary, setUserDiction
         message: "Already in your dictionary"
       });
     }
-
+    
     setShowFeedback(true);
     setTimeout(() => {
       setShowFeedback(false);

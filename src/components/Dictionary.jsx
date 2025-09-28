@@ -1,200 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp, Zap } from 'lucide-react';
-import { addWordToDictionary } from '../lib/wordDatabase';
+import React, { useState } from 'react';
+import { ArrowLeft, BookOpen, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
-const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedded = false, onAddWordToDictionary }) => {
+const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
   const [expandedWord, setExpandedWord] = useState(null);
-  const [userDictionary, setUserDictionary] = useState([]);
-  const [feedbackMessage, setFeedbackMessage] = useState(null);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [sortBy, setSortBy] = useState('level'); // 'level', 'date', 'alphabetical'
 
-  // Load saved dictionary from localStorage
-  useEffect(() => {
-    const savedDictionary = localStorage.getItem(`livepeek_dictionary_${selectedLanguage}`);
-    if (savedDictionary) {
-      setUserDictionary(JSON.parse(savedDictionary));
+  const getSortedWords = () => {
+    const words = [...userDictionary];
+    switch (sortBy) {
+      case 'level':
+        return words.sort((a, b) => a.level - b.level);
+      case 'date':
+        return words.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      case 'alphabetical':
+        return words.sort((a, b) => a.japanese.localeCompare(b.japanese));
+      default:
+        return words;
     }
-  }, [selectedLanguage]);
+  };
 
-  // Save dictionary to localStorage whenever it changes
-  useEffect(() => {
-    if (userDictionary.length > 0) {
-      localStorage.setItem(`livepeek_dictionary_${selectedLanguage}`, JSON.stringify(userDictionary));
-    }
-  }, [userDictionary, selectedLanguage]);
-
-  // Sample Japanese dictionary words (fallback)
-  const japaneseDictionaryWords = [
-    {
-      id: 1,
-      japanese: "ラーメン",
-      hiragana: "らーめん",
-      english: "ramen",
-      level: 3,
-      example: "今日はラーメンを食べました。",
-      exampleEn: "I ate ramen today.",
-      source: "Hidden Ramen Shops post"
-    },
-    {
-      id: 2,
-      japanese: "文化",
-      hiragana: "ぶんか",
-      english: "culture",
-      level: 5,
-      example: "日本の文化は興味深いです。",
-      exampleEn: "Japanese culture is interesting.",
-      source: "Digital Art Museum post"
-    },
-    {
-      id: 3,
-      japanese: "地元",
-      hiragana: "じもと",
-      english: "local",
-      level: 4,
-      example: "地元の人におすすめを聞きました。",
-      exampleEn: "I asked local people for recommendations.",
-      source: "Hidden Ramen Shops post"
-    },
-    {
-      id: 4,
-      japanese: "美味しい",
-      hiragana: "おいしい",
-      english: "delicious",
-      level: 2,
-      example: "このラーメンはとても美味しいです。",
-      exampleEn: "This ramen is very delicious.",
-      source: "Street Food Revolution post"
-    },
-    {
-      id: 5,
-      japanese: "素晴らしい",
-      hiragana: "すばらしい",
-      english: "wonderful",
-      level: 6,
-      example: "素晴らしい経験でした。",
-      exampleEn: "It was a wonderful experience.",
-      source: "Tea Ceremony post"
-    },
-    {
-      id: 6,
-      japanese: "興味深い",
-      hiragana: "きょうみぶかい",
-      english: "interesting",
-      level: 7,
-      example: "とても興味深い話でした。",
-      exampleEn: "It was a very interesting story.",
-      source: "Digital Art Museum post"
-    },
-    {
-      id: 7,
-      japanese: "伝統",
-      hiragana: "でんとう",
-      english: "tradition",
-      level: 8,
-      example: "日本の伝統を学んでいます。",
-      exampleEn: "I am learning Japanese traditions.",
-      source: "Tea Ceremony post"
-    },
-    {
-      id: 8,
-      japanese: "新しい",
-      hiragana: "あたらしい",
-      english: "new",
-      level: 1,
-      example: "新しいレストランに行きました。",
-      exampleEn: "I went to a new restaurant.",
-      source: "Digital Art Museum post"
-    }
-  ];
-
-  // Spanish dictionary words
-  const spanishDictionaryWords = [
-    {
-      id: 1,
-      spanish: "paella",
-      pronunciation: "pa-eh-ya",
-      english: "paella",
-      level: 3,
-      example: "Comimos paella en Valencia.",
-      exampleEn: "We ate paella in Valencia.",
-      source: "Spanish Food Culture post"
-    },
-    {
-      id: 2,
-      spanish: "cultura",
-      pronunciation: "kool-too-rah",
-      english: "culture",
-      level: 5,
-      example: "La cultura española es muy rica.",
-      exampleEn: "Spanish culture is very rich.",
-      source: "Flamenco History post"
-    },
-    {
-      id: 3,
-      spanish: "local",
-      pronunciation: "lo-kal",
-      english: "local",
-      level: 4,
-      example: "Preguntamos a la gente local.",
-      exampleEn: "We asked the local people.",
-      source: "Hidden Tapas Bars post"
-    },
-    {
-      id: 4,
-      spanish: "delicioso",
-      pronunciation: "de-li-see-oh-so",
-      english: "delicious",
-      level: 2,
-      example: "Esta paella está deliciosa.",
-      exampleEn: "This paella is delicious.",
-      source: "Street Food Revolution post"
-    },
-    {
-      id: 5,
-      spanish: "maravilloso",
-      pronunciation: "ma-ra-bee-yo-so",
-      english: "wonderful",
-      level: 6,
-      example: "Fue una experiencia maravillosa.",
-      exampleEn: "It was a wonderful experience.",
-      source: "Flamenco Show post"
-    },
-    {
-      id: 6,
-      spanish: "interesante",
-      pronunciation: "in-te-re-san-te",
-      english: "interesting",
-      level: 7,
-      example: "Es una historia muy interesante.",
-      exampleEn: "It's a very interesting story.",
-      source: "Gaudí Architecture post"
-    },
-    {
-      id: 7,
-      spanish: "tradición",
-      pronunciation: "tra-di-see-on",
-      english: "tradition",
-      level: 8,
-      example: "Estoy aprendiendo las tradiciones españolas.",
-      exampleEn: "I am learning Spanish traditions.",
-      source: "Flamenco History post"
-    },
-    {
-      id: 8,
-      spanish: "nuevo",
-      pronunciation: "nue-bo",
-      english: "new",
-      level: 1,
-      example: "Fuimos a un restaurante nuevo.",
-      exampleEn: "We went to a new restaurant.",
-      source: "Modern Spanish Cuisine post"
-    }
-  ];
-
-  // Use user dictionary if available, otherwise use sample data
-  const sampleWords = selectedLanguage === 'spanish' ? spanishDictionaryWords : japaneseDictionaryWords;
-  const dictionaryWords = userDictionary.length > 0 ? userDictionary : sampleWords;
-  const sortedWords = [...dictionaryWords].sort((a, b) => a.level - b.level);
+  const sortedWords = getSortedWords();
 
   const getLevelColor = (level) => {
     if (level <= 3) return 'bg-green-500';
@@ -204,11 +29,7 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
   };
 
   const removeWord = (wordId) => {
-    setUserDictionary(prev => prev.filter(word => word.id !== wordId));
-  };
-
-  const addWordToUserDictionary = (wordData) => {
-    addWordToDictionary(wordData, userDictionary, setUserDictionary, setFeedbackMessage, setShowFeedback);
+    onRemoveWord(wordId);
   };
 
   const toggleExpanded = (wordId) => {
@@ -218,73 +39,91 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
 
 
   return (
-    <div className={isEmbedded ? "" : "min-h-screen bg-white p-6"}>
-      <div className={isEmbedded ? "" : "max-w-6xl mx-auto"}>
-        {/* Header - only show when not embedded */}
-        {!isEmbedded && (
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={onBack}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span className="font-medium">Back to Feed</span>
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
-            <button
-              onClick={onNavigateToFlashcards}
-              className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
-            >
-              <Zap className="w-4 h-4" />
-              <span>Practice Flashcards</span>
-            </button>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={onBack}
+            className="flex items-center text-gray-600 hover:text-gray-800"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Feed
+          </button>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900">My Japanese Dictionary</h1>
+            <p className="text-sm text-gray-600">{sortedWords.length} words learned</p>
           </div>
-        )}
+          <div></div>
+        </div>
 
-        {/* Embedded Header */}
-        {isEmbedded && (
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">My Dictionary</h1>
-            <button
-              onClick={onNavigateToFlashcards}
-              className="flex items-center space-x-2 bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all"
-            >
-              <Zap className="w-4 h-4" />
-              <span>Practice Flashcards</span>
-            </button>
+        {/* Statistics and Controls */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{sortedWords.filter(w => w.level <= 3).length}</div>
+                <div className="text-xs text-gray-600">Beginner</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{sortedWords.filter(w => w.level > 3 && w.level <= 6).length}</div>
+                <div className="text-xs text-gray-600">Intermediate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{sortedWords.filter(w => w.level > 6 && w.level <= 8).length}</div>
+                <div className="text-xs text-gray-600">Advanced</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{sortedWords.filter(w => w.level > 8).length}</div>
+                <div className="text-xs text-gray-600">Expert</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Sort by:</span>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+              >
+                <option value="level">Difficulty Level</option>
+                <option value="date">Recently Added</option>
+                <option value="alphabetical">A-Z (Japanese)</option>
+              </select>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Dictionary Words */}
-        <div className="grid gap-4">
+        <div className="space-y-4">
           {sortedWords.map((word) => (
-            <div key={word.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all hover:shadow-sm overflow-hidden">
-              <div className="p-6">
+            <div key={word.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {selectedLanguage === 'spanish' ? word.spanish : word.japanese}
+                  <div className="flex items-center space-x-4">
+                    <div className="text-xl font-bold text-gray-900">
+                      {word.japanese}
                     </div>
-                    <div className="text-gray-500 font-medium">
-                      {selectedLanguage === 'spanish' ? word.pronunciation : word.hiragana}
+                    <div className="text-gray-600">
+                      {word.hiragana}
                     </div>
-                    <div className="text-gray-800 font-semibold">
+                    <div className="text-gray-800 font-medium">
                       {word.english}
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(word.level)}`}>
+                    <span className={`px-2 py-1 rounded text-white text-xs font-medium ${getLevelColor(word.level)}`}>
                       Level {word.level}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button
+                    <button 
                       onClick={() => toggleExpanded(word.id)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       {expandedWord === word.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </button>
-                    <button
+                    <button 
                       onClick={() => removeWord(word.id)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="text-red-400 hover:text-red-600"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -292,22 +131,22 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
                 </div>
 
                 {expandedWord === word.id && (
-                  <div className="mt-6 pt-6 border-t border-gray-100">
-                    <div className="space-y-4">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Example Sentence</h4>
-                        <p className="text-gray-900 font-medium mb-1">{word.example}</p>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">Example Sentence</h4>
+                        <p className="text-gray-900">{word.example}</p>
                         <p className="text-gray-600 text-sm">{word.exampleEn}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Source</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">Source</h4>
                         <p className="text-gray-600 text-sm">{word.source}</p>
                       </div>
-                      <div className="flex items-center">
-                        <div className="flex items-center space-x-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-                          <Star className="w-4 h-4 text-yellow-500" />
-                          <span className="text-sm font-medium text-yellow-700">Premium</span>
-                        </div>
+                      <div className="flex items-center space-x-2">
+                        <button className="flex items-center text-orange-500 text-sm hover:text-orange-600">
+                          <Star className="w-4 h-4 mr-1" />
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">Premium</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -317,24 +156,14 @@ const Dictionary = ({ onBack, onNavigateToFlashcards, selectedLanguage, isEmbedd
           ))}
         </div>
 
-        {/* Feedback Message */}
-        {showFeedback && feedbackMessage && (
-          <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">{feedbackMessage.icon}</span>
-              <span className="text-sm font-medium text-gray-900">{feedbackMessage.message}</span>
-            </div>
-          </div>
-        )}
-
         {sortedWords.length === 0 && (
-          <div className="text-center py-16">
-            <BookOpen className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-            <h3 className="text-xl font-bold text-gray-900 mb-3">No words saved yet</h3>
-            <p className="text-gray-600 text-lg">Start clicking on words in posts to build your dictionary!</p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto mt-6">
+          <div className="text-center py-12">
+            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Your Japanese Dictionary is Empty</h3>
+            <p className="text-gray-600 mb-4">Start clicking on Japanese words in posts to build your personal dictionary!</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
               <div className="text-sm text-blue-800">
-                <strong>💡 Tip:</strong> Click on any {selectedLanguage === 'spanish' ? 'Spanish' : 'Japanese'} word in the news feed to see its meaning, pronunciation, and add it to your dictionary for later review.
+                <strong>💡 Tip:</strong> Click on any Japanese word in the news feed to see its meaning, pronunciation, and add it to your dictionary for later review.
               </div>
             </div>
           </div>

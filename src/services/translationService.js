@@ -1,6 +1,5 @@
 // Translation Service using multiple APIs and fallbacks
 // This provides real-time translation without hardcoding
-// Supports both Japanese and Spanish language learning
 
 class TranslationService {
   constructor() {
@@ -17,7 +16,7 @@ class TranslationService {
   // Main translation function
   async translateText(text, fromLang = 'en', toLang = 'ja') {
     const cacheKey = `${text}_${fromLang}_${toLang}`;
-
+    
     // Check cache first
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
@@ -26,11 +25,11 @@ class TranslationService {
     try {
       // Try multiple translation services in order of reliability
       let translation = await this.tryLingvaTranslate(text, fromLang, toLang);
-
+      
       if (!translation) {
         translation = await this.tryMyMemoryTranslation(text, fromLang, toLang);
       }
-
+      
       if (!translation) {
         translation = await this.tryLibreTranslate(text, fromLang, toLang);
       }
@@ -58,18 +57,18 @@ class TranslationService {
       const response = await fetch(
         `${this.apiEndpoints.mymemory}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
       );
-
+      
       if (!response.ok) throw new Error('MyMemory API failed');
-
+      
       const data = await response.json();
-
+      
       if (data.responseStatus === 200 && data.responseData) {
         const translation = data.responseData.translatedText;
-
+        
         // Filter out bad translations (single punctuation, same as input, etc.)
-        if (translation &&
-            translation.length > 1 &&
-            translation !== '.' &&
+        if (translation && 
+            translation.length > 1 && 
+            translation !== '.' && 
             translation !== text &&
             !translation.match(/^[.,!?;:]+$/)) {
           return translation;
@@ -85,19 +84,19 @@ class TranslationService {
   async tryLingvaTranslate(text, fromLang, toLang) {
     try {
       const url = `${this.apiEndpoints.lingva}/${fromLang}/${toLang}/${encodeURIComponent(text)}`;
-
+      
       const response = await fetch(url);
-
+      
       if (!response.ok) throw new Error('Lingva Translate API failed');
-
+      
       const data = await response.json();
-
+      
       if (data && data.translation) {
         const translation = data.translation;
-
+        
         // Filter out bad translations
-        if (translation &&
-            translation.length > 0 &&
+        if (translation && 
+            translation.length > 0 && 
             translation !== text &&
             !translation.match(/^[.,!?;:]+$/)) {
           return translation;
@@ -126,7 +125,7 @@ class TranslationService {
       });
 
       if (!response.ok) throw new Error('LibreTranslate API failed');
-
+      
       const data = await response.json();
       return data.translatedText;
     } catch (error) {
@@ -141,10 +140,6 @@ class TranslationService {
       return this.englishToJapaneseBasic(text);
     } else if (fromLang === 'ja' && toLang === 'en') {
       return this.japaneseToEnglishBasic(text);
-    } else if (fromLang === 'en' && toLang === 'es') {
-      return this.englishToSpanishBasic(text);
-    } else if (fromLang === 'es' && toLang === 'en') {
-      return this.spanishToEnglishBasic(text);
     }
     return null;
   }
@@ -162,7 +157,7 @@ class TranslationService {
       'please': 'お願いします',
       'sorry': 'すみません',
       'excuse me': 'すみません',
-
+      
       // Verbs
       'is': 'です',
       'are': 'です',
@@ -179,111 +174,181 @@ class TranslationService {
       'could': 'できました',
       'should': 'すべきです',
       'must': 'しなければなりません',
-
+      
       // Adjectives
       'good': '良い',
       'bad': '悪い',
       'big': '大きい',
       'small': '小さい',
       'beautiful': '美しい',
-      'delicious': '美味しい',
-      'interesting': '興味深い',
-      'wonderful': '素晴らしい',
-      'authentic': '本格的な',
-      'traditional': '伝統的な',
-      'local': '地元の',
+      'ugly': '醜い',
+      'hot': '熱い',
+      'cold': '冷たい',
       'new': '新しい',
       'old': '古い',
-
+      'young': '若い',
+      'fast': '速い',
+      'slow': '遅い',
+      'easy': '簡単',
+      'difficult': '難しい',
+      'hard': '難しい',
+      'soft': '柔らかい',
+      'happy': '幸せ',
+      'sad': '悲しい',
+      'angry': '怒っている',
+      'tired': '疲れている',
+      'hungry': 'お腹が空いている',
+      'thirsty': '喉が渇いている',
+      
       // Nouns
-      'culture': '文化',
-      'tradition': '伝統',
+      'person': '人',
+      'people': '人々',
+      'man': '男性',
+      'woman': '女性',
+      'child': '子供',
+      'family': '家族',
+      'friend': '友達',
+      'house': '家',
+      'home': '家',
+      'school': '学校',
+      'work': '仕事',
+      'job': '仕事',
+      'car': '車',
+      'train': '電車',
+      'bus': 'バス',
       'food': '食べ物',
-      'restaurant': 'レストラン',
-      'ramen': 'ラーメン',
-      'sushi': '寿司',
+      'water': '水',
+      'money': 'お金',
+      'time': '時間',
+      'day': '日',
+      'night': '夜',
+      'morning': '朝',
+      'afternoon': '午後',
+      'evening': '夕方',
+      'week': '週',
+      'month': '月',
+      'year': '年',
+      'country': '国',
+      'city': '都市',
+      'town': '町',
+      'place': '場所',
+      'world': '世界',
+      'earth': '地球',
+      'sky': '空',
+      'sun': '太陽',
+      'moon': '月',
+      'star': '星',
+      'book': '本',
+      'phone': '電話',
+      'computer': 'コンピューター',
+      'internet': 'インターネット',
+      'music': '音楽',
+      'movie': '映画',
+      'game': 'ゲーム',
+      'sport': 'スポーツ',
+      'love': '愛',
+      'life': '人生',
+      'death': '死',
+      'health': '健康',
+      'peace': '平和',
+      'war': '戦争',
+      'nature': '自然',
+      'animal': '動物',
+      'plant': '植物',
+      'tree': '木',
+      'flower': '花',
+      'color': '色',
+      'red': '赤',
+      'blue': '青',
+      'green': '緑',
+      'yellow': '黄色',
+      'black': '黒',
+      'white': '白',
+      
+      // Specific to the application
       'sakura': '桜',
       'season': '季節',
       'Japan': '日本',
+      'Japanese': '日本の',
       'Tokyo': '東京',
-      'people': '人々',
-      'person': '人',
-      'place': '場所',
-      'experience': '経験'
-    };
-
-    // Simple word replacement
-    let result = text.toLowerCase();
-    Object.keys(translations).forEach(englishWord => {
-      const regex = new RegExp(`\\b${englishWord}\\b`, 'gi');
-      result = result.replace(regex, translations[englishWord]);
-    });
-
-    return result;
-  }
-
-  // Enhanced English to Spanish translation
-  englishToSpanishBasic(text) {
-    const translations = {
-      // Common words
-      'thank': 'gracias',
-      'thanks': 'gracias',
-      'hello': 'hola',
-      'goodbye': 'adiós',
-      'yes': 'sí',
-      'no': 'no',
-      'please': 'por favor',
-      'sorry': 'lo siento',
-      'excuse me': 'disculpe',
-
-      // Verbs
-      'is': 'es',
-      'are': 'son',
-      'was': 'era',
-      'were': 'eran',
-      'have': 'tener',
-      'has': 'tiene',
-      'do': 'hacer',
-      'does': 'hace',
-      'did': 'hizo',
-      'will': 'será',
-      'would': 'sería',
-      'can': 'puede',
-      'could': 'podría',
-      'should': 'debería',
-      'must': 'debe',
-
-      // Adjectives
-      'good': 'bueno',
-      'bad': 'malo',
-      'big': 'grande',
-      'small': 'pequeño',
-      'beautiful': 'hermoso',
-      'delicious': 'delicioso',
-      'interesting': 'interesante',
-      'wonderful': 'maravilloso',
-      'authentic': 'auténtico',
-      'traditional': 'tradicional',
-      'local': 'local',
-      'new': 'nuevo',
-      'old': 'viejo',
-
-      // Nouns
-      'culture': 'cultura',
-      'tradition': 'tradición',
-      'food': 'comida',
-      'restaurant': 'restaurante',
-      'paella': 'paella',
-      'tapas': 'tapas',
-      'flamenco': 'flamenco',
-      'season': 'temporada',
-      'Spain': 'España',
-      'Madrid': 'Madrid',
-      'Barcelona': 'Barcelona',
-      'people': 'gente',
-      'person': 'persona',
-      'place': 'lugar',
-      'experience': 'experiencia'
+      'Osaka': '大阪',
+      'Kyoto': '京都',
+      'culture': '文化',
+      'tradition': '伝統',
+      'modern': '現代の',
+      'ancient': '古代の',
+      'festival': '祭り',
+      'temple': '寺',
+      'shrine': '神社',
+      'ramen': 'ラーメン',
+      'sushi': '寿司',
+      'tempura': '天ぷら',
+      'rice': 'ご飯',
+      'tea': 'お茶',
+      'coffee': 'コーヒー',
+      'restaurant': 'レストラン',
+      'hotel': 'ホテル',
+      'station': '駅',
+      'airport': '空港',
+      'tourist': '観光客',
+      'travel': '旅行',
+      'vacation': '休暇',
+      'business': 'ビジネス',
+      'company': '会社',
+      'office': 'オフィス',
+      'meeting': '会議',
+      'project': 'プロジェクト',
+      'technology': '技術',
+      'innovation': '革新',
+      'future': '未来',
+      'past': '過去',
+      'present': '現在',
+      'history': '歴史',
+      'art': '芸術',
+      'music': '音楽',
+      'dance': '踊り',
+      'painting': '絵画',
+      'sculpture': '彫刻',
+      'photography': '写真',
+      'fashion': 'ファッション',
+      'style': 'スタイル',
+      'design': 'デザイン',
+      'architecture': '建築',
+      'building': '建物',
+      'bridge': '橋',
+      'road': '道路',
+      'street': '通り',
+      'park': '公園',
+      'garden': '庭',
+      'mountain': '山',
+      'river': '川',
+      'sea': '海',
+      'ocean': '海洋',
+      'beach': 'ビーチ',
+      'island': '島',
+      'forest': '森',
+      'desert': '砂漠',
+      'weather': '天気',
+      'rain': '雨',
+      'snow': '雪',
+      'wind': '風',
+      'storm': '嵐',
+      'earthquake': '地震',
+      'fire': '火',
+      'water': '水',
+      'air': '空気',
+      'earth': '土',
+      'metal': '金属',
+      'wood': '木',
+      'stone': '石',
+      'glass': 'ガラス',
+      'plastic': 'プラスチック',
+      'paper': '紙',
+      'cloth': '布',
+      'leather': '革',
+      'silk': '絹',
+      'cotton': '綿',
+      'wool': '羊毛'
     };
 
     // Simple word replacement
@@ -313,10 +378,6 @@ class TranslationService {
       '大きい': 'big',
       '小さい': 'small',
       '美しい': 'beautiful',
-      '美味しい': 'delicious',
-      '興味深い': 'interesting',
-      '素晴らしい': 'wonderful',
-      '本格的な': 'authentic',
       '新しい': 'new',
       '古い': 'old',
       '人': 'person',
@@ -331,9 +392,7 @@ class TranslationService {
       '東京': 'Tokyo',
       '文化': 'culture',
       '桜': 'sakura',
-      '季節': 'season',
-      '伝統': 'tradition',
-      'ラーメン': 'ramen'
+      '季節': 'season'
     };
 
     let result = text;
@@ -345,68 +404,12 @@ class TranslationService {
     return result;
   }
 
-  // Basic Spanish to English translation
-  spanishToEnglishBasic(text) {
-    const translations = {
-      'gracias': 'thank you',
-      'hola': 'hello',
-      'adiós': 'goodbye',
-      'sí': 'yes',
-      'no': 'no',
-      'por favor': 'please',
-      'lo siento': 'sorry',
-      'disculpe': 'excuse me',
-      'es': 'is',
-      'son': 'are',
-      'era': 'was',
-      'eran': 'were',
-      'bueno': 'good',
-      'malo': 'bad',
-      'grande': 'big',
-      'pequeño': 'small',
-      'hermoso': 'beautiful',
-      'delicioso': 'delicious',
-      'interesante': 'interesting',
-      'maravilloso': 'wonderful',
-      'auténtico': 'authentic',
-      'tradicional': 'traditional',
-      'local': 'local',
-      'nuevo': 'new',
-      'viejo': 'old',
-      'cultura': 'culture',
-      'tradición': 'tradition',
-      'comida': 'food',
-      'restaurante': 'restaurant',
-      'paella': 'paella',
-      'tapas': 'tapas',
-      'flamenco': 'flamenco',
-      'temporada': 'season',
-      'España': 'Spain',
-      'Madrid': 'Madrid',
-      'Barcelona': 'Barcelona',
-      'gente': 'people',
-      'persona': 'person',
-      'lugar': 'place',
-      'experiencia': 'experience'
-    };
-
-    let result = text;
-    Object.keys(translations).forEach(spanishWord => {
-      const regex = new RegExp(`\\b${spanishWord}\\b`, 'gi');
-      result = result.replace(regex, translations[spanishWord]);
-    });
-
-    return result;
-  }
-
   // Get word definition with pronunciation
   async getWordDefinition(word, fromLang = 'en') {
     try {
       // For Japanese words, try to get reading (hiragana/katakana)
       if (fromLang === 'ja') {
         return await this.getJapaneseWordInfo(word);
-      } else if (fromLang === 'es') {
-        return await this.getSpanishWordInfo(word);
       } else {
         return await this.getEnglishWordInfo(word);
       }
@@ -418,20 +421,12 @@ class TranslationService {
 
   // Get Japanese word information
   async getJapaneseWordInfo(word) {
+    // This could be enhanced with a Japanese dictionary API
+    // For now, return basic structure
     return {
       word: word,
       reading: this.getBasicReading(word),
       translation: await this.translateText(word, 'ja', 'en'),
-      level: this.estimateLevel(word)
-    };
-  }
-
-  // Get Spanish word information
-  async getSpanishWordInfo(word) {
-    return {
-      word: word,
-      pronunciation: this.getSpanishPronunciation(word),
-      translation: await this.translateText(word, 'es', 'en'),
       level: this.estimateLevel(word)
     };
   }
@@ -448,6 +443,7 @@ class TranslationService {
 
   // Basic reading for Japanese characters
   getBasicReading(word) {
+    // This is a simplified version - in production, you'd use a proper Japanese dictionary API
     const readings = {
       '本': 'ほん',
       '桜': 'さくら',
@@ -469,38 +465,13 @@ class TranslationService {
       '食べ物': 'たべもの',
       '水': 'みず',
       'お金': 'おかね',
-      '時間': 'じかん',
-      '伝統': 'でんとう',
-      'ラーメン': 'らーめん',
-      '美味しい': 'おいしい',
-      '興味深い': 'きょうみぶかい',
-      '素晴らしい': 'すばらしい',
-      '本格的な': 'ほんかくてきな',
-      '地元': 'じもと'
+      '時間': 'じかん'
     };
-
+    
     return readings[word] || word;
   }
 
-  // Basic Spanish pronunciation guide
-  getSpanishPronunciation(word) {
-    const pronunciations = {
-      'paella': 'pa-eh-ya',
-      'cultura': 'kool-too-rah',
-      'local': 'lo-kal',
-      'delicioso': 'de-li-see-oh-so',
-      'maravilloso': 'ma-ra-bee-yo-so',
-      'interesante': 'in-te-re-san-te',
-      'tradición': 'tra-di-see-on',
-      'nuevo': 'nue-bo',
-      'auténtico': 'ow-ten-ti-ko',
-      'flamenco': 'fla-men-ko'
-    };
-
-    return pronunciations[word.toLowerCase()] || word.toLowerCase();
-  }
-
-  // Basic English pronunciation (katakana for Japanese learners)
+  // Basic English pronunciation (katakana)
   getEnglishPronunciation(word) {
     const pronunciations = {
       'thank': 'さんく',
@@ -510,15 +481,9 @@ class TranslationService {
       'season': 'しーずん',
       'legendary': 'れじぇんだりー',
       'special': 'すぺしゃる',
-      'valuable': 'ばりゅあぶる',
-      'culture': 'かるちゃー',
-      'tradition': 'とらでぃしょん',
-      'authentic': 'おーせんてぃっく',
-      'delicious': 'でりしゃす',
-      'wonderful': 'わんだふる',
-      'interesting': 'いんたれすてぃんぐ'
+      'valuable': 'ばりゅあぶる'
     };
-
+    
     return pronunciations[word.toLowerCase()] || word.toLowerCase();
   }
 
@@ -527,7 +492,7 @@ class TranslationService {
     const commonWords = ['the', 'is', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
     const basicWords = ['good', 'bad', 'big', 'small', 'new', 'old', 'hot', 'cold'];
     const intermediateWords = ['beautiful', 'interesting', 'important', 'different', 'similar'];
-
+    
     if (commonWords.includes(word.toLowerCase())) return 1;
     if (basicWords.includes(word.toLowerCase())) return 2;
     if (intermediateWords.includes(word.toLowerCase())) return 3;
