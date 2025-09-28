@@ -50,8 +50,12 @@ const Auth = ({ onAuthComplete }) => {
       <div className="max-w-md w-full">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Globe className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 mx-auto mb-4">
+            <img
+              src="/livepeek-logo.png"
+              alt="LivePeek Logo"
+              className="w-full h-full rounded-full object-cover"
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">LivePeek</h1>
           <p className="text-gray-600">
@@ -87,7 +91,7 @@ const Auth = ({ onAuthComplete }) => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent transition-colors"
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
@@ -107,7 +111,7 @@ const Auth = ({ onAuthComplete }) => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors"
                   placeholder="Enter your email"
                   required
                 />
@@ -126,7 +130,7 @@ const Auth = ({ onAuthComplete }) => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors"
                   placeholder="Enter your password"
                   required
                 />
@@ -153,7 +157,7 @@ const Auth = ({ onAuthComplete }) => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-colors"
                     placeholder="Confirm your password"
                     required={!isLogin}
                   />
@@ -166,7 +170,7 @@ const Auth = ({ onAuthComplete }) => {
               <div className="text-right">
                 <button
                   type="button"
-                  className="text-sm text-orange-600 hover:text-orange-700 transition-colors"
+                  className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -179,16 +183,16 @@ const Auth = ({ onAuthComplete }) => {
                 <input
                   type="checkbox"
                   id="terms"
-                  className="mt-1 rounded border-gray-300 text-orange-600 focus:ring-gray-400"
+                  className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-400"
                   required
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600">
                   I agree to the{' '}
-                  <button type="button" className="text-orange-600 hover:text-orange-700 underline">
+                  <button type="button" className="text-blue-600 hover:text-blue-700 underline">
                     Terms of Service
                   </button>{' '}
                   and{' '}
-                  <button type="button" className="text-orange-600 hover:text-orange-700 underline">
+                  <button type="button" className="text-blue-600 hover:text-blue-700 underline">
                     Privacy Policy
                   </button>
                 </label>
@@ -199,7 +203,7 @@ const Auth = ({ onAuthComplete }) => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 text-base font-medium"
+              className="w-full bg-blue-900 hover:bg-blue-800 text-white py-3 text-base font-medium"
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
@@ -256,7 +260,7 @@ const Auth = ({ onAuthComplete }) => {
               <button
                 type="button"
                 onClick={toggleAuthMode}
-                className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 {isLogin ? 'Sign up' : 'Sign in'}
               </button>

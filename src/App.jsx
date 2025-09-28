@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Auth from './components/Auth';
 import NewsFeed from './components/NewsFeed';
 import Onboarding from './components/Onboarding';
@@ -134,9 +134,11 @@ function App() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">L</span>
-                </div>
+                <img
+                  src="/livepeek-logo.png"
+                  alt="LivePeek Logo"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
                 <span className="text-xl font-bold text-gray-900">LivePeek</span>
               </div>
 
@@ -157,7 +159,7 @@ function App() {
                         onClick={() => handleNavigation('feed')}
                         className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
                           currentView === 'feed'
-                            ? 'bg-orange-100 text-orange-900'
+                            ? 'bg-blue-100 text-blue-900'
                             : 'hover:bg-gray-100'
                         }`}
                       >
@@ -168,7 +170,7 @@ function App() {
                         onClick={() => handleNavigation('dictionary')}
                         className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
                           currentView === 'dictionary'
-                            ? 'bg-orange-100 text-orange-900'
+                            ? 'bg-green-100 text-green-900'
                             : 'hover:bg-gray-100'
                         }`}
                       >
@@ -180,7 +182,7 @@ function App() {
                         onClick={() => handleNavigation('flashcards')}
                         className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
                           currentView === 'flashcards'
-                            ? 'bg-orange-100 text-orange-900'
+                            ? 'bg-blue-100 text-blue-900'
                             : 'hover:bg-gray-100'
                         }`}
                       >
@@ -209,9 +211,9 @@ function App() {
                 </div>
                 <button
                   onClick={() => handleNavigation('profile')}
-                  className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                  className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
                 >
-                  <span className="text-sm font-medium text-orange-700">
+                  <span className="text-sm font-medium text-blue-700">
                     {userProfile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </button>
