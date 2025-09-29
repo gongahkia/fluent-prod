@@ -19,7 +19,10 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [query, setQuery] = useState('technology');
   const [showSettings, setShowSettings] = useState(false);
   const [apiStatus, setApiStatus] = useState({});
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showSeeMoreButton, setShowSeeMoreButton] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -32,8 +35,14 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   }, []);
 
   // Load real posts from APIs
-  const loadPosts = async () => {
-    setLoading(true);
+  const loadPosts = async (isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setCurrentPage(1);
+      setHasMorePosts(true);
+    }
     setError(null);
 
     try {
@@ -48,7 +57,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       const realPosts = await fetchPosts({
         sources: enabledSources,
         query: query,
-        limit: 20,
+        limit: isLoadMore ? 10 : 20, // Load 10 more posts when loading more, 20 on initial load
         shuffle: true
       });
 
@@ -60,14 +69,30 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         source: post.source || 'hackernews'
       }));
 
-      setPosts(enhancedPosts);
+      if (isLoadMore) {
+        // Filter out duplicates when loading more
+        const existingUrls = new Set(posts.map(post => post.url));
+        const newPosts = enhancedPosts.filter(post => !existingUrls.has(post.url));
+
+        if (newPosts.length === 0) {
+          setHasMorePosts(false);
+        } else {
+          setPosts(prev => [...prev, ...newPosts]);
+          setCurrentPage(prev => prev + 1);
+        }
+      } else {
+        setPosts(enhancedPosts);
+      }
     } catch (err) {
       setError(err.message);
       console.error('Error loading posts:', err);
       // Show error instead of fallback to ensure real news only
-      setPosts([]);
+      if (!isLoadMore) {
+        setPosts([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -77,6 +102,35 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       loadPosts();
     }
   }, [selectedSources, query, apiStatus]);
+
+  // Scroll detection for "see more" button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.offsetHeight;
+
+      // Show "see more" button when user scrolls to bottom 200px
+      const isNearBottom = scrollTop + windowHeight >= documentHeight - 200;
+
+      if (isNearBottom && posts.length > 0 && hasMorePosts && !loading && !loadingMore) {
+        setShowSeeMoreButton(true);
+      } else {
+        setShowSeeMoreButton(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [posts.length, hasMorePosts, loading, loadingMore]);
+
+  // Function to load more posts
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMorePosts) {
+      loadPosts(true);
+      setShowSeeMoreButton(false); // Hide button after clicking
+    }
+  };
 
   const getLevelColor = (level) => {
     if (level <= 3) return 'bg-green-500';
@@ -708,6 +762,48 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
           )}
         </div>
       ))}
+
+      {/* See More Button - shows when user scrolls near bottom */}
+      {showSeeMoreButton && hasMorePosts && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 font-medium"
+          >
+            {loadingMore ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>See More</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Loading More indicator */}
+      {loadingMore && (
+        <div className="flex items-center justify-center py-8">
+          <LoadingSpinner size="lg" text="Loading more posts..." />
+        </div>
+      )}
+
+      {/* No more posts message */}
+      {!hasMorePosts && posts.length > 0 && (
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-gray-500">
+            <span className="text-2xl">🎉</span>
+            <span className="font-medium">You've reached the end! Check back later for more posts.</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
