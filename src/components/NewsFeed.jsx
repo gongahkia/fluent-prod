@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck, RefreshCw, Settings } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -19,7 +19,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [query, setQuery] = useState('technology');
   const [showSettings, setShowSettings] = useState(false);
   const [apiStatus, setApiStatus] = useState({});
-  const [currentPage, setCurrentPage] = useState(1);
+  const [, setCurrentPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showSeeMoreButton, setShowSeeMoreButton] = useState(false);
@@ -35,7 +35,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   }, []);
 
   // Load real posts from APIs
-  const loadPosts = async (isLoadMore = false) => {
+  const loadPosts = useCallback(async (isLoadMore = false) => {
     if (isLoadMore) {
       setLoadingMore(true);
     } else {
@@ -94,14 +94,14 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [selectedSources, query, apiStatus, posts]);
 
   // Load posts when sources, query, or API status changes
   useEffect(() => {
     if (Object.keys(apiStatus).length > 0) {
       loadPosts();
     }
-  }, [selectedSources, query, apiStatus]);
+  }, [selectedSources, query, apiStatus, loadPosts]);
 
   // Scroll detection for "see more" button
   useEffect(() => {
