@@ -269,7 +269,11 @@ export async function fetchRedditPosts(subreddit = 'technology', limit = 10) {
 
   try {
     const url = `${config.baseUrl}/r/${subreddit}/hot.json?limit=${limit}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'LivePeek/1.0'
+      }
+    });
     const data = await response.json();
 
     if (data.data && data.data.children) {

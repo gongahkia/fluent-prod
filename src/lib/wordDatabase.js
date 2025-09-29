@@ -1,17 +1,14 @@
 import translationService from '../services/translationService';
+import vocabularyService from '../services/vocabularyService';
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
-// Now enhanced with real-time translation API
+// Now enhanced with real-time translation API and NER-based vocabulary detection
 
 // Removed hardcoded words - now using only API translations
 export const japaneseWords = {};
 
-// Removed hardcoded translations - using API only
-
-// Removed hardcoded sentence translations - using API only
-
-// Function to handle word clicks with real-time translation API
+// Function to handle word clicks with enhanced vocabulary detection
 export const handleWordClick = async (word, setSelectedWord, isJapanese = null, context = null, contextTranslation = null, setLoading = null) => {
   // Auto-detect if word is Japanese or English if not specified
   if (isJapanese === null) {
@@ -26,14 +23,13 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
     setLoading(true);
   }
 
-  // Always use API for translation (no hardcoded words)
   try {
-    console.log(`Translating word: ${cleanWord} using API...`);
+    console.log(`Translating word: ${cleanWord} using API with vocabulary detection...`);
 
-    let translation, pronunciation, contextTranslationResult;
+    let translation, pronunciation, contextTranslationResult, isVocabularyWord = false;
 
     if (isJapanese) {
-      // Japanese to English
+      // Japanese to English (existing functionality)
       translation = await translationService.translateText(cleanWord, 'ja', 'en');
       pronunciation = translationService.getBasicReading(cleanWord);
 
@@ -41,7 +37,44 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
         contextTranslationResult = await translationService.translateText(context, 'ja', 'en');
       }
     } else {
-      // English to Japanese
+      // English to Japanese with vocabulary detection
+
+      // First check if this is a vocabulary word worth learning
+      if (vocabularyService.isValidVocabularyWord(cleanWord)) {
+        // Use vocabulary service for enhanced translation
+        const vocabWord = await vocabularyService.createVocabularyWord(cleanWord, 'unknown', context);
+
+        if (vocabWord) {
+          translation = vocabWord.japanese;
+          pronunciation = vocabWord.pronunciation;
+          isVocabularyWord = true;
+
+          // Use the vocabulary level instead of basic estimation
+          const level = vocabWord.level;
+
+          setSelectedWord({
+            japanese: isJapanese ? cleanWord : translation,
+            hiragana: pronunciation,
+            english: isJapanese ? translation : cleanWord,
+            level: level,
+            example: context || `Example with "${cleanWord}".`,
+            exampleEn: contextTranslationResult || contextTranslation || (isJapanese ? `Example with ${cleanWord}.` : `「${cleanWord}」を使った例文。`),
+            original: cleanWord,
+            isJapanese: isJapanese,
+            showJapaneseTranslation: !isJapanese,
+            isApiTranslated: true,
+            isVocabulary: true, // Flag to indicate this is a vocabulary word
+            wordType: vocabWord.type
+          });
+
+          if (setLoading) {
+            setLoading(false);
+          }
+          return;
+        }
+      }
+
+      // Fallback to regular translation if not a vocabulary word
       translation = await translationService.translateText(cleanWord, 'en', 'ja');
       pronunciation = translationService.getEnglishPronunciation(cleanWord);
 
@@ -53,16 +86,17 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
     const level = translationService.estimateLevel(cleanWord);
 
     setSelectedWord({
-      japanese: isJapanese ? cleanWord : cleanWord,
+      japanese: isJapanese ? cleanWord : translation,
       hiragana: pronunciation,
-      english: translation,
+      english: isJapanese ? translation : cleanWord,
       level: level,
       example: context || `Example with "${cleanWord}".`,
       exampleEn: contextTranslationResult || contextTranslation || (isJapanese ? `Example with ${cleanWord}.` : `「${cleanWord}」を使った例文。`),
       original: cleanWord,
       isJapanese: isJapanese,
       showJapaneseTranslation: !isJapanese,
-      isApiTranslated: true // Flag to indicate this came from API
+      isApiTranslated: true, // Flag to indicate this came from API
+      isVocabulary: isVocabularyWord
     });
 
   } catch (error) {
@@ -70,9 +104,9 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
 
     // Minimal fallback when API fails
     setSelectedWord({
-      japanese: cleanWord,
+      japanese: isJapanese ? cleanWord : cleanWord,
       hiragana: cleanWord.toLowerCase(),
-      english: `Translation unavailable for "${cleanWord}"`,
+      english: isJapanese ? `Translation unavailable for "${cleanWord}"` : cleanWord,
       level: 5,
       example: context || `Example with "${cleanWord}".`,
       exampleEn: context || `Translation unavailable.`,
@@ -86,6 +120,26 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
     if (setLoading) {
       setLoading(false);
     }
+  }
+};
+
+// Function to detect all vocabulary words in a text
+export const detectVocabularyInText = async (text) => {
+  try {
+    return await vocabularyService.detectVocabulary(text);
+  } catch (error) {
+    console.error('Vocabulary detection failed:', error);
+    return [];
+  }
+};
+
+// Function to get vocabulary statistics for a text
+export const getVocabularyStats = async (text) => {
+  try {
+    return await vocabularyService.getVocabularyStats(text);
+  } catch (error) {
+    console.error('Vocabulary stats failed:', error);
+    return { totalWords: 0, byType: {}, byLevel: {}, averageLevel: 0 };
   }
 };
 

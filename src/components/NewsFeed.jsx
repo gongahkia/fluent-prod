@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck, RefreshCw } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
-import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
+import { handleWordClick as sharedHandleWordClick, detectVocabularyInText } from '../lib/wordDatabase';
+import vocabularyService from '../services/vocabularyService';
+import { fetchPosts } from '../services/newsService';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
   const [showComments, setShowComments] = useState({});
@@ -10,6 +12,9 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [feedbackMessage, setFeedbackMessage] = useState(null);
   const [followingUsers, setFollowingUsers] = useState(new Set(['佐藤博', '高橋美咲']));
   const [isTranslating, setIsTranslating] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Enhanced Japanese posts with mixed Japanese/English content for intermediate learners
   const japaneseArticles = [
@@ -151,6 +156,35 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+
+  // Load real posts from APIs
+  const loadPosts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const realPosts = await fetchPosts({
+        sources: ['hackernews', 'reddit'],
+        query: 'technology',
+        limit: 10,
+        shuffle: true
+      });
+
+      setPosts(realPosts);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error loading posts:', err);
+      // Fallback to hardcoded posts if API fails
+      setPosts(japaneseArticles);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load posts on component mount
+  useEffect(() => {
+    loadPosts();
+  }, []);
 
   const getLevelColor = (level) => {
     if (level <= 3) return 'bg-green-500';
@@ -313,22 +347,22 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const renderClickableText = (text) => {
     // Split by spaces and punctuation first
     const segments = text.split(/(\s+|[。、！？])/);
-    
+
     return segments.map((segment, segmentIndex) => {
       if (!segment.trim()) return <span key={segmentIndex}>{segment}</span>;
-      
+
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment);
       const hasEnglish = /[a-zA-Z]/.test(segment);
-      
+
       if (hasJapanese) {
         // Use intelligent segmentation for Japanese text
         const words = segmentJapaneseText(segment);
-        
+
         return (
           <span key={segmentIndex}>
             {words.map((wordObj, wordIndex) => {
               const { text } = wordObj;
-              
+
               return (
                 <span
                   key={`${segmentIndex}-${wordIndex}`}
@@ -344,13 +378,25 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
           </span>
         );
       } else if (hasEnglish) {
-        // For English words, make the whole word clickable
+        // Enhanced English word handling with vocabulary detection
+        const cleanWord = segment.trim().replace(/[.,!?;:]/g, '');
+        const isVocabularyWord = vocabularyService.isValidVocabularyWord(cleanWord);
+
+        // Different styling for vocabulary vs regular words
+        const vocabularyClasses = isVocabularyWord
+          ? "cursor-pointer hover:bg-green-100 hover:shadow-sm border-b-2 border-green-300 hover:border-green-500 rounded px-1 py-0.5 transition-all duration-200 font-medium"
+          : "cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200";
+
+        const vocabularyTitle = isVocabularyWord
+          ? `📚 Vocabulary: Click to learn "${cleanWord}"`
+          : `Click to translate: ${cleanWord}`;
+
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
-              onClick={() => handleWordClick(segment.trim(), false, text)}
-              title={`Click to learn: ${segment.trim()}`}
+              className={vocabularyClasses}
+              onClick={() => handleWordClick(cleanWord, false, text)}
+              title={vocabularyTitle}
               style={{ textDecoration: 'none' }}
             >
               {segment}
@@ -358,7 +404,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
           </span>
         );
       }
-      
+
       return <span key={segmentIndex}>{segment}</span>;
     });
   };
@@ -383,10 +429,20 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">日本のトレンド</h1>
-            <p className="text-gray-600">地域で何が起こっているかを発見・トレンドニュース</p>
+            <h1 className="text-2xl font-bold text-gray-900">Live Feed</h1>
+            <p className="text-gray-600">Real-time posts from Hacker News and Reddit</p>
           </div>
-          <div className="text-4xl">🇯🇵</div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={loadPosts}
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <div className="text-4xl">🌐</div>
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -449,7 +505,17 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                     <span className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}>
                       Level {selectedWord.level}
                     </span>
-                    {selectedWord.isApiTranslated && (
+                    {selectedWord.isVocabulary && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        📚 Vocabulary Word
+                      </span>
+                    )}
+                    {selectedWord.wordType && (
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                        {selectedWord.wordType}
+                      </span>
+                    )}
+                    {selectedWord.isApiTranslated && !selectedWord.isVocabulary && (
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                         🌐 Live Translation
                       </span>
@@ -503,8 +569,30 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         </div>
       )}
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner size="lg" text="Loading latest posts..." />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="text-red-700 font-medium mb-2">Error Loading Posts</div>
+          <div className="text-red-600 text-sm mb-4">{error}</div>
+          <button
+            onClick={loadPosts}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Try Again</span>
+          </button>
+        </div>
+      )}
+
       {/* Posts */}
-      {(searchResults.length > 0 ? searchResults : japaneseArticles).map((article) => (
+      {!loading && !error && (searchResults.length > 0 ? searchResults : posts).map((article) => (
         <div key={article.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Article Header */}
           <div className="p-6 pb-4">
@@ -525,7 +613,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                     )}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {article.location} • {article.time}
+                    {article.location || article.source} • {article.time || new Date(article.publishedAt).toLocaleDateString()}
                   </div>
                 </div>
                 <button
@@ -550,9 +638,9 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                 </button>
               </div>
               <div className="flex items-center space-x-2">
-                <a 
-                  href={article.externalUrl} 
-                  target="_blank" 
+                <a
+                  href={article.externalUrl || article.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                   title="See original post"
@@ -561,19 +649,30 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
-                <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                  Level {article.difficulty}
-                </span>
+                {article.difficulty && (
+                  <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Level {article.difficulty}
+                  </span>
+                )}
+                {article.source && (
+                  <span className="bg-gray-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    {article.source}
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Article Content */}
             <div className="mb-4">
               <h2 className="text-xl font-bold text-gray-900 mb-3">
-                {renderClickableText(article.title)}
+                {article.difficulty ? renderClickableText(article.title) : (
+                  <a href={article.externalUrl || article.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                    {article.title}
+                  </a>
+                )}
               </h2>
               <p className="text-gray-800 leading-relaxed mb-4">
-                {renderClickableText(article.content)}
+                {article.difficulty ? renderClickableText(article.content) : article.content}
               </p>
               
               {article.image && (
@@ -604,18 +703,18 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                   <Bookmark className="w-5 h-5" />
                   <span className="text-sm font-medium">Save</span>
                 </button>
-                <button 
+                <button
                   onClick={() => toggleComments(article.id)}
                   className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
                 >
                   <MessageCircle className="w-5 h-5" />
                   <span className="text-sm font-medium">
-                    {getCommentCount(article.id)} comments
+                    {article.comments || getCommentCount(article.id) || 0} comments
                   </span>
                 </button>
                 <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors">
                   <Share className="w-5 h-5" />
-                  <span className="text-sm font-medium">{article.shares} shares</span>
+                  <span className="text-sm font-medium">{article.shares || 'Share'}</span>
                 </button>
               </div>
             </div>
