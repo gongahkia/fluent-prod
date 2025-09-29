@@ -49,13 +49,22 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     for (const post of postsToProcess) {
       try {
         // Only process English content and create mixed content
+        // Ensure we actually create mixed content for English posts
         const processedTitle = translationService.containsJapanese(post.title)
           ? post.title
           : await translationService.createMixedLanguageContent(post.title, userProfile.learningLevel);
 
-        const processedContent = post.content && translationService.isEnglishOnly(post.content)
+        const processedContent = post.content && !translationService.containsJapanese(post.content)
           ? await translationService.createMixedLanguageContent(post.content, userProfile.learningLevel)
           : post.content;
+
+        console.log(`Mixed content created for post "${post.title}":`, {
+          originalTitle: post.title,
+          processedTitle: processedTitle,
+          originalContent: post.content?.substring(0, 100) + '...',
+          processedContent: processedContent?.substring(0, 100) + '...',
+          learningLevel: userProfile.learningLevel
+        });
 
         processed.push({
           ...post,
@@ -402,12 +411,18 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
             {words.map((wordObj, wordIndex) => {
               const { text } = wordObj;
 
+              // Check if this Japanese word came from translation (should be highlighted differently)
+              const isTranslatedWord = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text) && text.length > 1;
+
               return (
                 <span
                   key={`${segmentIndex}-${wordIndex}`}
-                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+                  className={isTranslatedWord
+                    ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
+                    : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+                  }
                   onClick={() => handleWordClick(text, true, text)}
-                  title={`Click to learn: ${text}`}
+                  title={isTranslatedWord ? `🇯🇵 Translated: Click to see English "${text}"` : `Click to learn: ${text}`}
                   style={{ textDecoration: 'none' }}
                 >
                   {text}
@@ -429,7 +444,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
 
         // Different styling for vocabulary vs regular words
         const vocabularyClasses = isVocabularyWord
-          ? "cursor-pointer hover:bg-green-100 hover:shadow-sm border-b-2 border-green-300 hover:border-green-500 rounded px-1 py-0.5 transition-all duration-200 font-medium"
+          ? "cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
           : "cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200";
 
         const vocabularyTitle = isVocabularyWord
@@ -577,23 +592,27 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
               </div>
             ) : !feedbackMessage ? (
               <div className="text-center">
-                {/* Word Display - handles both Japanese and English words */}
+                {/* Word Display - handles both Japanese and English words bidirectionally */}
                 <div className="mb-4">
                   {selectedWord.showJapaneseTranslation ? (
-                    // English word showing Japanese translation
+                    // English word clicked -> show Japanese translation
                     <>
+                      <div className="text-sm text-gray-500 mb-1">English word:</div>
+                      <div className="text-2xl font-bold text-blue-600 mb-2">{selectedWord.english}</div>
+                      <div className="text-sm text-gray-500 mb-1">Japanese translation:</div>
                       <div className="text-3xl font-bold text-gray-900 mb-1">{selectedWord.japanese}</div>
                       <div className="text-lg text-gray-600 mb-2">{selectedWord.hiragana}</div>
-                      <div className="text-xl text-green-600 font-semibold">Japanese: {selectedWord.english}</div>
                     </>
                   ) : (
-                    // Japanese word showing English translation
+                    // Japanese word clicked -> show English translation
                     <>
+                      <div className="text-sm text-gray-500 mb-1">Japanese word:</div>
                       <div className="text-3xl font-bold text-gray-900 mb-1">{selectedWord.japanese}</div>
                       {selectedWord.hiragana !== selectedWord.japanese && (
                         <div className="text-lg text-gray-600 mb-2">{selectedWord.hiragana}</div>
                       )}
-                      <div className="text-xl text-green-600 font-semibold">{selectedWord.english}</div>
+                      <div className="text-sm text-gray-500 mb-1">English translation:</div>
+                      <div className="text-2xl font-bold text-green-600">{selectedWord.english}</div>
                     </>
                   )}
                 </div>

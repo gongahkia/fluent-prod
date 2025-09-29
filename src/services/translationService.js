@@ -546,7 +546,7 @@ class TranslationService {
     const wordTokens = tokens.filter(token => /^\w+$/.test(token));
 
     // Determine which words to translate
-    const wordsToTranslate = this.selectWordsForTranslation(
+    const wordsToTranslate = await this.selectWordsForTranslation(
       wordTokens,
       translationPercentage
     );
@@ -567,61 +567,74 @@ class TranslationService {
     return processedTokens.join('');
   }
 
-  // Select which words to translate based on difficulty and percentage
-  selectWordsForTranslation(words, percentage) {
+  // Enhanced word selection using vocabulary service for better NER-based selection
+  async selectWordsForTranslation(words, percentage) {
     const wordsToTranslate = new Set();
 
-    // Define word difficulty categories
-    const veryCommon = ['the', 'is', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'a', 'an'];
-    const common = ['good', 'bad', 'big', 'small', 'new', 'old', 'hot', 'cold', 'have', 'has', 'do', 'does', 'can', 'will'];
-    const intermediate = ['beautiful', 'interesting', 'important', 'different', 'similar', 'technology', 'business', 'culture'];
+    // Import vocabulary service for word validation
+    const { default: vocabularyService } = await import('./vocabularyService');
 
-    // Categorize words
-    const categorizedWords = {
-      veryCommon: words.filter(word => veryCommon.includes(word.toLowerCase())),
-      common: words.filter(word => common.includes(word.toLowerCase())),
-      intermediate: words.filter(word => intermediate.includes(word.toLowerCase())),
-      advanced: words.filter(word =>
-        !veryCommon.includes(word.toLowerCase()) &&
-        !common.includes(word.toLowerCase()) &&
-        !intermediate.includes(word.toLowerCase()) &&
-        word.length > 2
-      )
-    };
+    // Prioritize vocabulary words (these are the words that should be highlighted in green)
+    const vocabularyWords = [];
+    const nonVocabularyWords = [];
+
+    for (const word of words) {
+      if (vocabularyService.isValidVocabularyWord(word)) {
+        vocabularyWords.push(word);
+      } else {
+        nonVocabularyWords.push(word);
+      }
+    }
 
     // Calculate how many words to translate
     const totalWords = words.length;
     const targetCount = Math.floor(totalWords * percentage);
 
-    // Prioritize which words to translate (advanced first, then intermediate, etc.)
+    // First, prioritize vocabulary words (these are the meaningful learning words)
     let count = 0;
-
-    // First, translate advanced words
-    for (const word of categorizedWords.advanced) {
+    for (const word of vocabularyWords) {
       if (count >= targetCount) break;
       wordsToTranslate.add(word.toLowerCase());
       count++;
     }
 
-    // Then intermediate words
-    for (const word of categorizedWords.intermediate) {
-      if (count >= targetCount) break;
-      wordsToTranslate.add(word.toLowerCase());
-      count++;
-    }
+    // If we still need more words, add some non-vocabulary words
+    if (count < targetCount) {
+      // Define word difficulty categories for non-vocabulary words
+      const veryCommon = ['the', 'is', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'a', 'an'];
+      const common = ['good', 'bad', 'big', 'small', 'new', 'old', 'hot', 'cold', 'have', 'has', 'do', 'does', 'can', 'will'];
 
-    // Then common words
-    for (const word of categorizedWords.common) {
-      if (count >= targetCount) break;
-      wordsToTranslate.add(word.toLowerCase());
-      count++;
-    }
+      // Categorize non-vocabulary words
+      const categorizedWords = {
+        common: nonVocabularyWords.filter(word => common.includes(word.toLowerCase())),
+        veryCommon: nonVocabularyWords.filter(word => veryCommon.includes(word.toLowerCase())),
+        other: nonVocabularyWords.filter(word =>
+          !veryCommon.includes(word.toLowerCase()) &&
+          !common.includes(word.toLowerCase()) &&
+          word.length > 2
+        )
+      };
 
-    // Finally very common words (only if needed)
-    for (const word of categorizedWords.veryCommon) {
-      if (count >= targetCount) break;
-      wordsToTranslate.add(word.toLowerCase());
-      count++;
+      // Add other words first (more interesting than very common words)
+      for (const word of categorizedWords.other) {
+        if (count >= targetCount) break;
+        wordsToTranslate.add(word.toLowerCase());
+        count++;
+      }
+
+      // Then common words
+      for (const word of categorizedWords.common) {
+        if (count >= targetCount) break;
+        wordsToTranslate.add(word.toLowerCase());
+        count++;
+      }
+
+      // Finally very common words (only if absolutely needed)
+      for (const word of categorizedWords.veryCommon) {
+        if (count >= targetCount) break;
+        wordsToTranslate.add(word.toLowerCase());
+        count++;
+      }
     }
 
     return wordsToTranslate;

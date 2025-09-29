@@ -61,7 +61,7 @@ export const handleWordClick = async (word, setSelectedWord, isJapanese = null, 
             exampleEn: contextTranslationResult || contextTranslation || (isJapanese ? `Example with ${cleanWord}.` : `「${cleanWord}」を使った例文。`),
             original: cleanWord,
             isJapanese: isJapanese,
-            showJapaneseTranslation: !isJapanese,
+            showJapaneseTranslation: !isJapanese, // Shows Japanese when clicked English, shows English when clicked Japanese
             isApiTranslated: true,
             isVocabulary: true, // Flag to indicate this is a vocabulary word
             wordType: vocabWord.type
