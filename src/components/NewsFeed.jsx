@@ -5,6 +5,7 @@ import LoadingSpinner from './ui/LoadingSpinner';
 import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 import vocabularyService from '../services/vocabularyService';
 import { fetchPosts, checkApiConfiguration } from '../services/newsService';
+import translationService from '../services/translationService';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
   const [showComments, setShowComments] = useState({});
@@ -13,8 +14,10 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [followingUsers, setFollowingUsers] = useState(new Set(['佐藤博', '高橋美咲']));
   const [isTranslating, setIsTranslating] = useState(false);
   const [posts, setPosts] = useState([]);
+  const [processedPosts, setProcessedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [processingPosts, setProcessingPosts] = useState(false);
   const [selectedSources, setSelectedSources] = useState(['hackernews', 'reddit']);
   const [query, setQuery] = useState('technology');
   const [showSettings, setShowSettings] = useState(false);
@@ -33,6 +36,50 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     const status = checkApiConfiguration();
     setApiStatus(status);
   }, []);
+
+  // Process posts with mixed language content based on user level
+  const processPostsWithMixedLanguage = useCallback(async (postsToProcess) => {
+    if (!userProfile?.learningLevel || !postsToProcess.length) {
+      return postsToProcess;
+    }
+
+    setProcessingPosts(true);
+    const processed = [];
+
+    for (const post of postsToProcess) {
+      try {
+        // Only process English content and create mixed content
+        const processedTitle = translationService.containsJapanese(post.title)
+          ? post.title
+          : await translationService.createMixedLanguageContent(post.title, userProfile.learningLevel);
+
+        const processedContent = post.content && translationService.isEnglishOnly(post.content)
+          ? await translationService.createMixedLanguageContent(post.content, userProfile.learningLevel)
+          : post.content;
+
+        processed.push({
+          ...post,
+          originalTitle: post.title,
+          originalContent: post.content,
+          title: processedTitle,
+          content: processedContent,
+          isMixedLanguage: true
+        });
+      } catch (error) {
+        console.warn('Failed to process post for mixed language:', error);
+        // Fallback to original post if processing fails
+        processed.push({
+          ...post,
+          originalTitle: post.title,
+          originalContent: post.content,
+          isMixedLanguage: false
+        });
+      }
+    }
+
+    setProcessingPosts(false);
+    return processed;
+  }, [userProfile?.learningLevel]);
 
   // Load real posts from APIs
   const loadPosts = useCallback(async (isLoadMore = false) => {
@@ -77,11 +124,15 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         if (newPosts.length === 0) {
           setHasMorePosts(false);
         } else {
+          const processedNewPosts = await processPostsWithMixedLanguage(newPosts);
           setPosts(prev => [...prev, ...newPosts]);
+          setProcessedPosts(prev => [...prev, ...processedNewPosts]);
           setCurrentPage(prev => prev + 1);
         }
       } else {
         setPosts(enhancedPosts);
+        const processedPosts = await processPostsWithMixedLanguage(enhancedPosts);
+        setProcessedPosts(processedPosts);
       }
     } catch (err) {
       setError(err.message);
@@ -94,7 +145,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [selectedSources, query, apiStatus, posts]);
+  }, [selectedSources, query, apiStatus, posts, processPostsWithMixedLanguage]);
 
   // Load posts when sources, query, or API status changes
   useEffect(() => {
@@ -102,6 +153,15 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       loadPosts();
     }
   }, [selectedSources, query, apiStatus, loadPosts]);
+
+  // Reprocess posts when user level changes
+  useEffect(() => {
+    if (posts.length > 0 && userProfile?.learningLevel) {
+      processPostsWithMixedLanguage(posts).then(processed => {
+        setProcessedPosts(processed);
+      });
+    }
+  }, [userProfile?.learningLevel, posts, processPostsWithMixedLanguage]);
 
   // Scroll detection for "see more" button
   useEffect(() => {
@@ -228,12 +288,16 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     setSearchQuery(query);
     if (query.trim()) {
       setIsSearching(true);
-      // Search through current real posts
+      // Search through current processed posts (includes mixed language content)
       setTimeout(() => {
-        const filtered = posts.filter(post =>
+        const postsToSearch = processedPosts.length > 0 ? processedPosts : posts;
+        const filtered = postsToSearch.filter(post =>
           post.title.toLowerCase().includes(query.toLowerCase()) ||
           (post.content && post.content.toLowerCase().includes(query.toLowerCase())) ||
-          (post.author && post.author.toLowerCase().includes(query.toLowerCase()))
+          (post.author && post.author.toLowerCase().includes(query.toLowerCase())) ||
+          // Also search original content if it exists
+          (post.originalTitle && post.originalTitle.toLowerCase().includes(query.toLowerCase())) ||
+          (post.originalContent && post.originalContent.toLowerCase().includes(query.toLowerCase()))
         );
         setSearchResults(filtered.slice(0, 5));
         setIsSearching(false);
@@ -626,8 +690,20 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         </div>
       )}
 
+      {/* Processing indicator */}
+      {processingPosts && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            <span className="text-blue-700 text-sm font-medium">
+              Creating mixed language content based on your level {userProfile?.learningLevel}...
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Posts */}
-      {!loading && !error && (searchResults.length > 0 ? searchResults : posts).map((article) => (
+      {!loading && !error && (searchResults.length > 0 ? searchResults : (processedPosts.length > 0 ? processedPosts : posts)).map((article) => (
         <div key={article.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Article Header */}
           <div className="p-6 pb-4">
@@ -684,6 +760,11 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
+                {article.isMixedLanguage && (
+                  <span className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    🇯🇵 Mixed Language Level {userProfile?.learningLevel}
+                  </span>
+                )}
                 {article.difficulty && (
                   <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
                     Level {article.difficulty}
@@ -796,7 +877,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       )}
 
       {/* No more posts message */}
-      {!hasMorePosts && posts.length > 0 && (
+      {!hasMorePosts && (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
         <div className="text-center py-8">
           <div className="inline-flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">🎉</span>

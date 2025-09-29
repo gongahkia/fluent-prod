@@ -502,6 +502,257 @@ class TranslationService {
   clearCache() {
     this.cache.clear();
   }
+
+  // NEW METHOD: Create mixed English/Japanese text based on user level
+  async createMixedLanguageContent(text, userLevel = 5) {
+    if (!text || typeof text !== 'string') return text;
+
+    // Calculate percentage of words to translate based on user level
+    // Level 1-2: 10-20% Japanese, Level 3-4: 30-40%, Level 5-6: 50-60%,
+    // Level 7-8: 70-80%, Level 9-10: 90-95%
+    const getTranslationPercentage = (level) => {
+      const levelNum = parseInt(level);
+      if (levelNum <= 2) return 0.15; // 15%
+      if (levelNum <= 4) return 0.35; // 35%
+      if (levelNum <= 6) return 0.55; // 55%
+      if (levelNum <= 8) return 0.75; // 75%
+      return 0.90; // 90%
+    };
+
+    const translationPercentage = getTranslationPercentage(userLevel);
+
+    // Split text into sentences to maintain readability
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    const processedSentences = [];
+
+    for (const sentence of sentences) {
+      const processedSentence = await this.processSentenceForMixedContent(
+        sentence,
+        translationPercentage
+      );
+      processedSentences.push(processedSentence);
+    }
+
+    return processedSentences.join(' ');
+  }
+
+  // Process a single sentence for mixed content
+  async processSentenceForMixedContent(sentence, translationPercentage) {
+    // Split sentence into words while preserving punctuation
+    const wordPattern = /(\b\w+\b|\s+|[^\w\s])/g;
+    const tokens = sentence.match(wordPattern) || [];
+
+    // Filter to get only actual words (not spaces or punctuation)
+    const wordTokens = tokens.filter(token => /^\w+$/.test(token));
+
+    // Determine which words to translate
+    const wordsToTranslate = this.selectWordsForTranslation(
+      wordTokens,
+      translationPercentage
+    );
+
+    // Process each token
+    const processedTokens = [];
+    for (const token of tokens) {
+      if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
+        // Translate this word to Japanese
+        const translation = await this.translateWordToJapanese(token);
+        processedTokens.push(translation);
+      } else {
+        // Keep original token (word, space, or punctuation)
+        processedTokens.push(token);
+      }
+    }
+
+    return processedTokens.join('');
+  }
+
+  // Select which words to translate based on difficulty and percentage
+  selectWordsForTranslation(words, percentage) {
+    const wordsToTranslate = new Set();
+
+    // Define word difficulty categories
+    const veryCommon = ['the', 'is', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'a', 'an'];
+    const common = ['good', 'bad', 'big', 'small', 'new', 'old', 'hot', 'cold', 'have', 'has', 'do', 'does', 'can', 'will'];
+    const intermediate = ['beautiful', 'interesting', 'important', 'different', 'similar', 'technology', 'business', 'culture'];
+
+    // Categorize words
+    const categorizedWords = {
+      veryCommon: words.filter(word => veryCommon.includes(word.toLowerCase())),
+      common: words.filter(word => common.includes(word.toLowerCase())),
+      intermediate: words.filter(word => intermediate.includes(word.toLowerCase())),
+      advanced: words.filter(word =>
+        !veryCommon.includes(word.toLowerCase()) &&
+        !common.includes(word.toLowerCase()) &&
+        !intermediate.includes(word.toLowerCase()) &&
+        word.length > 2
+      )
+    };
+
+    // Calculate how many words to translate
+    const totalWords = words.length;
+    const targetCount = Math.floor(totalWords * percentage);
+
+    // Prioritize which words to translate (advanced first, then intermediate, etc.)
+    let count = 0;
+
+    // First, translate advanced words
+    for (const word of categorizedWords.advanced) {
+      if (count >= targetCount) break;
+      wordsToTranslate.add(word.toLowerCase());
+      count++;
+    }
+
+    // Then intermediate words
+    for (const word of categorizedWords.intermediate) {
+      if (count >= targetCount) break;
+      wordsToTranslate.add(word.toLowerCase());
+      count++;
+    }
+
+    // Then common words
+    for (const word of categorizedWords.common) {
+      if (count >= targetCount) break;
+      wordsToTranslate.add(word.toLowerCase());
+      count++;
+    }
+
+    // Finally very common words (only if needed)
+    for (const word of categorizedWords.veryCommon) {
+      if (count >= targetCount) break;
+      wordsToTranslate.add(word.toLowerCase());
+      count++;
+    }
+
+    return wordsToTranslate;
+  }
+
+  // Translate a single English word to Japanese
+  async translateWordToJapanese(word) {
+    const cleanWord = word.toLowerCase().trim();
+
+    // Use existing translation dictionary first for consistency
+    const basicTranslations = {
+      // Common words
+      'the': 'その',
+      'is': 'です',
+      'and': 'と',
+      'or': 'または',
+      'but': 'でも',
+      'in': 'に',
+      'on': 'で',
+      'at': 'で',
+      'to': 'に',
+      'for': 'ため',
+      'of': 'の',
+      'with': 'と',
+      'by': 'によって',
+      'a': 'ひとつの',
+      'an': 'ひとつの',
+
+      // Verbs
+      'have': '持つ',
+      'has': '持つ',
+      'do': 'する',
+      'does': 'する',
+      'can': 'できる',
+      'will': 'でしょう',
+      'would': 'でしょう',
+      'should': 'すべき',
+      'must': 'しなければ',
+
+      // Adjectives
+      'good': '良い',
+      'bad': '悪い',
+      'big': '大きい',
+      'small': '小さい',
+      'beautiful': '美しい',
+      'hot': '熱い',
+      'cold': '冷たい',
+      'new': '新しい',
+      'old': '古い',
+      'young': '若い',
+      'fast': '速い',
+      'slow': '遅い',
+      'easy': '簡単',
+      'difficult': '難しい',
+      'hard': '難しい',
+      'happy': '幸せ',
+      'sad': '悲しい',
+
+      // Nouns
+      'person': '人',
+      'people': '人々',
+      'man': '男性',
+      'woman': '女性',
+      'child': '子供',
+      'family': '家族',
+      'friend': '友達',
+      'house': '家',
+      'home': '家',
+      'school': '学校',
+      'work': '仕事',
+      'job': '仕事',
+      'car': '車',
+      'food': '食べ物',
+      'water': '水',
+      'money': 'お金',
+      'time': '時間',
+      'day': '日',
+      'night': '夜',
+      'country': '国',
+      'city': '都市',
+      'world': '世界',
+      'book': '本',
+      'phone': '電話',
+      'computer': 'コンピューター',
+      'music': '音楽',
+      'movie': '映画',
+      'game': 'ゲーム',
+      'culture': '文化',
+      'tradition': '伝統',
+      'modern': '現代の',
+      'business': 'ビジネス',
+      'technology': '技術',
+      'important': '重要',
+      'interesting': '面白い',
+      'different': '違う',
+      'similar': '似ている',
+      'special': '特別',
+      'popular': '人気',
+      'famous': '有名',
+      'local': '地元の',
+      'international': '国際的'
+    };
+
+    // Check if we have a direct translation
+    if (basicTranslations[cleanWord]) {
+      return basicTranslations[cleanWord];
+    }
+
+    // For unknown words, try API translation
+    try {
+      const translation = await this.translateText(cleanWord, 'en', 'ja');
+      if (translation && translation !== cleanWord) {
+        return translation;
+      }
+    } catch (error) {
+      console.warn('Translation failed for word:', cleanWord, error);
+    }
+
+    // Fallback: return original word
+    return word;
+  }
+
+  // Utility method to check if text contains Japanese characters
+  containsJapanese(text) {
+    return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text);
+  }
+
+  // Utility method to check if text contains only English characters
+  isEnglishOnly(text) {
+    return /^[a-zA-Z\s.,!?;:"'()\[\]{}—–-]+$/.test(text);
+  }
 }
 
 // Create singleton instance
