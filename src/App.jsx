@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Auth from './components/Auth';
 import NewsFeed from './components/NewsFeed';
-import RealNewsFeed from './components/RealNewsFeed';
 import Onboarding from './components/Onboarding';
 import Profile from './components/Profile';
 import Dictionary from './components/Dictionary';
@@ -20,7 +19,7 @@ import './App.css';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [currentView, setCurrentView] = useState('feed'); // 'feed', 'realnews', 'profile', 'dictionary', or 'flashcards'
+  const [currentView, setCurrentView] = useState('feed'); // 'feed', 'profile', 'dictionary', or 'flashcards'
   const [userProfile, setUserProfile] = useState(null);
   const [userDictionary, setUserDictionary] = useState([
     // Start with empty dictionary - users will build their own
@@ -106,10 +105,6 @@ function App() {
     );
   }
 
-  // Show real news page
-  if (currentView === 'realnews') {
-    return <RealNewsFeed />;
-  }
 
   // Show flashcards page
   if (currentView === 'flashcards') {
@@ -171,17 +166,6 @@ function App() {
                       >
                         <span className="text-lg">📰</span>
                         <span className="font-medium">Learning Feed</span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation('realnews')}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === 'realnews'
-                            ? 'bg-orange-100 text-orange-900'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="text-lg">🌐</span>
-                        <span className="font-medium">Real News</span>
                       </button>
                       <button
                         onClick={() => handleNavigation('dictionary')}
@@ -258,16 +242,6 @@ function App() {
               }`}
             >
               Learning Feed
-            </button>
-            <button
-              onClick={() => handleNavigation('realnews')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                currentView === 'realnews'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Real News
             </button>
             <button
               onClick={() => handleNavigation('dictionary')}

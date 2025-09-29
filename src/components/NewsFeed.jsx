@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck, RefreshCw } from 'lucide-react';
+import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck, RefreshCw, Settings } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
 import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 import vocabularyService from '../services/vocabularyService';
-import { fetchPosts } from '../services/newsService';
+import { fetchPosts, checkApiConfiguration } from '../services/newsService';
 
 const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDictionary }) => {
   const [showComments, setShowComments] = useState({});
@@ -15,11 +15,21 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedSources, setSelectedSources] = useState(['hackernews', 'reddit']);
+  const [query, setQuery] = useState('technology');
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiStatus, setApiStatus] = useState({});
 
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+
+  // Check API configuration on component mount
+  useEffect(() => {
+    const status = checkApiConfiguration();
+    setApiStatus(status);
+  }, []);
 
   // Load real posts from APIs
   const loadPosts = async () => {
@@ -27,10 +37,18 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     setError(null);
 
     try {
+      const enabledSources = selectedSources.filter(source =>
+        apiStatus[source]?.enabled && apiStatus[source]?.hasApiKey
+      );
+
+      if (enabledSources.length === 0) {
+        throw new Error('No enabled sources available. Please check your API configuration.');
+      }
+
       const realPosts = await fetchPosts({
-        sources: ['hackernews', 'reddit'],
-        query: 'technology',
-        limit: 10,
+        sources: enabledSources,
+        query: query,
+        limit: 20,
         shuffle: true
       });
 
@@ -53,10 +71,12 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     }
   };
 
-  // Load posts on component mount
+  // Load posts when sources, query, or API status changes
   useEffect(() => {
-    loadPosts();
-  }, []);
+    if (Object.keys(apiStatus).length > 0) {
+      loadPosts();
+    }
+  }, [selectedSources, query, apiStatus]);
 
   const getLevelColor = (level) => {
     if (level <= 3) return 'bg-green-500';
@@ -127,6 +147,27 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       }
       return newSet;
     });
+  };
+
+  const handleSourceToggle = (sourceId) => {
+    setSelectedSources(prev =>
+      prev.includes(sourceId)
+        ? prev.filter(id => id !== sourceId)
+        : [...prev, sourceId]
+    );
+  };
+
+  const getSourceBadgeColor = (source) => {
+    const colors = {
+      hackernews: 'bg-orange-500',
+      reddit: 'bg-red-500',
+      newsapi: 'bg-blue-500',
+      guardian: 'bg-blue-700',
+      nytimes: 'bg-gray-800',
+      mediastack: 'bg-green-500',
+      gnews: 'bg-purple-500'
+    };
+    return colors[source] || 'bg-gray-500';
   };
 
   const handleSearch = (query) => {
@@ -327,6 +368,13 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
             <div className="text-4xl">🎓</div>
           </div>
         </div>
@@ -348,6 +396,53 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
             )}
           </div>
         </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Query Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search Query</label>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Enter keywords..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Sources Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">News Sources</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(apiStatus).map(([sourceId, config]) => (
+                    <label key={sourceId} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedSources.includes(sourceId)}
+                        onChange={() => handleSourceToggle(sourceId)}
+                        disabled={!config.enabled || !config.hasApiKey}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className={`text-sm ${
+                        !config.enabled || !config.hasApiKey
+                          ? 'text-gray-400'
+                          : 'text-gray-700'
+                      }`}>
+                        {config.name}
+                        {(!config.enabled || !config.hasApiKey) && (
+                          <span className="text-xs text-red-500 ml-1">(API key needed)</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
 
@@ -541,8 +636,8 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
                   </span>
                 )}
                 {article.source && (
-                  <span className="bg-gray-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    {article.source}
+                  <span className={`text-white px-2 py-1 rounded text-xs font-medium ${getSourceBadgeColor(article.source)}`}>
+                    {apiStatus[article.source]?.name || article.source}
                   </span>
                 )}
               </div>
