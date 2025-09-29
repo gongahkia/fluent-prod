@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bookmark, MessageCircle, Share, Send, BookOpen, UserPlus, UserCheck, RefreshCw } from 'lucide-react';
 import EnhancedCommentSystem from './EnhancedCommentSystem';
 import LoadingSpinner from './ui/LoadingSpinner';
-import { handleWordClick as sharedHandleWordClick, detectVocabularyInText } from '../lib/wordDatabase';
+import { handleWordClick as sharedHandleWordClick } from '../lib/wordDatabase';
 import vocabularyService from '../services/vocabularyService';
 import { fetchPosts } from '../services/newsService';
 
@@ -16,142 +16,6 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Enhanced Japanese posts with mixed Japanese/English content for intermediate learners
-  const japaneseArticles = [
-    {
-      id: 1,
-      author: "田中雪",
-      authorEn: "Yuki Tanaka",
-      verified: true,
-      location: "渋谷、Tokyo",
-      time: "3 hours ago",
-      title: "地元の人だけが知る hidden ラーメン店",
-      content: "東京の最も busy な地区で地下の food culture を探索。これらの family-run business の店は何世代にもわたって authentic ラーメンを提供してきました。",
-      image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop",
-      tags: ["#グルメ", "#culture", "#local"],
-      likes: 2847,
-      comments: 156,
-      shares: 89,
-      source: "twitter",
-      originalSource: "Twitter",
-      externalUrl: "https://twitter.com/yukitanaka/status/123456789",
-      difficulty: 6
-    },
-    {
-      id: 3,
-      author: "山田花子",
-      authorEn: "Hanako Yamada",
-      verified: false,
-      location: "原宿、Tokyo",
-      time: "8 hours ago",
-      title: "Street fashion の evolution in Harajuku",
-      content: "Young people の creativity と self-expression は、Tokyo の fashion scene を constantly に変化させています。Traditional elements と modern trends の fusion が見られます。",
-      image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=400&fit=crop",
-      tags: ["#ファッション", "#youth", "#creativity"],
-      likes: 892,
-      comments: 45,
-      shares: 67,
-      source: "instagram",
-      originalSource: "Instagram",
-      externalUrl: "https://instagram.com/p/harajuku_fashion_2024",
-      difficulty: 5
-    },
-    {
-      id: 4,
-      author: "鈴木太郎",
-      authorEn: "Taro Suzuki",
-      verified: true,
-      location: "新宿、Tokyo",
-      time: "12 hours ago",
-      title: "Cherry blossom season の economic impact",
-      content: "Sakura の季節は tourism industry に massive な boost をもたらします。Local businesses は special events と limited-time products で visitors を attract しています。",
-      image: "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&h=400&fit=crop",
-      tags: ["#桜", "#tourism", "#economy"],
-      likes: 1234,
-      comments: 78,
-      shares: 156,
-      source: "line",
-      originalSource: "LINE",
-      externalUrl: "https://line.me/R/msg/text/?sakura_economics_2024",
-      difficulty: 8
-    },
-    {
-      id: 5,
-      author: "高橋美咲",
-      authorEn: "Misaki Takahashi",
-      verified: true,
-      location: "京都",
-      time: "1 day ago",
-      title: "Traditional tea ceremony meets modern lifestyle",
-      content: "古い tradition と new generation の生活 style が融合。Young Japanese people は tea ceremony を modern way で楽しんでいます。Instagram で sharing する culture も生まれています。",
-      image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&h=400&fit=crop",
-      tags: ["#茶道", "#tradition", "#modern"],
-      likes: 1876,
-      comments: 134,
-      shares: 298,
-      source: "tiktok",
-      originalSource: "TikTok",
-      externalUrl: "https://tiktok.com/@misaki_tea/video/123456789",
-      difficulty: 4
-    },
-    {
-      id: 6,
-      author: "中村健一",
-      authorEn: "Kenichi Nakamura",
-      verified: false,
-      location: "大阪",
-      time: "1 day ago",
-      title: "Osaka の street food revolution が始まっている",
-      content: "Traditional takoyaki と okonomiyaki に加えて、fusion cuisine が人気。Korean-Japanese と Italian-Japanese の combination が特に popular です。",
-      image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=400&fit=crop",
-      tags: ["#大阪", "#streetfood", "#fusion"],
-      likes: 2156,
-      comments: 187,
-      shares: 145,
-      source: "facebook",
-      originalSource: "Facebook",
-      externalUrl: "https://facebook.com/osaka.streetfood/posts/123456789",
-      difficulty: 6
-    },
-    {
-      id: 7,
-      author: "小林さくら",
-      authorEn: "Sakura Kobayashi",
-      verified: true,
-      location: "横浜",
-      time: "2 days ago",
-      title: "Working from home culture in Japan の変化",
-      content: "Pandemic 以降、Japanese companies の work style が大きく変わりました。Remote work と traditional office culture の balance を見つけることが challenge です。",
-      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&h=400&fit=crop",
-      tags: ["#リモートワーク", "#culture", "#change"],
-      likes: 987,
-      comments: 92,
-      shares: 76,
-      source: "reddit",
-      originalSource: "Reddit",
-      externalUrl: "https://reddit.com/r/japanlife/comments/remote_work_culture",
-      difficulty: 7
-    },
-    {
-      id: 8,
-      author: "森田大輔",
-      authorEn: "Daisuke Morita",
-      verified: true,
-      location: "福岡",
-      time: "3 days ago",
-      title: "九州の hidden gem destinations が international attention を集めている",
-      content: "Kyushu region の beautiful nature と rich history が foreign tourists に人気。Local communities も tourism development に積極的に participate しています。",
-      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop",
-      tags: ["#九州", "#tourism", "#nature"],
-      likes: 1543,
-      comments: 118,
-      shares: 203,
-      source: "instagram",
-      originalSource: "Instagram",
-      externalUrl: "https://instagram.com/p/kyushu_hidden_gems_2024`",
-      difficulty: 5
-    }
-  ];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -170,12 +34,20 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         shuffle: true
       });
 
-      setPosts(realPosts);
+      // Ensure real posts have the necessary structure for translation
+      const enhancedPosts = realPosts.map(post => ({
+        ...post,
+        tags: post.tags || ['#tech', '#news'],
+        difficulty: 6, // Default difficulty for real news
+        source: post.source || 'hackernews'
+      }));
+
+      setPosts(enhancedPosts);
     } catch (err) {
       setError(err.message);
       console.error('Error loading posts:', err);
-      // Fallback to hardcoded posts if API fails
-      setPosts(japaneseArticles);
+      // Show error instead of fallback to ensure real news only
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -261,13 +133,16 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
     setSearchQuery(query);
     if (query.trim()) {
       setIsSearching(true);
-      // Simulate search delay
+      // Search through current real posts
       setTimeout(() => {
-        // Return random posts from existing set
-        const shuffled = [...japaneseArticles].sort(() => 0.5 - Math.random());
-        setSearchResults(shuffled.slice(0, 3));
+        const filtered = posts.filter(post =>
+          post.title.toLowerCase().includes(query.toLowerCase()) ||
+          (post.content && post.content.toLowerCase().includes(query.toLowerCase())) ||
+          (post.author && post.author.toLowerCase().includes(query.toLowerCase()))
+        );
+        setSearchResults(filtered.slice(0, 5));
         setIsSearching(false);
-      }, 1500);
+      }, 500);
     } else {
       setSearchResults([]);
       setIsSearching(false);
@@ -345,11 +220,16 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
   };
 
   const renderClickableText = (text) => {
-    // Split by spaces and punctuation first
-    const segments = text.split(/(\s+|[。、！？])/);
+    if (!text) return '';
+
+    // Split by spaces and punctuation, preserving them
+    const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/);
 
     return segments.map((segment, segmentIndex) => {
-      if (!segment.trim()) return <span key={segmentIndex}>{segment}</span>;
+      // Keep whitespace and punctuation as-is
+      if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
+        return <span key={segmentIndex}>{segment}</span>;
+      }
 
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment);
       const hasEnglish = /[a-zA-Z]/.test(segment);
@@ -379,7 +259,13 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
         );
       } else if (hasEnglish) {
         // Enhanced English word handling with vocabulary detection
-        const cleanWord = segment.trim().replace(/[.,!?;:]/g, '');
+        const cleanWord = segment.trim().replace(/[.,!?;:"'()[\]{}—–-]/g, '');
+
+        // Skip if empty after cleaning
+        if (!cleanWord) {
+          return <span key={segmentIndex}>{segment}</span>;
+        }
+
         const isVocabularyWord = vocabularyService.isValidVocabularyWord(cleanWord);
 
         // Different styling for vocabulary vs regular words
@@ -429,8 +315,8 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Live Feed</h1>
-            <p className="text-gray-600">Real-time posts from Hacker News and Reddit</p>
+            <h1 className="text-2xl font-bold text-gray-900">Learning Feed</h1>
+            <p className="text-gray-600">Real news with interactive translation - Click any word to learn!</p>
           </div>
           <div className="flex items-center space-x-3">
             <button
@@ -441,7 +327,7 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
-            <div className="text-4xl">🌐</div>
+            <div className="text-4xl">🎓</div>
           </div>
         </div>
 
@@ -665,14 +551,10 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
             {/* Article Content */}
             <div className="mb-4">
               <h2 className="text-xl font-bold text-gray-900 mb-3">
-                {article.difficulty ? renderClickableText(article.title) : (
-                  <a href={article.externalUrl || article.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
-                    {article.title}
-                  </a>
-                )}
+                {renderClickableText(article.title)}
               </h2>
               <p className="text-gray-800 leading-relaxed mb-4">
-                {article.difficulty ? renderClickableText(article.content) : article.content}
+                {article.content ? renderClickableText(article.content) : ''}
               </p>
               
               {article.image && (
