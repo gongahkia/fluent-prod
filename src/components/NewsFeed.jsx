@@ -127,21 +127,33 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
 
       if (isLoadMore) {
         // Filter out duplicates when loading more
-        const existingUrls = new Set(posts.map(post => post.url));
-        const newPosts = enhancedPosts.filter(post => !existingUrls.has(post.url));
+        setPosts(prev => {
+          const existingUrls = new Set(prev.map(post => post.url));
+          const newPosts = enhancedPosts.filter(post => !existingUrls.has(post.url));
 
-        if (newPosts.length === 0) {
-          setHasMorePosts(false);
-        } else {
-          const processedNewPosts = await processPostsWithMixedLanguage(newPosts);
-          setPosts(prev => [...prev, ...newPosts]);
-          setProcessedPosts(prev => [...prev, ...processedNewPosts]);
-          setCurrentPage(prev => prev + 1);
-        }
+          if (newPosts.length === 0) {
+            setHasMorePosts(false);
+            return prev;
+          } else {
+            // Process new posts separately without depending on the callback
+            if (userProfile?.learningLevel && newPosts.length > 0) {
+              processPostsWithMixedLanguage(newPosts).then(processedNewPosts => {
+                setProcessedPosts(prevProcessed => [...prevProcessed, ...processedNewPosts]);
+              });
+            }
+            setCurrentPage(prevPage => prevPage + 1);
+            return [...prev, ...newPosts];
+          }
+        });
       } else {
         setPosts(enhancedPosts);
-        const processedPosts = await processPostsWithMixedLanguage(enhancedPosts);
-        setProcessedPosts(processedPosts);
+        // Process posts for mixed language content
+        if (userProfile?.learningLevel && enhancedPosts.length > 0) {
+          const processedPosts = await processPostsWithMixedLanguage(enhancedPosts);
+          setProcessedPosts(processedPosts);
+        } else {
+          setProcessedPosts(enhancedPosts);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -149,28 +161,20 @@ const NewsFeed = ({ selectedCountry, userProfile, onAddWordToDictionary, userDic
       // Show error instead of fallback to ensure real news only
       if (!isLoadMore) {
         setPosts([]);
+        setProcessedPosts([]);
       }
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [selectedSources, query, apiStatus, posts, processPostsWithMixedLanguage]);
+  }, [selectedSources, query, apiStatus, userProfile?.learningLevel, processPostsWithMixedLanguage]);
 
-  // Load posts when sources, query, or API status changes
+  // Load posts when sources, query, API status, or user level changes
   useEffect(() => {
     if (Object.keys(apiStatus).length > 0) {
       loadPosts();
     }
-  }, [selectedSources, query, apiStatus, loadPosts]);
-
-  // Reprocess posts when user level changes
-  useEffect(() => {
-    if (posts.length > 0 && userProfile?.learningLevel) {
-      processPostsWithMixedLanguage(posts).then(processed => {
-        setProcessedPosts(processed);
-      });
-    }
-  }, [userProfile?.learningLevel, posts, processPostsWithMixedLanguage]);
+  }, [selectedSources, query, apiStatus, userProfile?.learningLevel, loadPosts]);
 
   // Scroll detection for "see more" button
   useEffect(() => {
