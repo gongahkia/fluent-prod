@@ -764,7 +764,7 @@ class TranslationService {
 
   // Utility method to check if text contains only English characters
   isEnglishOnly(text) {
-    return /^[a-zA-Z\s.,!?;:"'()\[\]{}—–-]+$/.test(text);
+    return /^[a-zA-Z\s.,!?;:"'()[\]{}—–-]+$/.test(text);
   }
 }
 
