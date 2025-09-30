@@ -123,7 +123,13 @@
 .slider {
   -webkit-appearance: none;
   appearance: none;
-  background: linear-gradient(to right, #00E676 0%, #00E676 var(--value, 0%), #e5e7eb var(--value, 0%), #e5e7eb 100%);
+  background: linear-gradient(
+    to right,
+    #00e676 0%,
+    #00e676 var(--value, 0%),
+    #e5e7eb var(--value, 0%),
+    #e5e7eb 100%
+  );
 }
 
 .slider::-webkit-slider-thumb {
@@ -132,7 +138,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #00E676;
+  background: #00e676;
   cursor: pointer;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -142,7 +148,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #00E676;
+  background: #00e676;
   cursor: pointer;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -154,9 +160,8 @@
 }
 
 .word-hover:hover {
-  background-color: #E8F5E8;
+  background-color: #e8f5e8;
   text-decoration: underline;
   border-radius: 4px;
   padding: 2px 4px;
 }
-

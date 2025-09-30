@@ -1,57 +1,67 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Camera, Mail, User, Globe, Bell, Shield, Trash2, Save } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Camera,
+  Globe,
+  Mail,
+  Save,
+  Shield,
+  Trash2,
+  User,
+} from "lucide-react"
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
 
 const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const [formData, setFormData] = useState({
-    name: userProfile?.name || '',
-    email: userProfile?.email || '',
-    bio: userProfile?.bio || '',
-    nativeLanguage: userProfile?.nativeLanguages?.[0] || 'English',
-    targetLanguage: userProfile?.targetLanguage || 'Japanese',
-    learningLevel: userProfile?.level || '5',
-    location: userProfile?.location || '',
-    website: userProfile?.website || '',
+    name: userProfile?.name || "",
+    email: userProfile?.email || "",
+    bio: userProfile?.bio || "",
+    nativeLanguage: userProfile?.nativeLanguages?.[0] || "English",
+    targetLanguage: userProfile?.targetLanguage || "Japanese",
+    learningLevel: userProfile?.level || "5",
+    location: userProfile?.location || "",
+    website: userProfile?.website || "",
     // Privacy settings
-    profileVisibility: 'public',
+    profileVisibility: "public",
     showEmail: false,
     showLocation: true,
     // Notification settings
     emailNotifications: true,
     pushNotifications: true,
     commentNotifications: true,
-    followNotifications: true
-  });
+    followNotifications: true,
+  })
 
-  const [activeTab, setActiveTab] = useState('general');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showFollowers, setShowFollowers] = useState(false);
-  const [showFollowing, setShowFollowing] = useState(false);
-  const [showSavedPosts, setShowSavedPosts] = useState(false);
+  const [activeTab, setActiveTab] = useState("general")
+  const [isLoading, setIsLoading] = useState(false)
+  const [showFollowers, setShowFollowers] = useState(false)
+  const [showFollowing, setShowFollowing] = useState(false)
+  const [showSavedPosts, setShowSavedPosts] = useState(false)
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    const { name, value, type, checked } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+      [name]: type === "checkbox" ? checked : value,
+    }))
+  }
 
   const handleSave = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     // Simulate API call
     setTimeout(() => {
-      onProfileUpdate(formData);
-      setIsLoading(false);
-    }, 1000);
-  };
+      onProfileUpdate(formData)
+      setIsLoading(false)
+    }, 1000)
+  }
 
   const tabs = [
-    { id: 'general', label: 'General', icon: User },
-    { id: 'learning', label: 'Learning', icon: Globe },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'Privacy', icon: Shield }
-  ];
+    { id: "general", label: "General", icon: User },
+    { id: "learning", label: "Learning", icon: Globe },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "privacy", label: "Privacy", icon: Shield },
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,7 +76,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <h1 className="text-xl font-semibold text-gray-900">Profile Settings</h1>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Profile Settings
+              </h1>
             </div>
             <Button
               onClick={handleSave}
@@ -108,7 +120,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 <h2 className="text-2xl font-bold">{formData.name}</h2>
                 <p className="text-gray-600">{formData.email}</p>
                 <p className="text-gray-500 text-sm mt-1">
-                  Learning {formData.targetLanguage} • Level {formData.learningLevel}
+                  Learning {formData.targetLanguage} • Level{" "}
+                  {formData.learningLevel}
                 </p>
               </div>
             </div>
@@ -118,21 +131,21 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               {tabs.map((tab) => {
-                const Icon = tab.icon;
+                const Icon = tab.icon
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
-                        ? 'border-gray-900 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? "border-gray-900 text-gray-900"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{tab.label}</span>
                   </button>
-                );
+                )
               })}
             </nav>
           </div>
@@ -140,7 +153,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           {/* Tab Content */}
           <div className="p-6">
             {/* General Tab */}
-            {activeTab === 'general' && (
+            {activeTab === "general" && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -216,14 +229,14 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium text-gray-900">Social</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button 
+                    <button
                       onClick={() => setShowFollowers(true)}
                       className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <User className="w-4 h-4 mr-2" />
                       Manage Followers
                     </button>
-                    <button 
+                    <button
                       onClick={() => setShowFollowing(true)}
                       className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
@@ -231,7 +244,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       Manage Following
                     </button>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowSavedPosts(true)}
                     className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
@@ -243,7 +256,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             )}
 
             {/* Learning Tab */}
-            {activeTab === 'learning' && (
+            {activeTab === "learning" && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -275,9 +288,15 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                     >
                       <option value="Japanese">Japanese (Available now)</option>
-                      <option value="Korean" disabled>Korean (Coming soon)</option>
-                      <option value="Chinese" disabled>Chinese (Coming soon)</option>
-                      <option value="Spanish" disabled>Spanish (Coming soon)</option>
+                      <option value="Korean" disabled>
+                        Korean (Coming soon)
+                      </option>
+                      <option value="Chinese" disabled>
+                        Chinese (Coming soon)
+                      </option>
+                      <option value="Spanish" disabled>
+                        Spanish (Coming soon)
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -308,13 +327,17 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             )}
 
             {/* Notifications Tab */}
-            {activeTab === 'notifications' && (
+            {activeTab === "notifications" && (
               <div className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Email Notifications</h3>
-                      <p className="text-sm text-gray-500">Receive notifications via email</p>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Email Notifications
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Receive notifications via email
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -330,8 +353,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Push Notifications</h3>
-                      <p className="text-sm text-gray-500">Receive push notifications on your device</p>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Push Notifications
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Receive push notifications on your device
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -347,8 +374,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Comment Notifications</h3>
-                      <p className="text-sm text-gray-500">Get notified when someone comments on your posts</p>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Comment Notifications
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Get notified when someone comments on your posts
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -366,7 +397,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             )}
 
             {/* Privacy Tab */}
-            {activeTab === 'privacy' && (
+            {activeTab === "privacy" && (
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -378,17 +409,27 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
-                    <option value="public">Public - Anyone can see your profile</option>
-                    <option value="friends">Friends Only - Only friends can see your profile</option>
-                    <option value="private">Private - Only you can see your profile</option>
+                    <option value="public">
+                      Public - Anyone can see your profile
+                    </option>
+                    <option value="friends">
+                      Friends Only - Only friends can see your profile
+                    </option>
+                    <option value="private">
+                      Private - Only you can see your profile
+                    </option>
                   </select>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Show Email Address</h3>
-                      <p className="text-sm text-gray-500">Allow others to see your email address</p>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Show Email Address
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Allow others to see your email address
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -404,8 +445,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Show Location</h3>
-                      <p className="text-sm text-gray-500">Allow others to see your location</p>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Show Location
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Allow others to see your location
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -426,7 +471,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                     <span className="text-sm font-medium">Delete Account</span>
                   </button>
                   <p className="text-xs text-gray-500 mt-1">
-                    This action cannot be undone. All your data will be permanently deleted.
+                    This action cannot be undone. All your data will be
+                    permanently deleted.
                   </p>
                 </div>
               </div>
@@ -437,21 +483,32 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       {/* Followers Modal */}
       {showFollowers && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowFollowers(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowFollowers(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-bold mb-4">Manage Followers</h3>
             <div className="space-y-3">
-              {['Yuki Tanaka', 'Sarah Johnson', 'Li Wei'].map((follower, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span>{follower}</span>
-                  <div className="space-x-2">
-                    <button className="text-red-500 text-sm">Remove</button>
-                    <button className="text-gray-500 text-sm">Block</button>
+              {["Yuki Tanaka", "Sarah Johnson", "Li Wei"].map(
+                (follower, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <span>{follower}</span>
+                    <div className="space-x-2">
+                      <button className="text-red-500 text-sm">Remove</button>
+                      <button className="text-gray-500 text-sm">Block</button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
-            <button 
+            <button
               onClick={() => setShowFollowers(false)}
               className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
@@ -463,18 +520,29 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       {/* Following Modal */}
       {showFollowing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowFollowing(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowFollowing(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-bold mb-4">Manage Following</h3>
             <div className="space-y-3">
-              {['Hiroshi Sato', 'Hanako Yamada', 'Taro Suzuki'].map((following, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span>{following}</span>
-                  <button className="text-red-500 text-sm">Unfollow</button>
-                </div>
-              ))}
+              {["Hiroshi Sato", "Hanako Yamada", "Taro Suzuki"].map(
+                (following, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <span>{following}</span>
+                    <button className="text-red-500 text-sm">Unfollow</button>
+                  </div>
+                )
+              )}
             </div>
-            <button 
+            <button
               onClick={() => setShowFollowing(false)}
               className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
@@ -486,28 +554,42 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       {/* Saved Posts Modal */}
       {showSavedPosts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSavedPosts(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowSavedPosts(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-bold mb-4">Saved Posts</h3>
             <div className="space-y-4">
               <div className="border rounded-lg p-4">
-                <h4 className="font-medium">地元の人だけが知る hidden ラーメン店</h4>
-                <p className="text-sm text-gray-600 mt-1">東京の最も busy な地区で地下の food culture を探索...</p>
+                <h4 className="font-medium">
+                  地元の人だけが知る hidden ラーメン店
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  東京の最も busy な地区で地下の food culture を探索...
+                </p>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs text-gray-500">by 田中雪</span>
                   <button className="text-red-500 text-sm">Remove</button>
                 </div>
               </div>
               <div className="border rounded-lg p-4">
-                <h4 className="font-medium">Tokyo の新しい digital art museum が一般公開</h4>
-                <p className="text-sm text-gray-600 mt-1">Interactive な digital art 展示は、traditional な日本の美学...</p>
+                <h4 className="font-medium">
+                  Tokyo の新しい digital art museum が一般公開
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Interactive な digital art 展示は、traditional な日本の美学...
+                </p>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs text-gray-500">by 佐藤博</span>
                   <button className="text-red-500 text-sm">Remove</button>
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setShowSavedPosts(false)}
               className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
             >
@@ -517,8 +599,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default Profile;
-
+export default Profile

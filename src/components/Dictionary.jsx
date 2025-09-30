@@ -1,42 +1,48 @@
-import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+} from "lucide-react"
+import React, { useState } from "react"
 
 const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
-  const [expandedWord, setExpandedWord] = useState(null);
-  const [sortBy, setSortBy] = useState('level'); // 'level', 'date', 'alphabetical'
+  const [expandedWord, setExpandedWord] = useState(null)
+  const [sortBy, setSortBy] = useState("level") // 'level', 'date', 'alphabetical'
 
   const getSortedWords = () => {
-    const words = [...userDictionary];
+    const words = [...userDictionary]
     switch (sortBy) {
-      case 'level':
-        return words.sort((a, b) => a.level - b.level);
-      case 'date':
-        return words.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
-      case 'alphabetical':
-        return words.sort((a, b) => a.japanese.localeCompare(b.japanese));
+      case "level":
+        return words.sort((a, b) => a.level - b.level)
+      case "date":
+        return words.sort(
+          (a, b) => new Date(b.dateAdded) - new Date(a.dateAdded)
+        )
+      case "alphabetical":
+        return words.sort((a, b) => a.japanese.localeCompare(b.japanese))
       default:
-        return words;
+        return words
     }
-  };
+  }
 
-  const sortedWords = getSortedWords();
+  const sortedWords = getSortedWords()
 
   const getLevelColor = (level) => {
-    if (level <= 3) return 'bg-gray-400';
-    if (level <= 6) return 'bg-gray-500';
-    if (level <= 8) return 'bg-gray-600';
-    return 'bg-gray-800';
-  };
+    if (level <= 3) return "bg-gray-400"
+    if (level <= 6) return "bg-gray-500"
+    if (level <= 8) return "bg-gray-600"
+    return "bg-gray-800"
+  }
 
   const removeWord = (wordId) => {
-    onRemoveWord(wordId);
-  };
+    onRemoveWord(wordId)
+  }
 
   const toggleExpanded = (wordId) => {
-    setExpandedWord(expandedWord === wordId ? null : wordId);
-  };
-
-
+    setExpandedWord(expandedWord === wordId ? null : wordId)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -51,8 +57,12 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
             Back to Feed
           </button>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">My Japanese Dictionary</h1>
-            <p className="text-sm text-gray-600">{sortedWords.length} words learned</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              My Japanese Dictionary
+            </h1>
+            <p className="text-sm text-gray-600">
+              {sortedWords.length} words learned
+            </p>
           </div>
           <div></div>
         </div>
@@ -62,27 +72,41 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-500">{sortedWords.filter(w => w.level <= 3).length}</div>
+                <div className="text-2xl font-bold text-gray-500">
+                  {sortedWords.filter((w) => w.level <= 3).length}
+                </div>
                 <div className="text-xs text-gray-600">Beginner</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-600">{sortedWords.filter(w => w.level > 3 && w.level <= 6).length}</div>
+                <div className="text-2xl font-bold text-gray-600">
+                  {
+                    sortedWords.filter((w) => w.level > 3 && w.level <= 6)
+                      .length
+                  }
+                </div>
                 <div className="text-xs text-gray-600">Intermediate</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-700">{sortedWords.filter(w => w.level > 6 && w.level <= 8).length}</div>
+                <div className="text-2xl font-bold text-gray-700">
+                  {
+                    sortedWords.filter((w) => w.level > 6 && w.level <= 8)
+                      .length
+                  }
+                </div>
                 <div className="text-xs text-gray-600">Advanced</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">{sortedWords.filter(w => w.level > 8).length}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {sortedWords.filter((w) => w.level > 8).length}
+                </div>
                 <div className="text-xs text-gray-600">Expert</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Sort by:</span>
-              <select 
-                value={sortBy} 
+              <select
+                value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
               >
@@ -97,31 +121,38 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
         {/* Dictionary Words */}
         <div className="space-y-4">
           {sortedWords.map((word) => (
-            <div key={word.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div
+              key={word.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+            >
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-xl font-bold text-gray-900">
                       {word.japanese}
                     </div>
-                    <div className="text-gray-600">
-                      {word.hiragana}
-                    </div>
+                    <div className="text-gray-600">{word.hiragana}</div>
                     <div className="text-gray-800 font-medium">
                       {word.english}
                     </div>
-                    <span className={`px-2 py-1 rounded text-white text-xs font-medium ${getLevelColor(word.level)}`}>
+                    <span
+                      className={`px-2 py-1 rounded text-white text-xs font-medium ${getLevelColor(word.level)}`}
+                    >
                       Level {word.level}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button 
+                    <button
                       onClick={() => toggleExpanded(word.id)}
                       className="text-gray-400 hover:text-gray-600"
                     >
-                      {expandedWord === word.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      {expandedWord === word.id ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
                     </button>
-                    <button 
+                    <button
                       onClick={() => removeWord(word.id)}
                       className="text-red-400 hover:text-red-600"
                     >
@@ -134,12 +165,18 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="space-y-3">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-1">Example Sentence</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">
+                          Example Sentence
+                        </h4>
                         <p className="text-gray-900">{word.example}</p>
-                        <p className="text-gray-600 text-sm">{word.exampleEn}</p>
+                        <p className="text-gray-600 text-sm">
+                          {word.exampleEn}
+                        </p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-1">Source</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-1">
+                          Source
+                        </h4>
                         <p className="text-gray-600 text-sm">{word.source}</p>
                       </div>
                     </div>
@@ -153,19 +190,25 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord }) => {
         {sortedWords.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Your Japanese Dictionary is Empty</h3>
-            <p className="text-gray-600 mb-4">Start clicking on Japanese words in posts to build your personal dictionary!</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Your Japanese Dictionary is Empty
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Start clicking on Japanese words in posts to build your personal
+              dictionary!
+            </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
               <div className="text-sm text-blue-800">
-                <strong>💡 Tip:</strong> Click on any Japanese word in the news feed to see its meaning, pronunciation, and add it to your dictionary for later review.
+                <strong>💡 Tip:</strong> Click on any Japanese word in the news
+                feed to see its meaning, pronunciation, and add it to your
+                dictionary for later review.
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Dictionary;
-
+export default Dictionary
