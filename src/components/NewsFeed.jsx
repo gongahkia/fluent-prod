@@ -797,7 +797,7 @@ const NewsFeed = ({
                   className={
                     isTranslatedWord
                       ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
-                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
                   onClick={() => handleWordClick(text, true, text)}
                   title={

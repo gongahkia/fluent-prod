@@ -12,6 +12,11 @@ const Auth = ({ onAuthComplete }) => {
     confirmPassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [showTOS, setShowTOS] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [hasScrolledTOS, setHasScrolledTOS] = useState(false)
+  const [hasScrolledPrivacy, setHasScrolledPrivacy] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const handleInputChange = (e) => {
     setFormData({
@@ -43,6 +48,36 @@ const Auth = ({ onAuthComplete }) => {
       name: "",
       confirmPassword: "",
     })
+    setAgreedToTerms(false)
+    setHasScrolledTOS(false)
+    setHasScrolledPrivacy(false)
+  }
+
+  const handleScroll = (e, type) => {
+    const element = e.target
+    const isScrolledToBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10
+
+    if (isScrolledToBottom) {
+      if (type === 'tos') {
+        setHasScrolledTOS(true)
+      } else if (type === 'privacy') {
+        setHasScrolledPrivacy(true)
+      }
+    }
+  }
+
+  const handleAcceptTOS = () => {
+    setShowTOS(false)
+    if (hasScrolledPrivacy) {
+      setAgreedToTerms(true)
+    }
+  }
+
+  const handleAcceptPrivacy = () => {
+    setShowPrivacy(false)
+    if (hasScrolledTOS) {
+      setAgreedToTerms(true)
+    }
   }
 
   return (
@@ -186,13 +221,17 @@ const Auth = ({ onAuthComplete }) => {
                 <input
                   type="checkbox"
                   id="terms"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
                   className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-400"
                   required
+                  disabled={!hasScrolledTOS || !hasScrolledPrivacy}
                 />
                 <label htmlFor="terms" className="text-sm text-gray-600">
                   I agree to the{" "}
                   <button
                     type="button"
+                    onClick={() => setShowTOS(true)}
                     className="text-blue-600 hover:text-blue-700 underline"
                   >
                     Terms of Service
@@ -200,10 +239,16 @@ const Auth = ({ onAuthComplete }) => {
                   and{" "}
                   <button
                     type="button"
+                    onClick={() => setShowPrivacy(true)}
                     className="text-blue-600 hover:text-blue-700 underline"
                   >
                     Privacy Policy
                   </button>
+                  {(!hasScrolledTOS || !hasScrolledPrivacy) && (
+                    <span className="block text-xs text-orange-600 mt-1">
+                      Please read and scroll through both documents to continue
+                    </span>
+                  )}
                 </label>
               </div>
             )}
@@ -306,6 +351,222 @@ const Auth = ({ onAuthComplete }) => {
           </p>
         </div>
       </div>
+
+      {/* Terms of Service Modal */}
+      {showTOS && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Terms of Service</h2>
+              <p className="text-sm text-gray-600 mt-1">Last updated: {new Date().toLocaleDateString()}</p>
+            </div>
+
+            <div
+              className="p-6 overflow-y-auto flex-1"
+              onScroll={(e) => handleScroll(e, 'tos')}
+            >
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">1. Acceptance of Terms</h3>
+                <p className="text-gray-700">
+                  By accessing and using Influent ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these Terms of Service, please do not use the Service.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">2. Description of Service</h3>
+                <p className="text-gray-700">
+                  Influent provides a language learning platform that aggregates content from various sources including Reddit and other public APIs. The Service offers translation features, vocabulary management, and interactive learning tools to help users learn Japanese and other languages.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">3. User Accounts</h3>
+                <p className="text-gray-700">
+                  You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account. You must immediately notify us of any unauthorized use of your account.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">4. User Content and Conduct</h3>
+                <p className="text-gray-700">
+                  You retain all rights to any content you submit, post or display on or through the Service. By submitting content, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, and display such content. You agree not to use the Service for any unlawful purpose or in any way that could damage, disable, or impair the Service.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">5. Third-Party Content</h3>
+                <p className="text-gray-700">
+                  The Service aggregates content from third-party sources including Reddit. We do not control or endorse third-party content and are not responsible for its accuracy, completeness, or legality. Third-party content is subject to the terms and conditions of the respective platforms.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">6. Translation Services</h3>
+                <p className="text-gray-700">
+                  Our translation services are provided for educational purposes only. While we strive for accuracy, translations may contain errors or inaccuracies. We do not guarantee the accuracy, reliability, or completeness of any translations provided through the Service.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">7. Intellectual Property</h3>
+                <p className="text-gray-700">
+                  The Service and its original content, features, and functionality are owned by Influent and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">8. Limitation of Liability</h3>
+                <p className="text-gray-700">
+                  In no event shall Influent, its directors, employees, partners, or suppliers be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses, resulting from your use of the Service.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">9. Disclaimer of Warranties</h3>
+                <p className="text-gray-700">
+                  The Service is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">10. Changes to Terms</h3>
+                <p className="text-gray-700">
+                  We reserve the right to modify these terms at any time. We will notify users of any material changes by posting the new Terms of Service on this page. Your continued use of the Service after such modifications constitutes your acceptance of the updated terms.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">11. Termination</h3>
+                <p className="text-gray-700">
+                  We may terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason, including breach of these Terms. Upon termination, your right to use the Service will immediately cease.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">12. Governing Law</h3>
+                <p className="text-gray-700 mb-8">
+                  These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Influent operates, without regard to its conflict of law provisions. Any disputes arising from these terms will be resolved in the appropriate courts of that jurisdiction.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {hasScrolledTOS ? (
+                  <span className="text-green-600 font-medium">✓ You have read the entire document</span>
+                ) : (
+                  <span className="text-orange-600">Please scroll to the bottom to continue</span>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowTOS(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleAcceptTOS}
+                  disabled={!hasScrolledTOS}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    hasScrolledTOS
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
+              <p className="text-sm text-gray-600 mt-1">Last updated: {new Date().toLocaleDateString()}</p>
+            </div>
+
+            <div
+              className="p-6 overflow-y-auto flex-1"
+              onScroll={(e) => handleScroll(e, 'privacy')}
+            >
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">1. Information We Collect</h3>
+                <p className="text-gray-700">
+                  We collect information that you provide directly to us, including your name, email address, and any content you create or upload to the Service. We also automatically collect certain information about your device and how you interact with the Service, including IP address, browser type, pages visited, and usage patterns.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">2. How We Use Your Information</h3>
+                <p className="text-gray-700">
+                  We use the information we collect to provide, maintain, and improve the Service, to communicate with you, to personalize your experience, to monitor and analyze trends and usage, and to protect against fraud and abuse. Your learning progress and vocabulary data are used to provide personalized language learning recommendations.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">3. Information Sharing</h3>
+                <p className="text-gray-700">
+                  We do not sell your personal information to third parties. We may share your information with service providers who perform services on our behalf, such as hosting, analytics, and translation services. These providers are contractually obligated to protect your information and use it only for the purposes we specify.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">4. Third-Party Services</h3>
+                <p className="text-gray-700">
+                  The Service integrates with third-party platforms including Reddit and various translation APIs. When you interact with content from these platforms, your actions may be subject to their respective privacy policies. We encourage you to review the privacy policies of any third-party services you access through our platform.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">5. Data Storage and Security</h3>
+                <p className="text-gray-700">
+                  We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">6. Cookies and Tracking Technologies</h3>
+                <p className="text-gray-700">
+                  We use cookies and similar tracking technologies to collect information about your browsing activities and to remember your preferences. You can control cookies through your browser settings, but disabling cookies may limit your ability to use certain features of the Service.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">7. Your Rights and Choices</h3>
+                <p className="text-gray-700">
+                  You have the right to access, update, or delete your personal information at any time through your account settings. You may also request a copy of your data or ask us to delete your account. You can opt out of promotional communications by following the unsubscribe instructions in those messages.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">8. Children's Privacy</h3>
+                <p className="text-gray-700">
+                  The Service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we learn that we have collected personal information from a child under 13, we will take steps to delete such information as quickly as possible.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">9. International Data Transfers</h3>
+                <p className="text-gray-700">
+                  Your information may be transferred to and processed in countries other than your country of residence. These countries may have data protection laws that are different from the laws of your country. We take appropriate safeguards to ensure your information remains protected in accordance with this Privacy Policy.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">10. Data Retention</h3>
+                <p className="text-gray-700">
+                  We retain your personal information for as long as necessary to provide the Service and fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law. When we no longer need your information, we will securely delete or anonymize it.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">11. Changes to Privacy Policy</h3>
+                <p className="text-gray-700">
+                  We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. We encourage you to review this Privacy Policy periodically for any changes.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-900 mt-4">12. Contact Us</h3>
+                <p className="text-gray-700 mb-8">
+                  If you have any questions about this Privacy Policy or our data practices, please contact us at privacy@influent.app. We will respond to your inquiry within a reasonable timeframe.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {hasScrolledPrivacy ? (
+                  <span className="text-green-600 font-medium">✓ You have read the entire document</span>
+                ) : (
+                  <span className="text-orange-600">Please scroll to the bottom to continue</span>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowPrivacy(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleAcceptPrivacy}
+                  disabled={!hasScrolledPrivacy}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    hasScrolledPrivacy
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Accept
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
