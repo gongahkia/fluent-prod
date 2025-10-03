@@ -62,7 +62,7 @@ function App() {
       example: wordData.example || `${wordData.japanese}の例文です。`,
       exampleEn:
         wordData.exampleEn || `Example sentence with ${wordData.english}.`,
-      source: wordData.source || "LivePeek Post",
+      source: wordData.source || "Influent Post",
       dateAdded: new Date().toISOString(),
     }
 
@@ -136,12 +136,12 @@ function App() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <img
-                  src="/livepeek-logo.png"
-                  alt="LivePeek Logo"
+                  src="/influent-logo.png"
+                  alt="Influent Logo"
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <span className="text-xl font-bold text-gray-900">
-                  LivePeek
+                  Influent
                 </span>
               </div>
 

@@ -1,4 +1,4 @@
-# LivePeek
+# Influent
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@
 ## Usage
 
 ```console
-$ git clone https://github.com/gongahkia/cs206-livepeek && cd livepeek && pnpm install 
+$ git clone https://github.com/gongahkia/cs206-influent && cd influent && pnpm install 
 $ cd backend && npm install 
 ```
 

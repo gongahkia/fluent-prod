@@ -52,12 +52,12 @@ const Auth = ({ onAuthComplete }) => {
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4">
             <img
-              src="/livepeek-logo.png"
-              alt="LivePeek Logo"
+              src="/influent-logo.png"
+              alt="Influent Logo"
               className="w-full h-full rounded-full object-cover"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">LivePeek</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Influent</h1>
           <p className="text-gray-600">
             {isLogin ? "Welcome back!" : "Start your language learning journey"}
           </p>

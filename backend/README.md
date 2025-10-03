@@ -1,6 +1,6 @@
-# LivePeek Backend API
+# Influent Backend API
 
-Backend API server for the LivePeek Japanese language learning application. Handles news fetching, translation, and NLP/vocabulary processing.
+Backend API server for the Influent Japanese language learning application. Handles news fetching, translation, and NLP/vocabulary processing.
 
 ## Features
 
@@ -357,7 +357,7 @@ curl -X POST http://localhost:3001/api/vocabulary/detect \
 
 ```bash
 npm install -g pm2
-pm2 start server.js --name livepeek-backend
+pm2 start server.js --name influent-backend
 pm2 save
 pm2 startup
 ```

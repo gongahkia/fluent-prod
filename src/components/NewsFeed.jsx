@@ -323,7 +323,7 @@ const NewsFeed = ({
           level: selectedWord.level,
           example: selectedWord.example,
           exampleEn: selectedWord.exampleEn,
-          source: "LivePeek Post",
+          source: "Influent Post",
         }
       } else {
         // Japanese word - add normally
@@ -334,7 +334,7 @@ const NewsFeed = ({
           level: selectedWord.level,
           example: selectedWord.example,
           exampleEn: selectedWord.exampleEn,
-          source: "LivePeek Post",
+          source: "Influent Post",
         }
       }
 
@@ -546,6 +546,144 @@ const NewsFeed = ({
 
   const [translationStates, setTranslationStates] = useState({})
 
+  // Utility to decode HTML entities and clean text
+  const decodeHTMLEntities = (text) => {
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+  }
+
+  // Parse markdown-style links and format text
+  const parseMarkdownContent = (text, postId = null) => {
+    if (!text) return ""
+
+    // Decode HTML entities
+    let cleaned = decodeHTMLEntities(text)
+
+    // Split by lines to preserve paragraph structure
+    const lines = cleaned.split('\n')
+    const elements = []
+
+    lines.forEach((line, lineIndex) => {
+      if (line.trim() === '') {
+        // Empty line - add spacing
+        elements.push(<br key={`br-${lineIndex}`} />)
+        return
+      }
+
+      // Check for Reddit quote (starts with >)
+      if (line.trim().startsWith('&gt;') || line.trim().startsWith('>')) {
+        const quoteLine = line.replace(/^(&gt;|>)\s*/, '')
+        elements.push(
+          <div key={`quote-${lineIndex}`} className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">
+            {parseLineContent(quoteLine, postId)}
+          </div>
+        )
+        return
+      }
+
+      // Regular line
+      elements.push(
+        <span key={`line-${lineIndex}`}>
+          {parseLineContent(line, postId)}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      )
+    })
+
+    return elements
+  }
+
+  // Parse inline content (links, bold, etc.) within a line - WITH clickable words
+  const parseLineContent = (text, postId = null) => {
+    const parts = []
+    let keyCounter = 0
+
+    // Match markdown links [text](url) and plain URLs
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s]+)/g
+    let lastIndex = 0
+    let match
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Add text before match - make it clickable for translation
+      if (match.index > lastIndex) {
+        const textBeforeLink = text.substring(lastIndex, match.index)
+        parts.push(
+          <span key={`text-${keyCounter++}`}>
+            {renderClickableText(textBeforeLink, postId)}
+          </span>
+        )
+      }
+
+      if (match[1] && match[2]) {
+        // Markdown link [text](url)
+        parts.push(
+          <a
+            key={`link-${keyCounter++}`}
+            href={match[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {match[1]}
+          </a>
+        )
+      } else if (match[3]) {
+        // Plain URL
+        parts.push(
+          <a
+            key={`link-${keyCounter++}`}
+            href={match[3]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {match[3]}
+          </a>
+        )
+      }
+
+      lastIndex = match.index + match[0].length
+    }
+
+    // Add remaining text - make it clickable for translation
+    if (lastIndex < text.length) {
+      const remainingText = text.substring(lastIndex)
+      parts.push(
+        <span key={`text-${keyCounter++}`}>
+          {renderClickableText(remainingText, postId)}
+        </span>
+      )
+    }
+
+    return parts.length > 0 ? parts : renderClickableText(text, postId)
+  }
+
+  // Toggle post expansion
+  const togglePostExpansion = (postId) => {
+    setExpandedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }))
+  }
+
+  // Check if content should be truncated
+  const shouldTruncateContent = (content) => {
+    if (!content) return false
+    const wordCount = content.split(/\s+/).length
+    return wordCount > 100
+  }
+
+  // Truncate content to word limit
+  const truncateContent = (content, wordLimit = 100) => {
+    if (!content) return ""
+    const words = content.split(/\s+/)
+    if (words.length <= wordLimit) return content
+    return words.slice(0, wordLimit).join(' ') + '...'
+  }
+
   const toggleTranslation = (postId, wordIndex) => {
     const key = `${postId}-${wordIndex}`
     setTranslationStates((prev) => ({
@@ -722,7 +860,7 @@ const NewsFeed = ({
             <span className="text-2xl">🌍</span>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Welcome to LivePeek
+            Welcome to Influent
           </h3>
           <p className="text-gray-600">
             Discover authentic content from around the world. Starting with
@@ -1111,9 +1249,25 @@ const NewsFeed = ({
                 <h2 className="text-xl font-bold text-gray-900 mb-3">
                   {renderClickableText(article.title, `${article.id}-title`)}
                 </h2>
-                <p className="text-gray-800 leading-relaxed mb-4">
-                  {article.content ? renderClickableText(article.content, `${article.id}-content`) : ""}
-                </p>
+                <div className="text-gray-800 leading-relaxed mb-4 whitespace-pre-wrap">
+                  {article.content ? (
+                    <>
+                      {expandedPosts[article.id] || !shouldTruncateContent(article.content) ? (
+                        <div>{parseMarkdownContent(article.content, `${article.id}-content`)}</div>
+                      ) : (
+                        <div>{parseMarkdownContent(truncateContent(article.content), `${article.id}-content`)}</div>
+                      )}
+                      {shouldTruncateContent(article.content) && (
+                        <button
+                          onClick={() => togglePostExpansion(article.id)}
+                          className="text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block"
+                        >
+                          {expandedPosts[article.id] ? 'See Less' : 'See More'}
+                        </button>
+                      )}
+                    </>
+                  ) : ""}
+                </div>
 
                 {article.image && (
                   <img
