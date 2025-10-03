@@ -3,7 +3,6 @@ import {
   BookOpen,
   MessageCircle,
   RefreshCw,
-  Send,
   Settings,
   Share,
   UserCheck,
@@ -35,11 +34,8 @@ const NewsFeed = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [processingPosts, setProcessingPosts] = useState(false)
-  const [selectedSources, setSelectedSources] = useState([
-    "hackernews",
-    "reddit",
-  ])
-  const [query, setQuery] = useState("technology")
+  const [selectedSources, setSelectedSources] = useState(["reddit"])
+  const [query, setQuery] = useState("japan")
   const [showSettings, setShowSettings] = useState(false)
   const [apiStatus, setApiStatus] = useState({})
   const [, setCurrentPage] = useState(1)
@@ -53,8 +49,29 @@ const NewsFeed = ({
 
   // Check API configuration on component mount
   useEffect(() => {
-    const status = checkApiConfiguration()
-    setApiStatus(status)
+    const loadApiStatus = async () => {
+      try {
+        const sources = await checkApiConfiguration()
+        // Convert array to object keyed by source id
+        const statusMap = {}
+        sources.forEach(source => {
+          statusMap[source.id] = source
+        })
+        setApiStatus(statusMap)
+      } catch (error) {
+        console.error('Failed to load API status:', error)
+        // Set default for reddit if API fails
+        setApiStatus({
+          reddit: {
+            id: 'reddit',
+            name: 'Reddit',
+            enabled: true,
+            configured: true
+          }
+        })
+      }
+    }
+    loadApiStatus()
   }, [])
 
   // Process posts with mixed language content based on user level
@@ -134,7 +151,7 @@ const NewsFeed = ({
 
       try {
         const enabledSources = selectedSources.filter(
-          (source) => apiStatus[source]?.enabled && apiStatus[source]?.hasApiKey
+          (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
         )
 
         if (enabledSources.length === 0) {
@@ -155,7 +172,7 @@ const NewsFeed = ({
           ...post,
           tags: post.tags || ["#tech", "#news"],
           difficulty: 6, // Default difficulty for real news
-          source: post.source || "hackernews",
+          source: post.source || "reddit",
         }))
 
         if (isLoadMore) {
@@ -342,13 +359,9 @@ const NewsFeed = ({
 
   const getSourceBadgeColor = (source) => {
     const colors = {
-      hackernews: "bg-orange-500",
       reddit: "bg-red-500",
       newsapi: "bg-blue-500",
       guardian: "bg-blue-700",
-      nytimes: "bg-gray-800",
-      mediastack: "bg-green-500",
-      gnews: "bg-purple-500",
     }
     return colors[source] || "bg-gray-500"
   }
@@ -519,8 +532,86 @@ const NewsFeed = ({
     return result
   }
 
-  const renderClickableText = (text) => {
+  const [translationStates, setTranslationStates] = useState({})
+
+  const toggleTranslation = (postId, wordIndex) => {
+    const key = `${postId}-${wordIndex}`
+    setTranslationStates((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }))
+  }
+
+  const renderClickableText = (text, postId = null) => {
     if (!text) return ""
+
+    // Check if text is JSON from translation service
+    let parsedData = null
+    try {
+      if (text.startsWith("{") && text.includes('"wordMetadata"')) {
+        parsedData = JSON.parse(text)
+      }
+    } catch (e) {
+      // Not JSON, continue with normal processing
+    }
+
+    if (parsedData && parsedData.text && parsedData.wordMetadata) {
+      // Process text with word metadata
+      const parts = []
+      let remainingText = parsedData.text
+      let lastIndex = 0
+
+      // Sort metadata by index to process in order
+      const sortedMetadata = [...parsedData.wordMetadata].sort((a, b) => a.index - b.index)
+
+      for (const wordData of sortedMetadata) {
+        const marker = `{{WORD:${wordData.index}}}`
+        const markerIndex = remainingText.indexOf(marker, lastIndex)
+
+        if (markerIndex === -1) continue
+
+        // Add text before this marker
+        if (markerIndex > lastIndex) {
+          parts.push(remainingText.substring(lastIndex, markerIndex))
+        }
+
+        // Check if this word has been toggled
+        const stateKey = postId ? `${postId}-${wordData.index}` : null
+        const isToggled = stateKey ? translationStates[stateKey] : false
+
+        // Determine what to show: if toggled, flip the default; if not toggled, use default
+        const showJapanese = isToggled ? !wordData.showJapanese : wordData.showJapanese
+        const displayText = showJapanese ? wordData.translation : wordData.original
+
+        parts.push(
+          <span
+            key={`word-${wordData.index}`}
+            className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
+            onClick={() => {
+              if (postId) toggleTranslation(postId, wordData.index)
+              handleWordClick(showJapanese ? wordData.translation : wordData.original, showJapanese, remainingText)
+            }}
+            title={
+              showJapanese
+                ? `🇯🇵 Japanese: Click to see English "${wordData.original}"`
+                : `📚 English: Click to see Japanese "${wordData.translation}"`
+            }
+            style={{ textDecoration: "none" }}
+          >
+            {displayText}
+          </span>
+        )
+
+        lastIndex = markerIndex + marker.length
+      }
+
+      // Add remaining text after last marker
+      if (lastIndex < remainingText.length) {
+        parts.push(remainingText.substring(lastIndex))
+      }
+
+      return parts.length > 0 ? parts : parsedData.text
+    }
 
     // Split by spaces and punctuation, preserving them
     const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
@@ -1027,10 +1118,10 @@ const NewsFeed = ({
               {/* Article Content */}
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  {renderClickableText(article.title)}
+                  {renderClickableText(article.title, `${article.id}-title`)}
                 </h2>
                 <p className="text-gray-800 leading-relaxed mb-4">
-                  {article.content ? renderClickableText(article.content) : ""}
+                  {article.content ? renderClickableText(article.content, `${article.id}-content`) : ""}
                 </p>
 
                 {article.image && (
