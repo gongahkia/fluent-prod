@@ -205,7 +205,7 @@ function App() {
                 <span className="text-sm text-gray-600">🇯🇵 Japan</span>
                 <select className="text-sm border border-gray-300 rounded px-2 py-1 bg-white">
                   <option value="japanese">
-                    🇯🇵 Japanese (More languages coming soon!)
+                    🇯🇵 Japanese
                   </option>
                 </select>
               </div>
