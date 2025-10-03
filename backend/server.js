@@ -53,6 +53,20 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'LivePeek Backend API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      news: '/api/news',
+      translate: '/api/translate',
+      vocabulary: '/api/vocabulary'
+    }
+  })
+})
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({

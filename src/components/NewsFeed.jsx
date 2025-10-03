@@ -152,7 +152,7 @@ const NewsFeed = ({
           ...post,
           tags: post.tags || ["#tech", "#news"],
           difficulty: 6, // Default difficulty for real news
-          source: post.source || "hackernews",
+          source: post.source || "reddit",
         }))
 
         if (isLoadMore) {
@@ -339,13 +339,9 @@ const NewsFeed = ({
 
   const getSourceBadgeColor = (source) => {
     const colors = {
-      hackernews: "bg-orange-500",
       reddit: "bg-red-500",
       newsapi: "bg-blue-500",
       guardian: "bg-blue-700",
-      nytimes: "bg-gray-800",
-      mediastack: "bg-green-500",
-      gnews: "bg-purple-500",
     }
     return colors[source] || "bg-gray-500"
   }
