@@ -186,11 +186,12 @@ export async function createMixedLanguageContent(text, userLevel = 5) {
 
 function getTranslationPercentage(level) {
   const levelNum = parseInt(level, 10)
-  if (levelNum <= 2) return 0.15
-  if (levelNum <= 4) return 0.35
-  if (levelNum <= 6) return 0.55
-  if (levelNum <= 8) return 0.75
-  return 0.9
+  // 5-level system: Beginner (1), Intermediate (2), Advanced (3), Expert (4), Native (5)
+  if (levelNum === 1) return 0.15  // Beginner - 15% translated
+  if (levelNum === 2) return 0.35  // Intermediate - 35% translated
+  if (levelNum === 3) return 0.55  // Advanced - 55% translated
+  if (levelNum === 4) return 0.75  // Expert - 75% translated
+  return 0.9                        // Native - 90% translated
 }
 
 async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0) {

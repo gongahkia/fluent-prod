@@ -13,13 +13,20 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 
 const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
+  // Map 1-5 levels to names
+  const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
+  const getLevelName = (level) => {
+    const levelNum = parseInt(level, 10)
+    return levelNames[levelNum - 1] || 'Beginner'
+  }
+
   const [formData, setFormData] = useState({
     name: userProfile?.name || "",
     email: userProfile?.email || "",
     bio: userProfile?.bio || "",
     nativeLanguage: userProfile?.nativeLanguages?.[0] || "English",
     targetLanguage: userProfile?.targetLanguage || "Japanese",
-    learningLevel: userProfile?.level || "5",
+    learningLevel: userProfile?.level || "3",
     location: userProfile?.location || "",
     website: userProfile?.website || "",
     // Privacy settings
@@ -120,8 +127,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 <h2 className="text-2xl font-bold">{formData.name}</h2>
                 <p className="text-gray-600">{formData.email}</p>
                 <p className="text-gray-500 text-sm mt-1">
-                  Learning {formData.targetLanguage} • Level{" "}
-                  {formData.learningLevel}
+                  Learning {formData.targetLanguage} • {getLevelName(formData.learningLevel)}
                 </p>
               </div>
             </div>
@@ -311,16 +317,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
-                    <option value="1">Level 1</option>
-                    <option value="2">Level 2</option>
-                    <option value="3">Level 3</option>
-                    <option value="4">Level 4</option>
-                    <option value="5">Level 5</option>
-                    <option value="6">Level 6</option>
-                    <option value="7">Level 7</option>
-                    <option value="8">Level 8</option>
-                    <option value="9">Level 9</option>
-                    <option value="10">Level 10</option>
+                    <option value="1">Beginner</option>
+                    <option value="2">Intermediate</option>
+                    <option value="3">Advanced</option>
+                    <option value="4">Expert</option>
+                    <option value="5">Native</option>
                   </select>
                 </div>
               </div>

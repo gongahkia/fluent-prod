@@ -15,15 +15,23 @@ export async function fetchPosts(options = {}) {
     sources = ['reddit'],
     query = 'japan',
     limit = 10,
-    shuffle = true
+    shuffle = true,
+    searchQuery = null
   } = options
 
-  const queryString = new URLSearchParams({
+  const params = {
     sources: sources.join(','),
     query,
     limit: limit.toString(),
     shuffle: shuffle.toString()
-  })
+  }
+
+  // Add search parameter if provided
+  if (searchQuery && searchQuery.trim().length > 0) {
+    params.search = searchQuery.trim()
+  }
+
+  const queryString = new URLSearchParams(params)
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/news?${queryString}`)

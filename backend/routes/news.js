@@ -10,7 +10,8 @@ router.get('/', async (req, res, next) => {
       sources = 'reddit',
       query = 'japan',
       limit = '10',
-      shuffle = 'true'
+      shuffle = 'true',
+      search = null
     } = req.query
 
     const sourcesArray = sources.split(',').map(s => s.trim())
@@ -21,7 +22,8 @@ router.get('/', async (req, res, next) => {
       sources: sourcesArray,
       query,
       limit: limitNum,
-      shuffle: shuffleBool
+      shuffle: shuffleBool,
+      searchQuery: search
     })
 
     res.json(result)

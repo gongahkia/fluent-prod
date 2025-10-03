@@ -126,15 +126,30 @@ async function fetchGuardianPosts(query, limit = 10) {
   }
 }
 
-async function fetchRedditPosts(query = 'japan', limit = 10) {
+async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null) {
   try {
     const subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese']
     const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]
 
-    const { data } = await axios.get(`${API_CONFIG.reddit.baseUrl}/r/${subreddit}/hot.json`, {
-      params: {
-        limit: limit * 2 // Get more to filter
-      },
+    let url
+    const params = {
+      limit: limit * 2, // Get more to filter
+      'User-Agent': 'LivePeek/1.0'
+    }
+
+    // If search query provided, use Reddit search endpoint
+    if (searchQuery && searchQuery.trim().length > 0) {
+      url = `${API_CONFIG.reddit.baseUrl}/r/${subreddit}/search.json`
+      params.q = searchQuery
+      params.restrict_sr = 'true' // Restrict search to subreddit
+      params.sort = 'relevance'
+    } else {
+      // No search query - show hot/trending posts
+      url = `${API_CONFIG.reddit.baseUrl}/r/${subreddit}/hot.json`
+    }
+
+    const { data } = await axios.get(url, {
+      params,
       headers: {
         'User-Agent': 'LivePeek/1.0'
       }
@@ -158,10 +173,11 @@ export async function fetchNews(options = {}) {
     sources = ['reddit'],
     query = 'japan',
     limit = 10,
-    shuffle = true
+    shuffle = true,
+    searchQuery = null
   } = options
 
-  const cacheKey = `news:${sources.join(',')}:${query}:${limit}`
+  const cacheKey = `news:${sources.join(',')}:${query}:${limit}:${searchQuery || 'default'}`
   const cached = cache.get(cacheKey)
   if (cached) {
     console.log('Returning cached news')
@@ -181,7 +197,7 @@ export async function fetchNews(options = {}) {
       case 'guardian':
         return fetchGuardianPosts(query, limit)
       case 'reddit':
-        return fetchRedditPosts(query, limit)
+        return fetchRedditPosts(query, limit, searchQuery)
       default:
         return Promise.resolve([])
     }
@@ -200,7 +216,8 @@ export async function fetchNews(options = {}) {
     posts: allPosts,
     metadata: {
       count: allPosts.length,
-      sources: enabledSources
+      sources: enabledSources,
+      searchQuery: searchQuery || null
     }
   }
 

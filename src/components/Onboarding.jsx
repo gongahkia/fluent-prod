@@ -8,6 +8,12 @@ const Onboarding = ({ onComplete }) => {
   const [targetLanguage, setTargetLanguage] = useState("")
   const [translationLevel, setTranslationLevel] = useState(1)
 
+  // Map 1-5 slider to level names
+  const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
+  const getLevelName = (level) => {
+    return levelNames[level - 1] || 'Beginner'
+  }
+
   // Sample Japanese post for the demo
   const originalPost = {
     author: "田中雪",
@@ -50,7 +56,7 @@ const Onboarding = ({ onComplete }) => {
 
     let result = ""
     words.forEach((word, index) => {
-      const threshold = ((index + 1) / words.length) * 10 // Convert to 1-10 scale
+      const threshold = ((index + 1) / words.length) * 5 // Convert to 1-5 scale
       if (level >= threshold) {
         result += word.en + " "
       } else {
@@ -68,7 +74,8 @@ const Onboarding = ({ onComplete }) => {
       onComplete({
         nativeLanguages,
         targetLanguage,
-        level: "intermediate",
+        level: translationLevel,
+        levelName: getLevelName(translationLevel),
       })
     }
   }
@@ -221,16 +228,16 @@ const Onboarding = ({ onComplete }) => {
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {translationLevel > 8
+                    {translationLevel >= 4
                       ? translatedPost.author
                       : originalPost.author}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {translationLevel > 8
+                    {translationLevel >= 4
                       ? translatedPost.location
                       : originalPost.location}{" "}
                     •{" "}
-                    {translationLevel > 8
+                    {translationLevel >= 4
                       ? translatedPost.time
                       : originalPost.time}
                   </div>
@@ -240,7 +247,7 @@ const Onboarding = ({ onComplete }) => {
               <p className="text-gray-800 mb-4 leading-relaxed">
                 {translationLevel === 1
                   ? originalPost.content
-                  : translationLevel === 10
+                  : translationLevel === 5
                     ? translatedPost.content
                     : getInterpolatedContent(translationLevel)}
               </p>
@@ -256,24 +263,24 @@ const Onboarding = ({ onComplete }) => {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">
-                  Level 1 (Japanese)
+                  Beginner (Japanese)
                 </span>
                 <span className="text-sm text-gray-600">
-                  Level 10 (English)
+                  Native (English)
                 </span>
               </div>
               <input
                 type="range"
                 min="1"
-                max="10"
+                max="5"
                 step="1"
                 value={translationLevel}
                 onChange={(e) => setTranslationLevel(parseInt(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               />
               <div className="text-center mt-2">
-                <span className="text-sm text-gray-500">
-                  Current Level: {translationLevel}
+                <span className="text-sm font-medium text-gray-700">
+                  {getLevelName(translationLevel)}
                 </span>
               </div>
             </div>
