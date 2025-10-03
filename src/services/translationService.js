@@ -600,8 +600,8 @@ class TranslationService {
         // Translate this word to Japanese
         const translation = await this.translateWordToJapanese(token)
 
-        // 50% chance to show Japanese translation by default
-        const showJapanese = Math.random() < 0.5
+        // Show Japanese translation by default (users can click to toggle)
+        const showJapanese = true
 
         // Add metadata for this word
         metadata.push({
@@ -633,17 +633,30 @@ class TranslationService {
     // Import vocabulary service for word validation
     const { default: vocabularyService } = await import("./vocabularyService")
 
+    // Define words to NEVER translate (very basic function words)
+    const neverTranslate = new Set([
+      "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+      "of", "with", "by", "from", "as", "is", "are", "was", "were", "be"
+    ])
+
     // Prioritize vocabulary words (these are the words that should be highlighted in green)
     const vocabularyWords = []
     const nonVocabularyWords = []
 
     for (const word of words) {
+      // Skip words that should never be translated
+      if (neverTranslate.has(word.toLowerCase())) {
+        continue
+      }
+
       if (vocabularyService.isValidVocabularyWord(word)) {
         vocabularyWords.push(word)
       } else {
         nonVocabularyWords.push(word)
       }
     }
+
+    console.log(`Word selection: ${vocabularyWords.length} vocab words, ${nonVocabularyWords.length} non-vocab words from ${words.length} total`)
 
     // Calculate how many words to translate
     const totalWords = words.length
