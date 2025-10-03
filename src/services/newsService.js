@@ -13,7 +13,7 @@ const API_CONFIG = {
     name: "Hacker News",
     topStories: "https://hacker-news.firebaseio.com/v0/topstories.json",
     item: "https://hacker-news.firebaseio.com/v0/item/",
-    enabled: true,
+    enabled: false, // Disabled - only Reddit enabled
     rateLimitDelay: 100,
   },
   newsapi: {
@@ -21,40 +21,40 @@ const API_CONFIG = {
     baseUrl: "https://newsapi.org/v2",
     // API key should be set via environment variable or config
     apiKey: getEnvVar("VITE_NEWSAPI_KEY"),
-    enabled: false, // Enable when API key is available
+    enabled: false, // Disabled - only Reddit enabled
   },
   guardian: {
     name: "The Guardian",
     baseUrl: "https://content.guardianapis.com",
     // API key should be set via environment variable or config
     apiKey: getEnvVar("VITE_GUARDIAN_API_KEY"),
-    enabled: false, // Enable when API key is available
+    enabled: false, // Disabled - only Reddit enabled
   },
   nytimes: {
     name: "NY Times",
     baseUrl: "https://api.nytimes.com/svc",
     // API key should be set via environment variable or config
     apiKey: getEnvVar("VITE_NYTIMES_API_KEY"),
-    enabled: false, // Enable when API key is available
+    enabled: false, // Disabled - only Reddit enabled
   },
   reddit: {
     name: "Reddit",
     baseUrl: "https://www.reddit.com",
-    enabled: true, // No API key needed for public posts
+    enabled: true, // Only Reddit enabled - for Japanese-themed content
   },
   mediastack: {
     name: "Mediastack",
     baseUrl: "http://api.mediastack.com/v1",
     // API key should be set via environment variable or config
     apiKey: getEnvVar("VITE_MEDIASTACK_API_KEY"),
-    enabled: false, // Enable when API key is available
+    enabled: false, // Disabled - only Reddit enabled
   },
   gnews: {
     name: "GNews",
     baseUrl: "https://gnews.io/api/v4",
     // API key should be set via environment variable or config
     apiKey: getEnvVar("VITE_GNEWS_API_KEY"),
-    enabled: false, // Enable when API key is available
+    enabled: false, // Disabled - only Reddit enabled
   },
 }
 
@@ -276,18 +276,32 @@ export async function fetchNYTimesPosts(section = "technology", limit = 10) {
   }
 }
 
-// Reddit API functions
-export async function fetchRedditPosts(subreddit = "technology", limit = 10) {
+// Reddit API functions - fetches from Japanese-themed subreddits
+export async function fetchRedditPosts(subreddit = "japan", limit = 10) {
   const config = API_CONFIG.reddit
   if (!config.enabled) return []
 
+  // List of Japanese-themed subreddits to fetch from
+  const japaneseSubreddits = [
+    "japan",
+    "JapanTravel",
+    "JapaneseFood",
+    "JapanLife",
+    "LearnJapanese",
+    "Tokyo",
+    "japanpics",
+  ]
+
+  // Use provided subreddit if it's in our Japanese list, otherwise use first Japanese subreddit
+  const targetSubreddit = japaneseSubreddits.includes(subreddit)
+    ? subreddit
+    : japaneseSubreddits[0]
+
   try {
-    const url = `${config.baseUrl}/r/${subreddit}/hot.json?limit=${limit}`
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "LivePeek/1.0",
-      },
-    })
+    const url = `${config.baseUrl}/r/${targetSubreddit}/hot.json?limit=${limit}`
+    // Use CORS proxy to bypass browser tracking protection
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`
+    const response = await fetch(proxyUrl)
     const data = await response.json()
 
     if (data.data && data.data.children) {

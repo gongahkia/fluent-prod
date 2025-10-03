@@ -556,21 +556,27 @@ class TranslationService {
 
     // Split text into sentences to maintain readability
     const sentences = text.split(/(?<=[.!?])\s+/)
-    const processedSentences = []
-
-    for (const sentence of sentences) {
-      const processedSentence = await this.processSentenceForMixedContent(
-        sentence,
-        translationPercentage
-      )
-      processedSentences.push(processedSentence)
+    const processedResult = {
+      text: "",
+      wordMetadata: [] // Store metadata about translated words
     }
 
-    return processedSentences.join(" ")
+    for (const sentence of sentences) {
+      const result = await this.processSentenceForMixedContent(
+        sentence,
+        translationPercentage,
+        processedResult.wordMetadata.length
+      )
+      processedResult.text += (processedResult.text ? " " : "") + result.text
+      processedResult.wordMetadata.push(...result.metadata)
+    }
+
+    // Return as JSON string that can be parsed by the frontend
+    return JSON.stringify(processedResult)
   }
 
   // Process a single sentence for mixed content
-  async processSentenceForMixedContent(sentence, translationPercentage) {
+  async processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0) {
     // Split sentence into words while preserving punctuation
     const wordPattern = /(\b\w+\b|\s+|[^\w\s])/g
     const tokens = sentence.match(wordPattern) || []
@@ -586,18 +592,38 @@ class TranslationService {
 
     // Process each token
     const processedTokens = []
+    const metadata = []
+    let wordIndex = startIndex
+
     for (const token of tokens) {
       if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
         // Translate this word to Japanese
         const translation = await this.translateWordToJapanese(token)
-        processedTokens.push(translation)
+
+        // 50% chance to show Japanese translation by default
+        const showJapanese = Math.random() < 0.5
+
+        // Add metadata for this word
+        metadata.push({
+          index: wordIndex,
+          original: token,
+          translation: translation,
+          showJapanese: showJapanese
+        })
+
+        // Use a special marker that we can find and replace in the frontend
+        processedTokens.push(`{{WORD:${wordIndex}}}`)
+        wordIndex++
       } else {
         // Keep original token (word, space, or punctuation)
         processedTokens.push(token)
       }
     }
 
-    return processedTokens.join("")
+    return {
+      text: processedTokens.join(""),
+      metadata: metadata
+    }
   }
 
   // Enhanced word selection using vocabulary service for better NER-based selection
