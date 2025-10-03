@@ -50,8 +50,29 @@ const NewsFeed = ({
 
   // Check API configuration on component mount
   useEffect(() => {
-    const status = checkApiConfiguration()
-    setApiStatus(status)
+    const loadApiStatus = async () => {
+      try {
+        const sources = await checkApiConfiguration()
+        // Convert array to object keyed by source id
+        const statusMap = {}
+        sources.forEach(source => {
+          statusMap[source.id] = source
+        })
+        setApiStatus(statusMap)
+      } catch (error) {
+        console.error('Failed to load API status:', error)
+        // Set default for reddit if API fails
+        setApiStatus({
+          reddit: {
+            id: 'reddit',
+            name: 'Reddit',
+            enabled: true,
+            configured: true
+          }
+        })
+      }
+    }
+    loadApiStatus()
   }, [])
 
   // Process posts with mixed language content based on user level
@@ -131,7 +152,7 @@ const NewsFeed = ({
 
       try {
         const enabledSources = selectedSources.filter(
-          (source) => apiStatus[source]?.enabled && apiStatus[source]?.hasApiKey
+          (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
         )
 
         if (enabledSources.length === 0) {
