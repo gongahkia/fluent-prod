@@ -41,13 +41,13 @@ export const handleWordClick = async (
       isVocabularyWord = false
 
     if (isJapanese) {
-      // Japanese to English (existing functionality)
+      // Japanese to English
       translation = await translationService.translateText(
         cleanWord,
         "ja",
         "en"
       )
-      pronunciation = translationService.getBasicReading(cleanWord)
+      pronunciation = cleanWord // Use the original Japanese text as pronunciation
 
       if (context && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -62,38 +62,30 @@ export const handleWordClick = async (
       // First check if this is a vocabulary word worth learning
       if (vocabularyService.isValidVocabularyWord(cleanWord)) {
         // Use vocabulary service for enhanced translation
-        const vocabWord = await vocabularyService.createVocabularyWord(
+        const vocabData = await vocabularyService.getVocabularyWord(
           cleanWord,
           "unknown",
           context
         )
 
-        if (vocabWord) {
-          translation = vocabWord.japanese
-          pronunciation = vocabWord.pronunciation
+        if (vocabData && vocabData.isVocabulary) {
+          translation = vocabData.japanese
+          pronunciation = vocabData.japanese // Use Japanese translation as pronunciation
           isVocabularyWord = true
 
-          // Use the vocabulary level instead of basic estimation
-          const level = vocabWord.level
-
           setSelectedWord({
-            japanese: isJapanese ? cleanWord : translation,
+            japanese: translation,
             hiragana: pronunciation,
-            english: isJapanese ? translation : cleanWord,
-            level: level,
+            english: cleanWord,
+            level: vocabData.level || 5,
             example: context || `Example with "${cleanWord}".`,
-            exampleEn:
-              contextTranslationResult ||
-              contextTranslation ||
-              (isJapanese
-                ? `Example with ${cleanWord}.`
-                : `「${cleanWord}」を使った例文。`),
+            exampleEn: context || `Example with "${cleanWord}".`,
             original: cleanWord,
-            isJapanese: isJapanese,
-            showJapaneseTranslation: !isJapanese, // Shows Japanese when clicked English, shows English when clicked Japanese
+            isJapanese: false,
+            showJapaneseTranslation: true, // Shows Japanese when clicked English
             isApiTranslated: true,
-            isVocabulary: true, // Flag to indicate this is a vocabulary word
-            wordType: vocabWord.type,
+            isVocabulary: true,
+            wordType: vocabData.type || "unknown",
           })
 
           if (setLoading) {
@@ -109,7 +101,7 @@ export const handleWordClick = async (
         "en",
         "ja"
       )
-      pronunciation = translationService.getEnglishPronunciation(cleanWord)
+      pronunciation = translation // Use Japanese translation as pronunciation
 
       if (context && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -120,7 +112,8 @@ export const handleWordClick = async (
       }
     }
 
-    const level = translationService.estimateLevel(cleanWord)
+    // Simple level estimation based on word length
+    const level = cleanWord.length <= 4 ? 3 : cleanWord.length <= 7 ? 5 : 7
 
     setSelectedWord({
       japanese: isJapanese ? cleanWord : translation,
@@ -143,20 +136,19 @@ export const handleWordClick = async (
   } catch (error) {
     console.error("Translation API failed:", error)
 
-    // Minimal fallback when API fails
+    // Show error message - don't pretend we have a translation
     setSelectedWord({
-      japanese: isJapanese ? cleanWord : cleanWord,
-      hiragana: cleanWord.toLowerCase(),
-      english: isJapanese
-        ? `Translation unavailable for "${cleanWord}"`
-        : cleanWord,
+      japanese: isJapanese ? cleanWord : "⚠️ Translation failed",
+      hiragana: "Translation service unavailable",
+      english: isJapanese ? "⚠️ Translation failed" : cleanWord,
       level: 5,
-      example: context || `Example with "${cleanWord}".`,
-      exampleEn: context || `Translation unavailable.`,
+      example: context || `"${cleanWord}"`,
+      exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
       original: cleanWord,
       isJapanese: isJapanese,
       showJapaneseTranslation: !isJapanese,
       isApiFallback: true, // Flag to indicate API failed
+      error: true
     })
   } finally {
     // Clear loading state

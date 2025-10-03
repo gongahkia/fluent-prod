@@ -22,10 +22,11 @@ class TranslationService {
       }
 
       const data = await response.json()
+      // Backend returns { original, translation, fromLang, toLang, ... }
       return data.translation || text
     } catch (error) {
       console.error('Translation error:', error)
-      return text // Return original text on error
+      throw error // Throw error so caller knows translation failed
     }
   }
 

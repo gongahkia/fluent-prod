@@ -3,7 +3,6 @@ import {
   BookOpen,
   MessageCircle,
   RefreshCw,
-  Send,
   Settings,
   Share,
   UserCheck,
