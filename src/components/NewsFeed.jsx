@@ -1321,6 +1321,8 @@ const NewsFeed = ({
             {showComments[article.id] && (
               <EnhancedCommentSystem
                 articleId={article.id}
+                postContent={article.content}
+                postTitle={article.title}
                 userProfile={userProfile}
                 userDictionary={userDictionary}
                 onAddWordToDictionary={onAddWordToDictionary}

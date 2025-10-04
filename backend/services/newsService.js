@@ -1,5 +1,7 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
+import { TwitterApi } from 'twitter-api-v2'
+import { IgApiClient } from 'instagram-private-api'
 
 // Cache for 15 minutes
 const cache = new NodeCache({ stdTTL: 900 })
@@ -22,6 +24,17 @@ const API_CONFIG = {
     name: 'Reddit',
     baseUrl: 'https://www.reddit.com',
     enabled: true
+  },
+  twitter: {
+    name: 'Twitter',
+    bearerToken: process.env.TWITTER_BEARER_TOKEN,
+    enabled: !!process.env.TWITTER_BEARER_TOKEN
+  },
+  instagram: {
+    name: 'Instagram',
+    username: process.env.INSTAGRAM_USERNAME,
+    password: process.env.INSTAGRAM_PASSWORD,
+    enabled: !!(process.env.INSTAGRAM_USERNAME && process.env.INSTAGRAM_PASSWORD)
   }
 }
 
@@ -77,6 +90,32 @@ const normalizePost = (post, source) => {
         publishedAt: new Date(post.created_utc * 1000),
         image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
         tags: ['reddit', post.subreddit]
+      }
+
+    case 'twitter':
+      return {
+        ...basePost,
+        id: post.id || 'unknown',
+        title: post.text ? post.text.substring(0, 100) : 'No title',
+        content: post.text || '',
+        url: `https://twitter.com/i/status/${post.id}`,
+        author: 'Twitter User',
+        publishedAt: new Date(post.timestamp ? post.timestamp * 1000 : Date.now()),
+        image: null,
+        tags: ['twitter']
+      }
+
+    case 'instagram':
+      return {
+        ...basePost,
+        id: post.id || post.pk,
+        title: post.caption?.text ? post.caption.text.substring(0, 100) : 'Instagram Post',
+        content: post.caption?.text || '',
+        url: `https://www.instagram.com/p/${post.code}/`,
+        author: post.user?.username || 'Unknown',
+        publishedAt: new Date((post.taken_at || post.device_timestamp) * 1000),
+        image: post.image_versions2?.candidates?.[0]?.url || post.thumbnail_url || null,
+        tags: ['instagram', ...(post.caption?.hashtags || [])]
       }
 
     default:
@@ -167,6 +206,75 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
   }
 }
 
+async function fetchTwitterPosts(query = 'japan', limit = 10, searchQuery = null) {
+  if (!API_CONFIG.twitter.bearerToken) {
+    console.log('Twitter API credentials not configured')
+    return []
+  }
+
+  try {
+    const searchTerm = searchQuery || query
+    const client = new TwitterApi(API_CONFIG.twitter.bearerToken)
+
+    // Search for recent tweets
+    const tweets = await client.v2.search(searchTerm, {
+      max_results: Math.min(limit, 100), // Twitter API v2 allows max 100
+      'tweet.fields': ['created_at', 'author_id', 'public_metrics', 'entities'],
+      'user.fields': ['username', 'name']
+    })
+
+    const results = []
+    for (const tweet of tweets.data?.data || []) {
+      results.push({
+        id: tweet.id,
+        text: tweet.text,
+        timestamp: new Date(tweet.created_at).getTime() / 1000,
+        author_id: tweet.author_id,
+        entities: tweet.entities
+      })
+    }
+
+    return results
+      .filter((tweet) => tweet.text && tweet.text.length > 20)
+      .slice(0, limit)
+      .map((tweet) => normalizePost(tweet, 'twitter'))
+  } catch (error) {
+    console.error('Twitter API error:', error.message)
+    return []
+  }
+}
+
+async function fetchInstagramPosts(query = 'japan', limit = 10, searchQuery = null) {
+  if (!API_CONFIG.instagram.username || !API_CONFIG.instagram.password) {
+    console.log('Instagram credentials not configured')
+    return []
+  }
+
+  try {
+    const ig = new IgApiClient()
+    ig.state.generateDevice(API_CONFIG.instagram.username)
+
+    // Login to Instagram
+    await ig.account.login(API_CONFIG.instagram.username, API_CONFIG.instagram.password)
+
+    const searchTerm = searchQuery || query
+    const posts = []
+
+    // Search for hashtag posts
+    const hashtagFeed = ig.feed.tags(searchTerm, 'recent')
+    const hashtagItems = await hashtagFeed.items()
+
+    posts.push(...hashtagItems.slice(0, limit))
+
+    return posts
+      .filter((post) => post.caption?.text && post.caption.text.length > 20)
+      .map((post) => normalizePost(post, 'instagram'))
+  } catch (error) {
+    console.error('Instagram scraping error:', error.message)
+    return []
+  }
+}
+
 // Main export function
 export async function fetchNews(options = {}) {
   const {
@@ -198,6 +306,10 @@ export async function fetchNews(options = {}) {
         return fetchGuardianPosts(query, limit)
       case 'reddit':
         return fetchRedditPosts(query, limit, searchQuery)
+      case 'twitter':
+        return fetchTwitterPosts(query, limit, searchQuery)
+      case 'instagram':
+        return fetchInstagramPosts(query, limit, searchQuery)
       default:
         return Promise.resolve([])
     }

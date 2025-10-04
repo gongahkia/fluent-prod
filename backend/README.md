@@ -4,7 +4,8 @@ Backend API server for the Influent Japanese language learning application. Hand
 
 ## Features
 
-- **News Aggregation**: Fetches posts from multiple sources (Reddit, Hacker News, NewsAPI, Guardian, NY Times, etc.)
+- **News Aggregation**: Fetches posts from multiple sources (Reddit, Twitter, Instagram, NewsAPI, Guardian, etc.)
+- **Social Media Scraping**: Twitter scraping (no auth required) and Instagram scraping (requires credentials)
 - **Translation**: Multi-provider translation service (Lingva, MyMemory, LibreTranslate)
 - **NLP Processing**: Vocabulary detection and analysis using Compromise.js
 - **Caching**: Intelligent caching with configurable TTL
@@ -280,22 +281,32 @@ Uses Morgan for HTTP request logging:
 
 1. **Reddit**: No API key needed! Works out of the box.
 
-2. **NewsAPI**: [https://newsapi.org/register](https://newsapi.org/register)
+2. **Twitter**: Requires Twitter API Bearer Token.
+   - Get your free Bearer Token from: [https://developer.twitter.com/en/portal/dashboard](https://developer.twitter.com/en/portal/dashboard)
+   - Add `TWITTER_BEARER_TOKEN` to `.env`
+   - Free tier: 500,000 tweets/month
+
+3. **Instagram**: Requires Instagram account credentials.
+   - Add `INSTAGRAM_USERNAME` and `INSTAGRAM_PASSWORD` to `.env`
+   - ⚠️ **Use a dedicated account, not your personal account**
+   - Instagram may flag/ban accounts used for scraping
+
+4. **NewsAPI**: [https://newsapi.org/register](https://newsapi.org/register)
    - Free tier: 100 requests/day
 
-3. **Guardian**: [https://open-platform.theguardian.com/access/](https://open-platform.theguardian.com/access/)
+5. **Guardian**: [https://open-platform.theguardian.com/access/](https://open-platform.theguardian.com/access/)
    - Free tier: 5,000 requests/day
 
-4. **NY Times**: [https://developer.nytimes.com/get-started](https://developer.nytimes.com/get-started)
+6. **NY Times**: [https://developer.nytimes.com/get-started](https://developer.nytimes.com/get-started)
    - Free tier: 4,000 requests/day
 
-5. **Mediastack**: [https://mediastack.com/signup/free](https://mediastack.com/signup/free)
+7. **Mediastack**: [https://mediastack.com/signup/free](https://mediastack.com/signup/free)
    - Free tier: 500 requests/month
 
-6. **GNews**: [https://gnews.io/](https://gnews.io/)
+8. **GNews**: [https://gnews.io/](https://gnews.io/)
    - Free tier: 100 requests/day
 
-**Note**: The app works fine with just Reddit (no API key needed). Other sources are optional enhancements.
+**Note**: The app works fine with just Reddit (no API keys needed). Other sources require API credentials but are optional enhancements.
 
 ## Performance
 

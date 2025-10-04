@@ -10,6 +10,7 @@ import dotenv from 'dotenv'
 import newsRoutes from './routes/news.js'
 import translationRoutes from './routes/translation.js'
 import vocabularyRoutes from './routes/vocabulary.js'
+import aiRoutes from './routes/ai.js'
 
 // Load environment variables
 dotenv.config()
@@ -80,6 +81,7 @@ app.get('/health', (req, res) => {
 app.use('/api/news', newsRoutes)
 app.use('/api/translate', translationRoutes)
 app.use('/api/vocabulary', vocabularyRoutes)
+app.use('/api/ai', aiRoutes)
 
 // 404 handler
 app.use((req, res) => {

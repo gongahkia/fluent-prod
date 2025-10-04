@@ -140,9 +140,14 @@ function App() {
                   alt="Influent Logo"
                   className="w-8 h-8 rounded-full object-cover"
                 />
-                <span className="text-xl font-bold text-gray-900">
-                  Influent
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xl font-bold text-gray-900">
+                    Influent
+                  </span>
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full border border-orange-300">
+                    BETA
+                  </span>
+                </div>
               </div>
 
               {/* Mobile Menu Button */}
