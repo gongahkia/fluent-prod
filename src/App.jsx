@@ -6,6 +6,7 @@ import Flashcards from "./components/Flashcards"
 import NewsFeed from "./components/NewsFeed"
 import Onboarding from "./components/Onboarding"
 import Profile from "./components/Profile"
+import SavedPosts from "./components/SavedPosts"
 import {
   Sheet,
   SheetContent,
@@ -19,7 +20,7 @@ import "./App.css"
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', or 'flashcards'
+  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', or 'savedposts'
   const [userProfile, setUserProfile] = useState(null)
   const [userDictionary, setUserDictionary] = useState([
     // Start with empty dictionary - users will build their own
@@ -116,6 +117,15 @@ function App() {
     )
   }
 
+  // Show saved posts page
+  if (currentView === "savedposts") {
+    return (
+      <SavedPosts
+        onBack={() => handleNavigation("feed")}
+      />
+    )
+  }
+
   // Show profile page
   if (currentView === "profile") {
     return (
@@ -199,6 +209,17 @@ function App() {
                         <span className="text-lg">🃏</span>
                         <span className="font-medium">Flashcards</span>
                       </button>
+                      <button
+                        onClick={() => handleNavigation("savedposts")}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === "savedposts"
+                            ? "bg-orange-100 text-orange-900"
+                            : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-lg">🔖</span>
+                        <span className="font-medium">Saved Posts</span>
+                      </button>
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -277,6 +298,16 @@ function App() {
               }`}
             >
               <span>Flashcards</span>
+            </button>
+            <button
+              onClick={() => handleNavigation("savedposts")}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                currentView === "savedposts"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Saved Posts
             </button>
           </div>
         )}

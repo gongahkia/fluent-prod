@@ -110,6 +110,9 @@ const EnhancedCommentSystem = ({
   const fetchAISuggestions = async () => {
     setIsLoadingAI(true)
     try {
+      // Get Gemini API key from sessionStorage
+      const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
+
       const response = await fetch('http://localhost:3001/api/ai/comment-suggestions', {
         method: 'POST',
         headers: {
@@ -118,7 +121,8 @@ const EnhancedCommentSystem = ({
         body: JSON.stringify({
           postContent: postContent || 'Interesting post about Japan and Japanese culture.',
           postTitle: postTitle || '',
-          numberOfSuggestions: 3
+          numberOfSuggestions: 3,
+          geminiApiKey
         }),
       })
 

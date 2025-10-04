@@ -9,7 +9,8 @@ router.post('/comment-suggestions', async (req, res, next) => {
     const {
       postContent,
       postTitle,
-      numberOfSuggestions = 3
+      numberOfSuggestions = 3,
+      geminiApiKey = null
     } = req.body
 
     if (!postContent) {
@@ -19,7 +20,8 @@ router.post('/comment-suggestions', async (req, res, next) => {
     const result = await generateCommentSuggestions(
       postContent,
       postTitle,
-      Math.min(numberOfSuggestions, 5) // Max 5 suggestions
+      Math.min(numberOfSuggestions, 5), // Max 5 suggestions
+      geminiApiKey
     )
 
     res.json(result)

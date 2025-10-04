@@ -3,7 +3,39 @@ import { fetchNews, getAvailableSources } from '../services/newsService.js'
 
 const router = express.Router()
 
-// GET /api/news - Fetch news from multiple sources
+// POST /api/news - Fetch news from multiple sources with credentials
+router.post('/', async (req, res, next) => {
+  try {
+    const {
+      sources = ['reddit'],
+      query = 'japan',
+      limit = 10,
+      shuffle = true,
+      search = null,
+      // API credentials from frontend
+      twitterBearerToken = null,
+      instagramUsername = null,
+      instagramPassword = null
+    } = req.body
+
+    const result = await fetchNews({
+      sources,
+      query,
+      limit,
+      shuffle,
+      searchQuery: search,
+      twitterBearerToken,
+      instagramUsername,
+      instagramPassword
+    })
+
+    res.json(result)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// GET /api/news - Backwards compatible GET endpoint (Reddit only)
 router.get('/', async (req, res, next) => {
   try {
     const {
@@ -32,7 +64,27 @@ router.get('/', async (req, res, next) => {
   }
 })
 
-// GET /api/news/sources - Get available news sources
+// POST /api/news/sources - Get available news sources with credentials
+router.post('/sources', async (req, res, next) => {
+  try {
+    const {
+      twitterBearerToken = null,
+      instagramUsername = null,
+      instagramPassword = null
+    } = req.body
+
+    const sources = getAvailableSources({
+      twitterBearerToken,
+      instagramUsername,
+      instagramPassword
+    })
+    res.json({ sources })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// GET /api/news/sources - Get available news sources (no credentials)
 router.get('/sources', async (req, res, next) => {
   try {
     const sources = getAvailableSources()
