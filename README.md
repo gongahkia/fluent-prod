@@ -55,13 +55,13 @@ $ pnpm run dev
 
 ## News Sources Status
 
-| Source | Status | API Key Required | Notes |
-|--------|--------|------------------|-------|
-| Reddit | ✅ Active | No | Pulling from Japanese-themed subreddits (japan, japanese, japanlife, japantravel, learnjapanese) |
-| Twitter | ⚙️ Configurable | Yes | Requires `TWITTER_BEARER_TOKEN` in backend `.env` - Free tier available at developer.twitter.com |
-| Instagram | ⚙️ Configurable | Yes | Requires `INSTAGRAM_USERNAME` and `INSTAGRAM_PASSWORD` in backend `.env` |
-| NewsAPI.org | ⚙️ Configurable | Yes | Requires `NEWSAPI_KEY` in backend `.env` |
-| The Guardian | ⚙️ Configurable | Yes | Requires `GUARDIAN_API_KEY` in backend `.env` |
+| Source | Status | API Key Required | Configuration |
+|--------|--------|------------------|---------------|
+| Reddit | ✅ Active | No | Enabled by default - Pulls from Japanese-themed subreddits (japan, japanese, japanlife, japantravel, learnjapanese) |
+| Twitter | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Twitter API Bearer Token from [developer.twitter.com](https://developer.twitter.com) |
+| Instagram | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Instagram username and password (use a dedicated account) |
+
+**Note:** Twitter and Instagram credentials are stored in your browser's sessionStorage and are never sent to our servers. They are only used for API requests to fetch posts.
 
 ## AI Features
 

@@ -951,7 +951,7 @@ const NewsFeed = ({
                       }`}
                     >
                       {config.name}
-                      {(!config.enabled || !config.hasApiKey) && (
+                      {(!config.enabled || !config.hasApiKey) && sourceId !== 'reddit' && (
                         <span className="text-xs text-red-500 ml-1">
                           (API key needed)
                         </span>

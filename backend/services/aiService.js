@@ -4,10 +4,6 @@ import NodeCache from 'node-cache'
 // Cache for 30 minutes
 const cache = new NodeCache({ stdTTL: 1800 })
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null
-
 // Function to truncate post content if too long
 function truncateContent(content, maxLength = 1000) {
   if (content.length <= maxLength) {
@@ -16,14 +12,19 @@ function truncateContent(content, maxLength = 1000) {
   return content.substring(0, maxLength) + '...'
 }
 
-export async function generateCommentSuggestions(postContent, postTitle = '', numberOfSuggestions = 3) {
-  if (!genAI) {
+export async function generateCommentSuggestions(postContent, postTitle = '', numberOfSuggestions = 3, apiKey = null) {
+  // Use provided API key or fallback to environment variable
+  const geminiApiKey = apiKey || process.env.GEMINI_API_KEY
+
+  if (!geminiApiKey) {
     console.log('Gemini API key not configured')
     return {
       suggestions: [],
       error: 'AI suggestions unavailable - API key not configured'
     }
   }
+
+  const genAI = new GoogleGenerativeAI(geminiApiKey)
 
   try {
     const cacheKey = `comment:${postContent.substring(0, 100)}`
