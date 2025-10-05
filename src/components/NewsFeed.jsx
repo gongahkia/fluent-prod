@@ -971,16 +971,13 @@ const NewsFeed = ({
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
               />
-              <span>Refresh</span>
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
               className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
             >
               <Settings className="w-4 h-4" />
-              <span>Settings</span>
             </button>
-            <div className="text-4xl">🎓</div>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react"
+import { Menu, ChevronDown } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import Auth from "./components/Auth"
 import Dictionary from "./components/Dictionary"
@@ -31,6 +31,7 @@ function App() {
   const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const isMobile = useIsMobile()
 
   // Listen to dictionary changes in real-time
@@ -43,6 +44,18 @@ function App() {
 
     return () => unsubscribe()
   }, [currentUser])
+
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLanguageDropdown && !event.target.closest('.language-dropdown')) {
+        setShowLanguageDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showLanguageDropdown])
 
   // Check if user needs onboarding
   useEffect(() => {
@@ -137,6 +150,18 @@ function App() {
   const handleNavigation = (view) => {
     setCurrentView(view)
     setIsMobileMenuOpen(false)
+  }
+
+  const handleLanguageChange = async (newLanguage) => {
+    if (!currentUser) return
+
+    try {
+      await updateUserProfile(currentUser.uid, { targetLanguage: newLanguage })
+      setUserProfile((prev) => ({ ...prev, targetLanguage: newLanguage }))
+      setShowLanguageDropdown(false)
+    } catch (error) {
+      console.error('Error updating language:', error)
+    }
   }
 
   // Show authentication if not authenticated
@@ -282,10 +307,38 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
-                  {userProfile?.targetLanguage === 'Korean' ? '🇰🇷' : '🇯🇵'} {userProfile?.targetLanguage || 'Japanese'}
-                </span>
+              {/* Language Dropdown */}
+              <div className="relative language-dropdown">
+                <button
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700"
+                >
+                  <span>
+                    {userProfile?.targetLanguage === 'Korean' ? '🇰🇷' : '🇯🇵'} {userProfile?.targetLanguage || 'Japanese'}
+                  </span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {showLanguageDropdown && (
+                  <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[150px]">
+                    <button
+                      onClick={() => handleLanguageChange('Japanese')}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
+                        userProfile?.targetLanguage === 'Japanese' ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>🇯🇵 Japanese</span>
+                    </button>
+                    <button
+                      onClick={() => handleLanguageChange('Korean')}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
+                        userProfile?.targetLanguage === 'Korean' ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>🇰🇷 Korean</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* User Profile */}
