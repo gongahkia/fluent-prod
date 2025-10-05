@@ -129,8 +129,8 @@ const Onboarding = ({ onComplete }) => {
               Welcome to Influent!
             </h2>
             <p className="text-gray-600 mb-8">
-              Discover authentic content from around the world. We're starting
-              with Japanese and expanding to more languages soon!
+              Discover authentic content from around the world. Start with
+              Japanese or Korean!
             </p>
 
             <div className="text-left mb-8">
@@ -174,8 +174,7 @@ const Onboarding = ({ onComplete }) => {
               What do you want to learn?
             </h2>
             <p className="text-gray-600 mb-8">
-              We're launching with Japanese first, with more languages coming
-              soon!
+              Choose your target language to start learning!
             </p>
 
             <div className="text-left mb-8">
@@ -196,6 +195,28 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === "Japanese" && (
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setTargetLanguage("Korean")}
+                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
+                    targetLanguage === "Korean"
+                      ? "border-orange-500 bg-orange-50 text-orange-700"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">🇰🇷</span>
+                    <div className="text-left">
+                      <div className="font-medium">Korean</div>
+                      <div className="text-sm text-gray-500">한국어</div>
+                    </div>
+                  </div>
+                  {targetLanguage === "Korean" && (
                     <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
@@ -466,6 +487,9 @@ const Onboarding = ({ onComplete }) => {
                 <li>
                   • For Japanese: You should be comfortable with hiragana and
                   katakana
+                </li>
+                <li>
+                  • For Korean: You should be comfortable with hangul
                 </li>
                 <li>
                   • Our content includes authentic, real-world conversations

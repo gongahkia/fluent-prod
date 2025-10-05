@@ -6,8 +6,14 @@ import {
   saveFlashcardProgress,
   migrateFlashcardData
 } from "@/services/databaseService"
+import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
 
-const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
+const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
+  // Get language configuration
+  const targetLanguage = userProfile?.targetLanguage || "Japanese"
+  const languageConfig = getLanguageByName(targetLanguage)
+  const langLabels = languageConfig.uiLabels
+  const langFields = languageConfig.dictionaryFields
   const { currentUser } = useAuth()
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
@@ -111,9 +117,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
 
     return userDictionary.map((word) => ({
       id: word.id,
-      word: word.japanese,
-      reading: word.hiragana,
-      meaning: word.english,
+      word: word[langFields.word] || word.japanese || word.korean || '',
+      reading: word[langFields.reading] || word.hiragana || word.romanization || '',
+      meaning: word[langFields.meaning] || word.english || '',
       example: word.example,
       exampleTranslation: word.exampleEn,
       level: word.level,
@@ -165,19 +171,6 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
 
   const flashcards = getFilteredFlashcards()
   const currentCard = flashcards[currentCardIndex]
-
-  const getLevelColor = (level) => {
-    if (level === 1) return "bg-green-500"
-    if (level === 2) return "bg-blue-500"
-    if (level === 3) return "bg-yellow-500"
-    if (level === 4) return "bg-orange-500"
-    return "bg-red-500"
-  }
-
-  const getLevelName = (level) => {
-    const levels = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
-    return levels[level - 1] || 'Beginner'
-  }
 
   const handleRating = async (rating) => {
     if (!currentCard || !currentUser) return
@@ -486,9 +479,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
               <div className="text-center">
                 <div className="mb-4 flex items-center justify-center gap-2">
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(currentCard.level)}`}
+                    className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(languageConfig.id, currentCard.level)}`}
                   >
-                    {getLevelName(currentCard.level)}
+                    {getLevelName(languageConfig.id, currentCard.level)}
                   </span>
                   {currentCard.cardInfo.interval > 0 && (
                     <span className="inline-block px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-sm font-medium">
@@ -592,7 +585,7 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
             </h3>
             <p className="text-gray-600 mb-4">
               {studyMode === "all"
-                ? "Start adding Japanese words from posts to create your flashcard deck!"
+                ? `Start adding ${targetLanguage} words from posts to create your flashcard deck!`
                 : studyMode === "new"
                   ? "Add some new words from posts to practice with flashcards."
                   : studyMode === "due"

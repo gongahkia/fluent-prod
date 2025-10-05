@@ -89,22 +89,38 @@ function App() {
   const addWordToDictionary = async (wordData) => {
     if (!currentUser) return
 
+    // Determine target language
+    const targetLang = userProfile?.targetLanguage || 'Japanese'
+
+    // Create word object based on language
     const newWord = {
       id: Date.now(),
-      japanese: wordData.japanese,
-      hiragana: wordData.hiragana || wordData.japanese,
-      english: wordData.english,
       level: wordData.level || 5,
-      example: wordData.example || `${wordData.japanese}の例文です。`,
-      exampleEn:
-        wordData.exampleEn || `Example sentence with ${wordData.english}.`,
+      english: wordData.english,
+      example: wordData.example,
+      exampleEn: wordData.exampleEn || `Example sentence with ${wordData.english}.`,
       source: wordData.source || "Influent Post",
     }
 
-    // Check if word already exists
-    const exists = userDictionary.some((word) => word.japanese === newWord.japanese)
-    if (exists) {
-      return // Don't add duplicates
+    // Add language-specific fields
+    if (targetLang === 'Japanese') {
+      newWord.japanese = wordData.japanese || wordData.word
+      newWord.hiragana = wordData.hiragana || wordData.reading || wordData.japanese
+      if (!wordData.example) {
+        newWord.example = `${newWord.japanese}の例文です。`
+      }
+      // Check if word already exists
+      const exists = userDictionary.some((word) => word.japanese === newWord.japanese)
+      if (exists) return
+    } else if (targetLang === 'Korean') {
+      newWord.korean = wordData.korean || wordData.word
+      newWord.romanization = wordData.romanization || wordData.reading || ''
+      if (!wordData.example) {
+        newWord.example = `${newWord.korean}의 예문입니다.`
+      }
+      // Check if word already exists
+      const exists = userDictionary.some((word) => word.korean === newWord.korean)
+      if (exists) return
     }
 
     // Add to Firestore (will trigger real-time update)
@@ -140,6 +156,7 @@ function App() {
         onBack={() => handleNavigation("feed")}
         userDictionary={userDictionary}
         onRemoveWord={removeWordFromDictionary}
+        userProfile={userProfile}
       />
     )
   }
@@ -150,6 +167,7 @@ function App() {
       <Flashcards
         onBack={() => handleNavigation("feed")}
         userDictionary={userDictionary}
+        userProfile={userProfile}
       />
     )
   }
@@ -265,12 +283,9 @@ function App() {
 
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">🇯🇵 Japan</span>
-                <select className="text-sm border border-gray-300 rounded px-2 py-1 bg-white">
-                  <option value="japanese">
-                    🇯🇵 Japanese
-                  </option>
-                </select>
+                <span className="text-sm text-gray-600">
+                  {userProfile?.targetLanguage === 'Korean' ? '🇰🇷' : '🇯🇵'} {userProfile?.targetLanguage || 'Japanese'}
+                </span>
               </div>
 
               {/* User Profile */}

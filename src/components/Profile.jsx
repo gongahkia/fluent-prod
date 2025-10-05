@@ -516,10 +516,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                       >
-                        <option value="Japanese">Japanese (Available now)</option>
-                        <option value="Korean" disabled>
-                          Korean (Coming soon)
-                        </option>
+                        <option value="Japanese">Japanese</option>
+                        <option value="Korean">Korean</option>
                         <option value="Chinese" disabled>
                           Chinese (Coming soon)
                         </option>

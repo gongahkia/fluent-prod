@@ -276,8 +276,22 @@ async function selectWordsForTranslation(words, percentage) {
   return wordsToTranslate
 }
 
+// Language detection helpers
 export function containsJapanese(text) {
   return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)
+}
+
+export function containsKorean(text) {
+  return /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(text)
+}
+
+export function containsTargetLanguage(text, languageCode) {
+  if (languageCode === 'ja') {
+    return containsJapanese(text)
+  } else if (languageCode === 'ko') {
+    return containsKorean(text)
+  }
+  return false
 }
 
 export function isEnglishOnly(text) {

@@ -93,6 +93,30 @@ class TranslationService {
   }
 
   /**
+   * Check if text contains Korean characters
+   * @param {string} text - Text to check
+   * @returns {boolean} True if text contains Korean
+   */
+  containsKorean(text) {
+    return /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(text)
+  }
+
+  /**
+   * Check if text contains target language characters
+   * @param {string} text - Text to check
+   * @param {string} languageCode - Language code (ja, ko, etc.)
+   * @returns {boolean} True if text contains target language
+   */
+  containsTargetLanguage(text, languageCode) {
+    if (languageCode === 'ja') {
+      return this.containsJapanese(text)
+    } else if (languageCode === 'ko') {
+      return this.containsKorean(text)
+    }
+    return false
+  }
+
+  /**
    * Check if text is English only
    * @param {string} text - Text to check
    * @returns {boolean} True if text is English only

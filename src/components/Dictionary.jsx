@@ -13,8 +13,14 @@ import {
   Upload,
 } from "lucide-react"
 import React, { useState } from "react"
+import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
 
-const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
+const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
+  // Get language configuration
+  const targetLanguage = userProfile?.targetLanguage || "Japanese"
+  const languageConfig = getLanguageByName(targetLanguage)
+  const langLabels = languageConfig.uiLabels
+  const langFields = languageConfig.dictionaryFields
   const [expandedWord, setExpandedWord] = useState(null)
   const [sortBy, setSortBy] = useState("date") // 'level', 'date', 'alphabetical', 'mastery'
   const [searchQuery, setSearchQuery] = useState("")
@@ -41,11 +47,15 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      words = words.filter(word =>
-        word.japanese.toLowerCase().includes(query) ||
-        word.hiragana.toLowerCase().includes(query) ||
-        word.english.toLowerCase().includes(query)
-      )
+      words = words.filter(word => {
+        const targetWord = word[langFields.word] || word.japanese || ""
+        const reading = word[langFields.reading] || word.hiragana || word.romanization || ""
+        const meaning = word[langFields.meaning] || word.english || ""
+
+        return targetWord.toLowerCase().includes(query) ||
+               reading.toLowerCase().includes(query) ||
+               meaning.toLowerCase().includes(query)
+      })
     }
 
     // Level filter
@@ -75,7 +85,11 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
           (a, b) => new Date(b.dateAdded) - new Date(a.dateAdded)
         )
       case "alphabetical":
-        return words.sort((a, b) => a.japanese.localeCompare(b.japanese))
+        return words.sort((a, b) => {
+          const aWord = a[langFields.word] || a.japanese || ""
+          const bWord = b[langFields.word] || b.japanese || ""
+          return aWord.localeCompare(bWord)
+        })
       case "mastery":
         // Sort by review data if available
         return words.sort((a, b) => {
@@ -90,19 +104,6 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
 
   const sortedWords = getSortedWords()
 
-  const getLevelColor = (level) => {
-    if (level === 1) return "bg-green-500"
-    if (level === 2) return "bg-blue-500"
-    if (level === 3) return "bg-yellow-500"
-    if (level === 4) return "bg-orange-500"
-    return "bg-red-500"
-  }
-
-  const getLevelName = (level) => {
-    const levels = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
-    return levels[level - 1] || 'Beginner'
-  }
-
   const removeWord = (wordId) => {
     if (confirm('Are you sure you want to remove this word from your dictionary?')) {
       onRemoveWord(wordId)
@@ -116,9 +117,9 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
   const startEditing = (word) => {
     setEditingWord(word.id)
     setEditForm({
-      japanese: word.japanese,
-      hiragana: word.hiragana,
-      english: word.english,
+      [langFields.word]: word[langFields.word] || word.japanese || '',
+      [langFields.reading]: word[langFields.reading] || word.hiragana || word.romanization || '',
+      [langFields.meaning]: word[langFields.meaning] || word.english || '',
       example: word.example || '',
       exampleEn: word.exampleEn || '',
       notes: word.notes || '',
@@ -156,11 +157,11 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
 
   // Export as CSV
   const exportCSV = () => {
-    const headers = ['Japanese', 'Reading', 'English', 'Level', 'Example', 'Translation', 'Source', 'Date Added']
+    const headers = [langLabels.wordLabel, langLabels.readingLabel, 'English', 'Level', 'Example', 'Translation', 'Source', 'Date Added']
     const rows = userDictionary.map(word => [
-      word.japanese,
-      word.hiragana,
-      word.english,
+      word[langFields.word] || word.japanese || '',
+      word[langFields.reading] || word.hiragana || word.romanization || '',
+      word[langFields.meaning] || word.english || '',
       word.level,
       word.example || '',
       word.exampleEn || '',
@@ -214,7 +215,7 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
           </button>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              My Japanese Dictionary
+              {langLabels.dictionary}
             </h1>
             <p className="text-sm text-gray-600">
               {stats.total} words • {stats.mature} mature
@@ -295,7 +296,7 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
                 className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
               >
                 <option value="date">Recently Added</option>
-                <option value="alphabetical">A-Z (Japanese)</option>
+                <option value="alphabetical">A-Z ({targetLanguage})</option>
                 <option value="level">Difficulty Level</option>
                 <option value="mastery">Mastery</option>
               </select>
@@ -373,23 +374,23 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Japanese
+                        {langLabels.wordLabel}
                       </label>
                       <input
                         type="text"
-                        value={editForm.japanese}
-                        onChange={(e) => setEditForm({...editForm, japanese: e.target.value})}
+                        value={editForm[langFields.word] || ''}
+                        onChange={(e) => setEditForm({...editForm, [langFields.word]: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Reading (Hiragana)
+                        {langLabels.readingLabel}
                       </label>
                       <input
                         type="text"
-                        value={editForm.hiragana}
-                        onChange={(e) => setEditForm({...editForm, hiragana: e.target.value})}
+                        value={editForm[langFields.reading] || ''}
+                        onChange={(e) => setEditForm({...editForm, [langFields.reading]: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
                     </div>
@@ -399,8 +400,8 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
                       </label>
                       <input
                         type="text"
-                        value={editForm.english}
-                        onChange={(e) => setEditForm({...editForm, english: e.target.value})}
+                        value={editForm[langFields.meaning] || ''}
+                        onChange={(e) => setEditForm({...editForm, [langFields.meaning]: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
                     </div>
@@ -473,13 +474,15 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="text-2xl font-bold text-gray-900">
-                          {word.japanese}
+                          {word[langFields.word] || word.japanese}
                         </div>
-                        <div className="text-lg text-gray-600">{word.hiragana}</div>
+                        <div className="text-lg text-gray-600">
+                          {word[langFields.reading] || word.hiragana || word.romanization}
+                        </div>
                         <span
-                          className={`px-2 py-1 rounded-full text-white text-xs font-medium ${getLevelColor(word.level)}`}
+                          className={`px-2 py-1 rounded-full text-white text-xs font-medium ${getLevelColor(languageConfig.id, word.level)}`}
                         >
-                          {getLevelName(word.level)}
+                          {getLevelName(languageConfig.id, word.level)}
                         </span>
                         {word.reviewData && word.reviewData.interval >= 21 && (
                           <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
@@ -488,7 +491,7 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
                         )}
                       </div>
                       <div className="text-lg text-gray-800 font-medium mb-2">
-                        {word.english}
+                        {word[langFields.meaning] || word.english}
                       </div>
                       {word.tags && word.tags.length > 0 && (
                         <div className="flex gap-1 flex-wrap mb-2">
@@ -607,17 +610,17 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord }) => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchQuery || filterLevel !== 'all' || filterTag !== 'all'
                 ? "No words match your filters"
-                : "Your Japanese Dictionary is Empty"}
+                : `Your ${targetLanguage} Dictionary is Empty`}
             </h3>
             <p className="text-gray-600 mb-4">
               {searchQuery || filterLevel !== 'all' || filterTag !== 'all'
                 ? "Try adjusting your search or filters"
-                : "Start clicking on Japanese words in posts to build your personal dictionary!"}
+                : `Start clicking on ${targetLanguage} words in posts to build your personal dictionary!`}
             </p>
             {!(searchQuery || filterLevel !== 'all' || filterTag !== 'all') && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
                 <div className="text-sm text-blue-800">
-                  <strong>💡 Tip:</strong> Click on any Japanese word in the news
+                  <strong>💡 Tip:</strong> Click on any {targetLanguage} word in the news
                   feed to see its meaning, pronunciation, and add it to your
                   dictionary for later review.
                 </div>

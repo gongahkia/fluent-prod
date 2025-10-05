@@ -3,6 +3,10 @@ x 2025-10-05 Implement user authentication system with email/password +Auth @Bac
 x 2025-10-05 Add data encryption for user data +Security @Backend
 x 2025-10-05 Set up Firebase configuration and services +Database @Backend
 
+(A) Expand language support beyond Japanese add Korean +Features @i18n
+(A) Update translation service to support more language pairs +Features @i18n
+(A) Modify UI to support different writing systems +Features @Frontend
+
 (A) Deploy backend to cloud service +Deployment @Backend
 (A) Deploy frontend to hosting service +Deployment @Frontend
 (A) Set up environment variables for production +Deployment @DevOps
@@ -11,7 +15,7 @@ x 2025-10-05 Set up Firebase configuration and services +Database @Backend
 (B) Set up monitoring and logging for production +Deployment @DevOps
 (C) Set up custom domain +Deployment @DevOps
 
-(B) Expand language support beyond Japanese add Korean Chinese Spanish French +Features @i18n
+(B) Expand language support beyond Japanese and Korean to add Chinese Spanish French +Features @i18n
 (B) Update translation service to support more language pairs +Features @i18n
 (B) Modify UI to support different writing systems +Features @Frontend
 (B) Implement language-specific difficulty systems +Features @i18n
