@@ -19,8 +19,19 @@ import {
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import ConsistencyGraph from "./ConsistencyGraph"
+import { useAuth } from "@/contexts/AuthContext"
+import {
+  updateUserProfile,
+  updateUserCredentials,
+  getUserCredentials
+} from "@/services/databaseService"
+import {
+  encryptCredentials,
+  decryptCredentials
+} from "@/services/encryptionService"
 
 const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
+  const { currentUser } = useAuth()
   // Map 1-5 levels to names
   const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
   const getLevelName = (level) => {
@@ -68,23 +79,43 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
 
-  // Load API keys from sessionStorage on mount
+  // Load encrypted API credentials from Firebase on mount
   useEffect(() => {
-    const savedTwitterToken = sessionStorage.getItem('twitterBearerToken')
-    const savedInstagramUsername = sessionStorage.getItem('instagramUsername')
-    const savedInstagramPassword = sessionStorage.getItem('instagramPassword')
-    const savedGeminiApiKey = sessionStorage.getItem('geminiApiKey')
+    const loadCredentials = async () => {
+      if (!currentUser) return
 
-    if (savedTwitterToken || savedInstagramUsername || savedInstagramPassword || savedGeminiApiKey) {
-      setFormData(prev => ({
-        ...prev,
-        twitterBearerToken: savedTwitterToken || '',
-        instagramUsername: savedInstagramUsername || '',
-        instagramPassword: savedInstagramPassword || '',
-        geminiApiKey: savedGeminiApiKey || '',
-      }))
+      try {
+        // Get user's auth token for encryption/decryption
+        const token = await currentUser.getIdToken()
+
+        // Load encrypted credentials from Firebase
+        const result = await getUserCredentials(currentUser.uid)
+
+        if (result.success && result.data) {
+          // Decrypt credentials
+          const decrypted = await decryptCredentials(result.data, token)
+
+          setFormData(prev => ({
+            ...prev,
+            twitterBearerToken: decrypted.twitterBearerToken || '',
+            instagramUsername: decrypted.instagramUsername || '',
+            instagramPassword: decrypted.instagramPassword || '',
+            geminiApiKey: decrypted.geminiApiKey || '',
+          }))
+
+          // Also save to sessionStorage for immediate use by other components
+          sessionStorage.setItem('twitterBearerToken', decrypted.twitterBearerToken || '')
+          sessionStorage.setItem('instagramUsername', decrypted.instagramUsername || '')
+          sessionStorage.setItem('instagramPassword', decrypted.instagramPassword || '')
+          sessionStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
+        }
+      } catch (error) {
+        console.error('Error loading credentials:', error)
+      }
     }
-  }, [])
+
+    loadCredentials()
+  }, [currentUser])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -95,19 +126,84 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   }
 
   const handleSave = async () => {
+    if (!currentUser) return
+
     setIsLoading(true)
 
-    // Save API keys to sessionStorage
-    sessionStorage.setItem('twitterBearerToken', formData.twitterBearerToken)
-    sessionStorage.setItem('instagramUsername', formData.instagramUsername)
-    sessionStorage.setItem('instagramPassword', formData.instagramPassword)
-    sessionStorage.setItem('geminiApiKey', formData.geminiApiKey)
+    try {
+      // Get user's auth token for encryption
+      const token = await currentUser.getIdToken()
 
-    // Simulate API call
-    setTimeout(() => {
+      // Separate sensitive credentials from regular profile data
+      const credentials = {
+        twitterBearerToken: formData.twitterBearerToken,
+        instagramUsername: formData.instagramUsername,
+        instagramPassword: formData.instagramPassword,
+        geminiApiKey: formData.geminiApiKey,
+      }
+
+      // Encrypt sensitive credentials
+      const encryptedCreds = await encryptCredentials(credentials, token)
+
+      // Save encrypted credentials to Firebase
+      await updateUserCredentials(currentUser.uid, encryptedCreds)
+
+      // Save to sessionStorage for immediate use
+      sessionStorage.setItem('twitterBearerToken', formData.twitterBearerToken)
+      sessionStorage.setItem('instagramUsername', formData.instagramUsername)
+      sessionStorage.setItem('instagramPassword', formData.instagramPassword)
+      sessionStorage.setItem('geminiApiKey', formData.geminiApiKey)
+
+      // Save regular profile settings to Firebase
+      const profileUpdates = {
+        name: formData.name,
+        email: formData.email,
+        bio: formData.bio,
+        nativeLanguage: formData.nativeLanguage,
+        targetLanguage: formData.targetLanguage,
+        level: parseInt(formData.learningLevel),
+        location: formData.location,
+        website: formData.website,
+        bannerImage: formData.bannerImage,
+        settings: {
+          notifications: {
+            email: formData.emailNotifications,
+            push: formData.pushNotifications,
+            comments: formData.commentNotifications,
+          },
+          privacy: {
+            profileVisibility: formData.profileVisibility,
+            showEmail: formData.showEmail,
+            showLocation: formData.showLocation,
+          },
+          appearance: {
+            theme: formData.theme,
+            accentColor: formData.accentColor,
+            fontSize: formData.fontSize,
+          },
+          goals: {
+            dailyWords: formData.dailyWordGoal,
+            dailyReading: formData.dailyReadingGoal,
+            studyReminder: formData.studyReminder,
+            reminderTime: formData.reminderTime,
+          }
+        }
+      }
+
+      await updateUserProfile(currentUser.uid, profileUpdates)
+
+      // Update parent component
       onProfileUpdate(formData)
+
       setIsLoading(false)
-    }, 1000)
+
+      // Show success message
+      alert('Settings saved successfully!')
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      setIsLoading(false)
+      alert('Error saving settings. Please try again.')
+    }
   }
 
   // Generate mock activity data for consistency graph

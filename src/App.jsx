@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Auth from "./components/Auth"
 import Dictionary from "./components/Dictionary"
 import Flashcards from "./components/Flashcards"
@@ -15,45 +15,80 @@ import {
   SheetTrigger,
 } from "./components/ui/sheet"
 import { useIsMobile } from "./hooks/use-mobile"
+import { useAuth } from "./contexts/AuthContext"
+import {
+  addWordToDictionary as addWordToDb,
+  removeWordFromDictionary as removeWordFromDb,
+  onDictionaryChange,
+  updateUserProfile
+} from "./services/databaseService"
+import { signOutUser } from "./services/authService"
 import "./App.css"
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { currentUser, userProfile, setUserProfile } = useAuth()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', or 'savedposts'
-  const [userProfile, setUserProfile] = useState(null)
-  const [userDictionary, setUserDictionary] = useState([
-    // Start with empty dictionary - users will build their own
-  ])
+  const [userDictionary, setUserDictionary] = useState([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const isMobile = useIsMobile()
 
+  // Listen to dictionary changes in real-time
+  useEffect(() => {
+    if (!currentUser) return
+
+    const unsubscribe = onDictionaryChange(currentUser.uid, (words) => {
+      setUserDictionary(words)
+    })
+
+    return () => unsubscribe()
+  }, [currentUser])
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (currentUser && userProfile) {
+      // Show onboarding if user doesn't have a level set (new user)
+      const needsOnboarding = !userProfile.level || userProfile.level === undefined
+      setShowOnboarding(needsOnboarding)
+    }
+  }, [currentUser, userProfile])
+
   const handleAuthComplete = (authData) => {
-    setIsAuthenticated(true)
-    setUserProfile((prev) => ({ ...prev, ...authData }))
-    // Show onboarding for new users, skip for returning users
-    setShowOnboarding(authData.isNewUser)
+    // Auth state is now managed by AuthContext
+    // This function is kept for compatibility but doesn't need to do much
+    if (authData.isNewUser) {
+      setShowOnboarding(true)
+    }
   }
 
-  const handleOnboardingComplete = (profile) => {
-    setUserProfile((prev) => ({ ...prev, ...profile }))
+  const handleOnboardingComplete = async (profile) => {
+    if (currentUser) {
+      // Update user profile in Firestore
+      await updateUserProfile(currentUser.uid, profile)
+      setUserProfile((prev) => ({ ...prev, ...profile }))
+    }
     setShowOnboarding(false)
     setCurrentView("feed")
   }
 
-  const handleProfileUpdate = (updatedProfile) => {
-    setUserProfile((prev) => ({ ...prev, ...updatedProfile }))
+  const handleProfileUpdate = async (updatedProfile) => {
+    if (currentUser) {
+      // Update user profile in Firestore
+      await updateUserProfile(currentUser.uid, updatedProfile)
+      setUserProfile((prev) => ({ ...prev, ...updatedProfile }))
+    }
     setCurrentView("feed")
   }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false)
-    setUserProfile(null)
+  const handleLogout = async () => {
+    await signOutUser()
     setShowOnboarding(false)
     setCurrentView("feed")
   }
 
-  const addWordToDictionary = (wordData) => {
+  const addWordToDictionary = async (wordData) => {
+    if (!currentUser) return
+
     const newWord = {
       id: Date.now(),
       japanese: wordData.japanese,
@@ -64,21 +99,23 @@ function App() {
       exampleEn:
         wordData.exampleEn || `Example sentence with ${wordData.english}.`,
       source: wordData.source || "Influent Post",
-      dateAdded: new Date().toISOString(),
     }
 
-    setUserDictionary((prev) => {
-      // Check if word already exists
-      const exists = prev.some((word) => word.japanese === newWord.japanese)
-      if (exists) {
-        return prev // Don't add duplicates
-      }
-      return [...prev, newWord]
-    })
+    // Check if word already exists
+    const exists = userDictionary.some((word) => word.japanese === newWord.japanese)
+    if (exists) {
+      return // Don't add duplicates
+    }
+
+    // Add to Firestore (will trigger real-time update)
+    await addWordToDb(currentUser.uid, newWord)
   }
 
-  const removeWordFromDictionary = (wordId) => {
-    setUserDictionary((prev) => prev.filter((word) => word.id !== wordId))
+  const removeWordFromDictionary = async (wordId) => {
+    if (!currentUser) return
+
+    // Remove from Firestore (will trigger real-time update)
+    await removeWordFromDb(currentUser.uid, wordId)
   }
 
   const handleNavigation = (view) => {
@@ -87,7 +124,7 @@ function App() {
   }
 
   // Show authentication if not authenticated
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return <Auth onAuthComplete={handleAuthComplete} />
   }
 

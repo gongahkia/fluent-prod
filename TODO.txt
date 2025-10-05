@@ -1,0 +1,65 @@
+x 2025-10-05 Integrate Firebase for user data persistence +Database @Backend
+x 2025-10-05 Implement user authentication system with email/password +Auth @Backend
+x 2025-10-05 Add data encryption for user data +Security @Backend
+x 2025-10-05 Set up Firebase configuration and services +Database @Backend
+
+(A) Deploy backend to cloud service +Deployment @Backend
+(A) Deploy frontend to hosting service +Deployment @Frontend
+(A) Set up environment variables for production +Deployment @DevOps
+(A) Configure CORS for production domain +Deployment @Backend
+(B) Configure SSL/HTTPS for production +Deployment @DevOps
+(B) Set up monitoring and logging for production +Deployment @DevOps
+(C) Set up custom domain +Deployment @DevOps
+
+(B) Expand language support beyond Japanese add Korean Chinese Spanish French +Features @i18n
+(B) Update translation service to support more language pairs +Features @i18n
+(B) Modify UI to support different writing systems +Features @Frontend
+(B) Implement language-specific difficulty systems +Features @i18n
+(B) Create language-specific vocabulary databases +Features @Database
+(B) Add cultural context and examples for each language +Features @Content
+
+(B) Improve post difficulty classification algorithm +Features @Algorithm
+(B) Implement sophisticated difficulty analysis post length vocab complexity grammar +Features @Algorithm
+(B) Add dynamic difficulty adjustment based on user performance +Features @Algorithm
+(B) Create personalized difficulty recommendations +Features @Algorithm
+(B) Ensure content correlation with difficulty level +Features @Content
+
+(C) Enhance onboarding flow with interactive examples +Features @Frontend
+(C) Create better level assessment quiz +Features @Frontend
+(C) Add preview of different difficulty levels +Features @Frontend
+(C) Implement A/B testing for onboarding approaches +Features @Analytics
+
+(B) Expand news sources add more Japanese sites +Content @Scraping
+(B) Include YouTube comments TikTok other social platforms +Content @Scraping
+(B) Add RSS feed support +Content @Backend
+(B) Implement content curation with quality scoring +Content @Algorithm
+(B) Add user reporting system for inappropriate content +Features @Moderation
+(B) Create content filtering system +Content @Moderation
+
+(C) Implement comment moderation system +Features @Moderation
+(C) Add AI-powered content filtering +Features @AI
+(C) Create user reporting and flagging system +Features @Moderation
+(C) Add grammar and vocabulary suggestions in comments +Features @AI
+(C) Implement cultural appropriateness checking +Features @AI
+(C) Add spam detection +Features @AI
+
+(C) Create trending topics system +Features @Analytics
+(C) Track popular topics across sources +Features @Analytics
+(C) Display trending hashtags and themes +Features @Frontend
+(C) Add topic-based content filtering +Features @Frontend
+
+(B) Optimize translation API calls batch requests +Performance @Backend
+(B) Implement better caching strategies reduce API costs +Performance @Backend
+(B) Add lazy loading for posts +Performance @Frontend
+(B) Optimize images +Performance @Frontend
+(B) Implement code splitting +Performance @Frontend
+(B) Improve mobile UI/UX +Performance @Frontend
+(B) Add touch gestures for word interaction +Performance @Frontend
+(B) Implement offline support +Performance @Frontend
+
+(C) Add learning analytics track progress over time +Features @Analytics
+(C) Identify learning patterns +Features @Analytics
+(C) Suggest study schedules +Features @Algorithm
+(C) Track user engagement metrics +Analytics @Backend
+(C) Implement A/B testing for UI elements +Analytics @Frontend
+(C) Add user retention analysis +Analytics @Backend

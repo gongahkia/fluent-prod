@@ -1,6 +1,7 @@
 import { Eye, EyeOff, Globe, Lock, Mail, User } from "lucide-react"
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { registerWithEmail, signInWithEmail, signInWithGoogle } from "@/services/authService"
 
 const Auth = ({ onAuthComplete }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -12,6 +13,7 @@ const Auth = ({ onAuthComplete }) => {
     confirmPassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [showTOS, setShowTOS] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [hasScrolledTOS, setHasScrolledTOS] = useState(false)
@@ -23,21 +25,78 @@ const Auth = ({ onAuthComplete }) => {
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
-    // Simulate API call
-    setTimeout(() => {
+    // Validation
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
       setIsLoading(false)
-      onAuthComplete({
-        email: formData.email,
-        name: formData.name || formData.email.split("@")[0],
-        isNewUser: !isLogin,
-      })
-    }, 1500)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      let result
+
+      if (isLogin) {
+        // Sign in existing user
+        result = await signInWithEmail(formData.email, formData.password)
+      } else {
+        // Register new user
+        result = await registerWithEmail(formData.email, formData.password, formData.name)
+      }
+
+      if (result.success) {
+        onAuthComplete({
+          email: result.user.email,
+          name: result.user.displayName || formData.name || result.user.email.split("@")[0],
+          isNewUser: result.isNewUser,
+        })
+      } else {
+        setError(result.error || "Authentication failed. Please try again.")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+      console.error("Auth error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const result = await signInWithGoogle()
+
+      if (result.success) {
+        onAuthComplete({
+          email: result.user.email,
+          name: result.user.displayName || result.user.email.split("@")[0],
+          isNewUser: result.isNewUser,
+        })
+      } else {
+        setError(result.error || "Google sign-in failed. Please try again.")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred with Google sign-in.")
+      console.error("Google sign-in error:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const toggleAuthMode = () => {
@@ -110,6 +169,13 @@ const Auth = ({ onAuthComplete }) => {
                 : "Join thousands of language learners worldwide"}
             </p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field (Registration only) */}
@@ -290,7 +356,9 @@ const Auth = ({ onAuthComplete }) => {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
@@ -315,7 +383,9 @@ const Auth = ({ onAuthComplete }) => {
 
               <button
                 type="button"
-                className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed"
+                title="Twitter sign-in coming soon"
               >
                 <svg
                   className="w-5 h-5"
@@ -324,7 +394,7 @@ const Auth = ({ onAuthComplete }) => {
                 >
                   <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
                 </svg>
-                <span className="ml-2">Twitter</span>
+                <span className="ml-2">Twitter (Soon)</span>
               </button>
             </div>
           </div>

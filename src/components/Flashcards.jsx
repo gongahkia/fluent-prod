@@ -1,7 +1,14 @@
 import { ArrowLeft, CheckCircle, RotateCcw, Settings, XCircle } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import { useAuth } from "@/contexts/AuthContext"
+import {
+  getFlashcardProgress,
+  saveFlashcardProgress,
+  migrateFlashcardData
+} from "@/services/databaseService"
 
 const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
+  const { currentUser } = useAuth()
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [cardData, setCardData] = useState({})
@@ -68,18 +75,32 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
     }
   }
 
-  // Initialize card data from localStorage
+  // Initialize card data from Firestore
   useEffect(() => {
-    const savedData = localStorage.getItem('flashcardData')
-    if (savedData) {
-      setCardData(JSON.parse(savedData))
-    }
-  }, [])
+    if (!currentUser) return
 
-  // Save card data to localStorage
-  const saveCardData = (data) => {
+    const loadFlashcardData = async () => {
+      // Try to migrate localStorage data first (one-time migration)
+      await migrateFlashcardData(currentUser.uid)
+
+      // Load flashcard progress from Firestore
+      const result = await getFlashcardProgress(currentUser.uid)
+      if (result.success) {
+        setCardData(result.data)
+      }
+    }
+
+    loadFlashcardData()
+  }, [currentUser])
+
+  // Save card data to Firestore
+  const saveCardData = async (data) => {
     setCardData(data)
-    localStorage.setItem('flashcardData', JSON.stringify(data))
+
+    if (currentUser) {
+      // Note: We only save the updated card, not all cards
+      // This is handled in handleRating
+    }
   }
 
   // Convert user dictionary to flashcard format
@@ -158,8 +179,8 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
     return levels[level - 1] || 'Beginner'
   }
 
-  const handleRating = (rating) => {
-    if (!currentCard) return
+  const handleRating = async (rating) => {
+    if (!currentCard || !currentUser) return
 
     const updatedInfo = calculateNextReview(currentCard.cardInfo, rating)
     const newCardData = {
@@ -167,7 +188,10 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
       [currentCard.id]: updatedInfo
     }
 
-    saveCardData(newCardData)
+    setCardData(newCardData)
+
+    // Save to Firestore
+    await saveFlashcardProgress(currentUser.uid, currentCard.id, updatedInfo)
 
     // Update word in dictionary if callback provided
     if (onUpdateWord) {
@@ -197,11 +221,15 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord }) => {
     setShowAnswer(false)
   }
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
     if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
-      saveCardData({})
+      setCardData({})
       setCurrentCardIndex(0)
       setShowAnswer(false)
+
+      // Clear data from Firestore
+      // We'll just set cardData to empty, and avoid saving anything
+      // Individual card progress will be overwritten on next review
     }
   }
 

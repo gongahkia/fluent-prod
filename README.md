@@ -1,30 +1,111 @@
 # Influent
 
+A language learning platform that helps you learn Japanese through real-world content from Reddit, news sources, and social media.
+
 ## Tech Stack
 
-- *Frontend*: React 19 + Vite
-- *Styling*: Tailwind CSS + shadcn/ui components
-- *Icons*: Lucide React
-- *State Management*: React Hooks
-- *Build Tool*: Vite
-- *Package Manager*: pnpm
+- **Frontend**: React 19 + Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Icons**: Lucide React
+- **State Management**: React Hooks + Context API
+- **Authentication**: Firebase Authentication
+- **Database**: Firebase Firestore
+- **Build Tool**: Vite
+- **Package Manager**: pnpm
 
-## Usage
+## Quick Start
 
-```console
-$ git clone https://github.com/gongahkia/cs206-influent && cd influent && pnpm install 
-$ cd backend && npm install 
+### 1. Clone and Install Dependencies
+
+```bash
+git clone https://github.com/gongahkia/cs206-influent
+cd influent
+pnpm install
+cd backend
+npm install
+cd ..
 ```
 
-Open 2 terminals.
+### 2. Set Up Firebase
 
-```console
-$ cd backend && npm run dev
+**IMPORTANT**: Before running the app, you must set up Firebase.
+
+Follow the detailed guide: **[Firebase Setup Guide](./FIREBASE_SETUP.md)**
+
+Quick summary:
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable Email/Password and Google authentication
+3. Create a Firestore database
+4. Copy your Firebase config to `.env` file
+
+```bash
+# Create .env file in the project root
+cp .env.example .env
+
+# Add your Firebase credentials to .env
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-```console
-$ pnpm run dev
+### 3. Run the Application
+
+Open 2 terminals:
+
+**Terminal 1 - Backend**:
+```bash
+cd backend
+npm run dev
 ```
+
+**Terminal 2 - Frontend**:
+```bash
+pnpm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+## Features
+
+### 🔐 User Authentication
+- Email/Password registration and login
+- Google OAuth integration
+- Secure user sessions
+
+### 📚 Personal Dictionary
+- Add words from real content
+- Translations and example sentences
+- Organized by difficulty level
+- Syncs across all devices
+
+### 🃏 Spaced Repetition Flashcards
+- SM-2 algorithm for optimal learning
+- Track progress and review schedule
+- Keyboard shortcuts for fast reviews
+- Progress persists across devices
+
+### 📰 Multi-Source Content
+- Reddit posts in Japanese
+- News articles (NewsAPI, Guardian)
+- Difficulty levels (Beginner to Native)
+- Mixed-language learning mode
+
+### ☁️ Cloud Data Persistence
+- All data stored in Firebase Firestore
+- Real-time synchronization
+- Access from any device
+- Never lose your progress
+
+## Documentation
+
+- **[Firebase Setup Guide](./FIREBASE_SETUP.md)** - Complete Firebase configuration
+- **[Database Migration Guide](./DATABASE_MIGRATION.md)** - How data persistence works
+- **[Security Implementation](./SECURITY.md)** - Encryption and security measures
+- **[Implementation Summary](./IMPLEMENTATION_SUMMARY.md)** - Complete implementation overview
+- **[TODO List](./TODO.md)** - Planned features and improvements
 
 ## Clarification on architecture
 
