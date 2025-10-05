@@ -2,6 +2,7 @@ import axios from 'axios'
 import NodeCache from 'node-cache'
 import { TwitterApi } from 'twitter-api-v2'
 import { IgApiClient } from 'instagram-private-api'
+import { syllable } from 'syllable'
 
 // Cache for 15 minutes
 const cache = new NodeCache({ stdTTL: 900 })
@@ -23,6 +24,76 @@ const API_CONFIG = {
   }
 }
 
+// Difficulty Calculation for English Text
+function calculateEnglishDifficulty(text) {
+  if (!text || text.trim().length === 0) {
+    return 1 // Default to easiest for empty text
+  }
+
+  // Basic text cleaning
+  const cleanText = text.replace(/[^\w\s.!?]/g, ' ').trim()
+
+  // Split into sentences (simple approach)
+  const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0)
+  const sentenceCount = sentences.length || 1
+
+  // Split into words
+  const words = cleanText.split(/\s+/).filter(w => w.length > 0)
+  const wordCount = words.length
+
+  if (wordCount === 0) {
+    return 1
+  }
+
+  // Calculate metrics
+  const avgSentenceLength = wordCount / sentenceCount
+
+  // Calculate syllable count
+  let totalSyllables = 0
+  try {
+    totalSyllables = syllable(cleanText)
+  } catch (error) {
+    // Fallback: estimate syllables as word count * 1.5
+    totalSyllables = Math.round(wordCount * 1.5)
+  }
+
+  const avgSyllablesPerWord = totalSyllables / wordCount
+
+  // Flesch Reading Ease Score
+  // Formula: 206.835 - 1.015 * (words/sentences) - 84.6 * (syllables/words)
+  const fleschScore = 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord)
+
+  // Additional metrics
+  const avgWordLength = cleanText.replace(/\s/g, '').length / wordCount
+
+  // Calculate difficulty level (1-5) based on Flesch score
+  // Flesch: 90-100 = Very Easy, 60-70 = Standard, 30-50 = Difficult, 0-30 = Very Difficult
+  let difficulty
+  if (fleschScore >= 80) {
+    difficulty = 1 // Beginner: Very easy to read
+  } else if (fleschScore >= 60) {
+    difficulty = 2 // Elementary: Easy to read
+  } else if (fleschScore >= 50) {
+    difficulty = 3 // Intermediate: Fairly easy to read
+  } else if (fleschScore >= 30) {
+    difficulty = 4 // Advanced: Difficult to read
+  } else {
+    difficulty = 5 // Expert: Very difficult to read
+  }
+
+  // Adjust for very short texts (less than 30 words)
+  if (wordCount < 30) {
+    difficulty = Math.max(1, difficulty - 1)
+  }
+
+  // Adjust for very long texts (more than 300 words)
+  if (wordCount > 300) {
+    difficulty = Math.min(5, difficulty + 1)
+  }
+
+  return difficulty
+}
+
 // Utility functions
 const normalizePost = (post, source) => {
   const basePost = {
@@ -34,11 +105,13 @@ const normalizePost = (post, source) => {
     publishedAt: new Date(),
     source: source,
     image: null,
-    tags: []
+    tags: [],
+    difficulty: 3 // Default difficulty
   }
 
   switch (source) {
     case 'reddit':
+      const redditContent = post.selftext || post.title || ''
       return {
         ...basePost,
         id: post.id,
@@ -48,10 +121,12 @@ const normalizePost = (post, source) => {
         author: post.author || 'deleted',
         publishedAt: new Date(post.created_utc * 1000),
         image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
-        tags: ['reddit', post.subreddit]
+        tags: ['reddit', post.subreddit],
+        difficulty: calculateEnglishDifficulty(redditContent)
       }
 
     case 'twitter':
+      const twitterContent = post.text || ''
       return {
         ...basePost,
         id: post.id || 'unknown',
@@ -61,10 +136,12 @@ const normalizePost = (post, source) => {
         author: 'Twitter User',
         publishedAt: new Date(post.timestamp ? post.timestamp * 1000 : Date.now()),
         image: null,
-        tags: ['twitter']
+        tags: ['twitter'],
+        difficulty: calculateEnglishDifficulty(twitterContent)
       }
 
     case 'instagram':
+      const instagramContent = post.caption?.text || ''
       return {
         ...basePost,
         id: post.id || post.pk,
@@ -74,7 +151,8 @@ const normalizePost = (post, source) => {
         author: post.user?.username || 'Unknown',
         publishedAt: new Date((post.taken_at || post.device_timestamp) * 1000),
         image: post.image_versions2?.candidates?.[0]?.url || post.thumbnail_url || null,
-        tags: ['instagram', ...(post.caption?.hashtags || [])]
+        tags: ['instagram', ...(post.caption?.hashtags || [])],
+        difficulty: calculateEnglishDifficulty(instagramContent)
       }
 
     default:

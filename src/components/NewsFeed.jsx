@@ -202,7 +202,7 @@ const NewsFeed = ({
         const enhancedPosts = realPosts.map((post) => ({
           ...post,
           tags: post.tags || ["#tech", "#news"],
-          difficulty: 3, // Default difficulty for real news (Advanced level)
+          // difficulty is now calculated by backend
           source: post.source || "reddit",
         }))
 
