@@ -85,7 +85,20 @@ const normalizePost = (post, source) => {
 // Fetch from individual sources
 async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null) {
   try {
-    const subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese']
+    // Determine subreddits based on query
+    let subreddits;
+    switch (query.toLowerCase()) {
+      case 'korea':
+        subreddits = ['korea', 'korean', 'southkorea', 'seoul', 'hanguk'];
+        break;
+      case 'japan':
+        subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese'];
+        break;
+      default:
+        // Default to japan for now
+        subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese'];
+        break;
+    }
     const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]
 
     let url

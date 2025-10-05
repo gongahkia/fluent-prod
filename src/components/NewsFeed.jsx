@@ -96,20 +96,26 @@ const NewsFeed = ({
 
       for (const post of postsToProcess) {
         try {
+          // Check if post already contains target language
+          const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
+          const containsTargetLang = translationService.containsTargetLanguage(post.title, targetLangCode)
+
           // Only process English content and create mixed content
           // Ensure we actually create mixed content for English posts
-          const processedTitle = translationService.containsJapanese(post.title)
+          const processedTitle = containsTargetLang
             ? post.title
             : await translationService.createMixedLanguageContent(
                 post.title,
-                userProfile.learningLevel
+                userProfile.learningLevel,
+                targetLangCode
               )
 
           const processedContent =
-            post.content && !translationService.containsJapanese(post.content)
+            post.content && !translationService.containsTargetLanguage(post.content, targetLangCode)
               ? await translationService.createMixedLanguageContent(
                   post.content,
-                  userProfile.learningLevel
+                  userProfile.learningLevel,
+                  targetLangCode
                 )
               : post.content
 
@@ -170,9 +176,23 @@ const NewsFeed = ({
           )
         }
 
+        // Determine query based on target language
+        let defaultQuery;
+        switch (userProfile?.targetLanguage) {
+          case 'Korean':
+            defaultQuery = 'korea';
+            break;
+          case 'Japanese':
+            defaultQuery = 'japan';
+            break;
+          default:
+            defaultQuery = 'japan'; // Fallback to japan for now
+            break;
+        }
+
         const realPosts = await fetchPosts({
           sources: enabledSources,
-          query: 'japan',
+          query: defaultQuery,
           limit: isLoadMore ? 10 : 20, // Load 10 more posts when loading more, 20 on initial load
           shuffle: true,
           searchQuery: activeSearchQuery && activeSearchQuery.trim() ? activeSearchQuery.trim() : null,
@@ -312,41 +332,80 @@ const NewsFeed = ({
 
   const handleAddToDictionary = () => {
     if (selectedWord) {
+      const targetLang = userProfile?.targetLanguage || 'Japanese'
       let wordToAdd
 
-      if (selectedWord.showJapaneseTranslation) {
-        // English word - add the Japanese translation to dictionary
-        wordToAdd = {
-          japanese: selectedWord.english, // Japanese translation
-          hiragana: selectedWord.hiragana, // Katakana pronunciation
-          english: selectedWord.japanese, // Original English word
-          level: selectedWord.level,
-          example: selectedWord.example,
-          exampleEn: selectedWord.exampleEn,
-          source: "Influent Post",
+      if (targetLang === 'Korean') {
+        if (selectedWord.showKoreanTranslation) {
+          // English word - add the Korean translation to dictionary
+          wordToAdd = {
+            korean: selectedWord.english, // Korean translation
+            romanization: selectedWord.romanization,
+            english: selectedWord.korean, // Original English word
+            level: selectedWord.level,
+            example: selectedWord.example,
+            exampleEn: selectedWord.exampleEn,
+            source: "Influent Post",
+          }
+        } else {
+          // Korean word - add normally
+          wordToAdd = {
+            korean: selectedWord.korean,
+            romanization: selectedWord.romanization,
+            english: selectedWord.english,
+            level: selectedWord.level,
+            example: selectedWord.example,
+            exampleEn: selectedWord.exampleEn,
+            source: "Influent Post",
+          }
+        }
+
+        const exists = userDictionary.some(
+          (word) => word.korean === wordToAdd.korean
+        )
+
+        if (!exists) {
+          onAddWordToDictionary(wordToAdd)
+          showFeedback("Added to dictionary! ✓", "📚")
+        } else {
+          showFeedback("Already in dictionary!", "📖")
         }
       } else {
-        // Japanese word - add normally
-        wordToAdd = {
-          japanese: selectedWord.japanese,
-          hiragana: selectedWord.hiragana,
-          english: selectedWord.english,
-          level: selectedWord.level,
-          example: selectedWord.example,
-          exampleEn: selectedWord.exampleEn,
-          source: "Influent Post",
+        // Japanese
+        if (selectedWord.showJapaneseTranslation) {
+          // English word - add the Japanese translation to dictionary
+          wordToAdd = {
+            japanese: selectedWord.english, // Japanese translation
+            hiragana: selectedWord.hiragana, // Katakana pronunciation
+            english: selectedWord.japanese, // Original English word
+            level: selectedWord.level,
+            example: selectedWord.example,
+            exampleEn: selectedWord.exampleEn,
+            source: "Influent Post",
+          }
+        } else {
+          // Japanese word - add normally
+          wordToAdd = {
+            japanese: selectedWord.japanese,
+            hiragana: selectedWord.hiragana,
+            english: selectedWord.english,
+            level: selectedWord.level,
+            example: selectedWord.example,
+            exampleEn: selectedWord.exampleEn,
+            source: "Influent Post",
+          }
         }
-      }
 
-      const exists = userDictionary.some(
-        (word) => word.japanese === wordToAdd.japanese
-      )
+        const exists = userDictionary.some(
+          (word) => word.japanese === wordToAdd.japanese
+        )
 
-      if (!exists) {
-        onAddWordToDictionary(wordToAdd)
-        showFeedback("Added to dictionary! ✓", "📚")
-      } else {
-        showFeedback("Already in dictionary!", "📖")
+        if (!exists) {
+          onAddWordToDictionary(wordToAdd)
+          showFeedback("Added to dictionary! ✓", "📚")
+        } else {
+          showFeedback("Already in dictionary!", "📖")
+        }
       }
     }
   }
@@ -434,7 +493,8 @@ const NewsFeed = ({
       isJapanese,
       context,
       null,
-      setIsTranslating
+      setIsTranslating,
+      userProfile?.targetLanguage || 'Japanese'
     )
   }
 
@@ -729,9 +789,14 @@ const NewsFeed = ({
         const stateKey = postId ? `${postId}-${wordData.index}` : null
         const isToggled = stateKey ? translationStates[stateKey] : false
 
-        // Determine what to show: if toggled, flip the default; if not toggled, use default
-        const showJapanese = isToggled ? !wordData.showJapanese : wordData.showJapanese
-        const displayText = showJapanese ? wordData.translation : wordData.original
+        // Determine what to show based on target language
+        const showTargetLang = wordData.showJapanese || wordData.showKorean
+        const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
+        const displayText = isShowingTargetLang ? wordData.translation : wordData.original
+
+        // Determine language flag
+        const targetLangFlag = wordData.showKorean ? '🇰🇷' : '🇯🇵'
+        const targetLangName = wordData.showKorean ? 'Korean' : 'Japanese'
 
         parts.push(
           <span
@@ -739,12 +804,12 @@ const NewsFeed = ({
             className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
             onClick={() => {
               if (postId) toggleTranslation(postId, wordData.index)
-              handleWordClick(showJapanese ? wordData.translation : wordData.original, showJapanese, remainingText)
+              handleWordClick(isShowingTargetLang ? wordData.translation : wordData.original, isShowingTargetLang, remainingText)
             }}
             title={
-              showJapanese
-                ? `🇯🇵 Japanese: Click to see English "${wordData.original}"`
-                : `📚 English: Click to see Japanese "${wordData.translation}"`
+              isShowingTargetLang
+                ? `${targetLangFlag} ${targetLangName}: Click to see English "${wordData.original}"`
+                : `📚 English: Click to see ${targetLangName} "${wordData.translation}"`
             }
             style={{ textDecoration: "none" }}
           >
@@ -775,6 +840,7 @@ const NewsFeed = ({
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
         segment
       )
+      const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
@@ -811,6 +877,20 @@ const NewsFeed = ({
                 </span>
               )
             })}
+          </span>
+        )
+      } else if (hasKorean) {
+        // Korean text - make it clickable
+        return (
+          <span key={segmentIndex}>
+            <span
+              className="cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
+              onClick={() => handleWordClick(segment, true, segment)}
+              title={`🇰🇷 Korean: Click to see English "${segment}"`}
+              style={{ textDecoration: "none" }}
+            >
+              {segment}
+            </span>
           </span>
         )
       } else if (hasEnglish) {
@@ -965,7 +1045,7 @@ const NewsFeed = ({
         )}
       </div>
 
-      {/* Japanese Word Learning Popup */}
+      {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -984,48 +1064,96 @@ const NewsFeed = ({
               </div>
             ) : !feedbackMessage ? (
               <div className="text-center">
-                {/* Word Display - handles both Japanese and English words bidirectionally */}
+                {/* Word Display - handles both target language and English words bidirectionally */}
                 <div className="mb-4">
-                  {selectedWord.showJapaneseTranslation ? (
-                    // English word clicked -> show Japanese translation
-                    <>
-                      <div className="text-sm text-gray-500 mb-1">
-                        English word:
-                      </div>
-                      <div className="text-2xl font-bold text-blue-600 mb-2">
-                        {selectedWord.english}
-                      </div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        Japanese translation:
-                      </div>
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {selectedWord.japanese}
-                      </div>
-                      <div className="text-lg text-gray-600 mb-2">
-                        {selectedWord.hiragana}
-                      </div>
-                    </>
+                  {userProfile?.targetLanguage === 'Korean' ? (
+                    // Korean mode
+                    selectedWord.showKoreanTranslation ? (
+                      // English word clicked -> show Korean translation
+                      <>
+                        <div className="text-sm text-gray-500 mb-1">
+                          English word:
+                        </div>
+                        <div className="text-2xl font-bold text-blue-600 mb-2">
+                          {selectedWord.english}
+                        </div>
+                        <div className="text-sm text-gray-500 mb-1">
+                          Korean translation:
+                        </div>
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {selectedWord.korean}
+                        </div>
+                        {selectedWord.romanization && (
+                          <div className="text-lg text-gray-600 mb-2">
+                            {selectedWord.romanization}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // Korean word clicked -> show English translation
+                      <>
+                        <div className="text-sm text-gray-500 mb-1">
+                          Korean word:
+                        </div>
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {selectedWord.korean}
+                        </div>
+                        {selectedWord.romanization && selectedWord.romanization !== selectedWord.korean && (
+                          <div className="text-lg text-gray-600 mb-2">
+                            {selectedWord.romanization}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-500 mb-1">
+                          English translation:
+                        </div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {selectedWord.english}
+                        </div>
+                      </>
+                    )
                   ) : (
-                    // Japanese word clicked -> show English translation
-                    <>
-                      <div className="text-sm text-gray-500 mb-1">
-                        Japanese word:
-                      </div>
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {selectedWord.japanese}
-                      </div>
-                      {selectedWord.hiragana !== selectedWord.japanese && (
+                    // Japanese mode
+                    selectedWord.showJapaneseTranslation ? (
+                      // English word clicked -> show Japanese translation
+                      <>
+                        <div className="text-sm text-gray-500 mb-1">
+                          English word:
+                        </div>
+                        <div className="text-2xl font-bold text-blue-600 mb-2">
+                          {selectedWord.english}
+                        </div>
+                        <div className="text-sm text-gray-500 mb-1">
+                          Japanese translation:
+                        </div>
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {selectedWord.japanese}
+                        </div>
                         <div className="text-lg text-gray-600 mb-2">
                           {selectedWord.hiragana}
                         </div>
-                      )}
-                      <div className="text-sm text-gray-500 mb-1">
-                        English translation:
-                      </div>
-                      <div className="text-2xl font-bold text-green-600">
-                        {selectedWord.english}
-                      </div>
-                    </>
+                      </>
+                    ) : (
+                      // Japanese word clicked -> show English translation
+                      <>
+                        <div className="text-sm text-gray-500 mb-1">
+                          Japanese word:
+                        </div>
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {selectedWord.japanese}
+                        </div>
+                        {selectedWord.hiragana !== selectedWord.japanese && (
+                          <div className="text-lg text-gray-600 mb-2">
+                            {selectedWord.hiragana}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-500 mb-1">
+                          English translation:
+                        </div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {selectedWord.english}
+                        </div>
+                      </>
+                    )
                   )}
                 </div>
 
@@ -1082,12 +1210,24 @@ const NewsFeed = ({
 
                 {/* Dictionary Status */}
                 {(() => {
-                  const wordToCheck = selectedWord.showJapaneseTranslation
-                    ? selectedWord.english
-                    : selectedWord.japanese
-                  const isInDictionary = userDictionary.some(
-                    (word) => word.japanese === wordToCheck
-                  )
+                  let wordToCheck, isInDictionary;
+
+                  if (userProfile?.targetLanguage === 'Korean') {
+                    wordToCheck = selectedWord.showKoreanTranslation
+                      ? selectedWord.english
+                      : selectedWord.korean
+                    isInDictionary = userDictionary.some(
+                      (word) => word.korean === wordToCheck
+                    )
+                  } else {
+                    wordToCheck = selectedWord.showJapaneseTranslation
+                      ? selectedWord.english
+                      : selectedWord.japanese
+                    isInDictionary = userDictionary.some(
+                      (word) => word.japanese === wordToCheck
+                    )
+                  }
+
                   return (
                     isInDictionary && (
                       <div className="mt-3 text-sm text-green-600 flex items-center justify-center space-x-1">

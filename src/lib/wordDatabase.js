@@ -15,11 +15,17 @@ export const handleWordClick = async (
   isJapanese = null,
   context = null,
   contextTranslation = null,
-  setLoading = null
+  setLoading = null,
+  targetLanguage = 'Japanese' // Add target language parameter
 ) => {
-  // Auto-detect if word is Japanese or English if not specified
-  if (isJapanese === null) {
-    isJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word)
+  // Auto-detect if word is in target language or English if not specified
+  let isTargetLang = isJapanese
+  if (isTargetLang === null) {
+    if (targetLanguage === 'Korean') {
+      isTargetLang = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(word)
+    } else {
+      isTargetLang = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word)
+    }
   }
 
   // Clean the word (remove punctuation)
@@ -40,24 +46,26 @@ export const handleWordClick = async (
       contextTranslationResult,
       isVocabularyWord = false
 
-    if (isJapanese) {
-      // Japanese to English
+    const langCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
+
+    if (isTargetLang) {
+      // Target language to English
       translation = await translationService.translateText(
         cleanWord,
-        "ja",
+        langCode,
         "en"
       )
-      pronunciation = cleanWord // Use the original Japanese text as pronunciation
+      pronunciation = cleanWord // Use the original text as pronunciation
 
       if (context && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
           context,
-          "ja",
+          langCode,
           "en"
         )
       }
     } else {
-      // English to Japanese with vocabulary detection
+      // English to target language with vocabulary detection
 
       // First check if this is a vocabulary word worth learning
       if (vocabularyService.isValidVocabularyWord(cleanWord)) {
@@ -69,24 +77,38 @@ export const handleWordClick = async (
         )
 
         if (vocabData && vocabData.isVocabulary) {
-          translation = vocabData.japanese
-          pronunciation = vocabData.japanese // Use Japanese translation as pronunciation
+          // Translate to target language
+          translation = await translationService.translateText(
+            cleanWord,
+            "en",
+            langCode
+          )
+          pronunciation = translation
           isVocabularyWord = true
 
-          setSelectedWord({
-            japanese: translation,
-            hiragana: pronunciation,
+          const wordData = {
             english: cleanWord,
             level: vocabData.level || 5,
             example: context || `Example with "${cleanWord}".`,
             exampleEn: context || `Example with "${cleanWord}".`,
             original: cleanWord,
-            isJapanese: false,
-            showJapaneseTranslation: true, // Shows Japanese when clicked English
             isApiTranslated: true,
             isVocabulary: true,
             wordType: vocabData.type || "unknown",
-          })
+          }
+
+          if (targetLanguage === 'Korean') {
+            wordData.korean = translation
+            wordData.romanization = pronunciation
+            wordData.showKoreanTranslation = true
+          } else {
+            wordData.japanese = translation
+            wordData.hiragana = pronunciation
+            wordData.showJapaneseTranslation = true
+            wordData.isJapanese = false
+          }
+
+          setSelectedWord(wordData)
 
           if (setLoading) {
             setLoading(false)
@@ -99,15 +121,15 @@ export const handleWordClick = async (
       translation = await translationService.translateText(
         cleanWord,
         "en",
-        "ja"
+        langCode
       )
-      pronunciation = translation // Use Japanese translation as pronunciation
+      pronunciation = translation
 
       if (context && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
           context,
           "en",
-          "ja"
+          langCode
         )
       }
     }
@@ -115,41 +137,59 @@ export const handleWordClick = async (
     // Simple level estimation based on word length
     const level = cleanWord.length <= 4 ? 3 : cleanWord.length <= 7 ? 5 : 7
 
-    setSelectedWord({
-      japanese: isJapanese ? cleanWord : translation,
-      hiragana: pronunciation,
-      english: isJapanese ? translation : cleanWord,
+    const wordData = {
+      english: isTargetLang ? translation : cleanWord,
       level: level,
       example: context || `Example with "${cleanWord}".`,
       exampleEn:
         contextTranslationResult ||
         contextTranslation ||
-        (isJapanese
+        (isTargetLang
           ? `Example with ${cleanWord}.`
-          : `「${cleanWord}」を使った例文。`),
+          : `Example with "${cleanWord}".`),
       original: cleanWord,
-      isJapanese: isJapanese,
-      showJapaneseTranslation: !isJapanese,
-      isApiTranslated: true, // Flag to indicate this came from API
+      isApiTranslated: true,
       isVocabulary: isVocabularyWord,
-    })
+    }
+
+    if (targetLanguage === 'Korean') {
+      wordData.korean = isTargetLang ? cleanWord : translation
+      wordData.romanization = pronunciation
+      wordData.showKoreanTranslation = !isTargetLang
+    } else {
+      wordData.japanese = isTargetLang ? cleanWord : translation
+      wordData.hiragana = pronunciation
+      wordData.isJapanese = isTargetLang
+      wordData.showJapaneseTranslation = !isTargetLang
+    }
+
+    setSelectedWord(wordData)
   } catch (error) {
     console.error("Translation API failed:", error)
 
     // Show error message - don't pretend we have a translation
-    setSelectedWord({
-      japanese: isJapanese ? cleanWord : "⚠️ Translation failed",
-      hiragana: "Translation service unavailable",
-      english: isJapanese ? "⚠️ Translation failed" : cleanWord,
+    const errorData = {
+      english: isTargetLang ? "⚠️ Translation failed" : cleanWord,
       level: 5,
       example: context || `"${cleanWord}"`,
       exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
       original: cleanWord,
-      isJapanese: isJapanese,
-      showJapaneseTranslation: !isJapanese,
-      isApiFallback: true, // Flag to indicate API failed
+      isApiFallback: true,
       error: true
-    })
+    }
+
+    if (targetLanguage === 'Korean') {
+      errorData.korean = isTargetLang ? cleanWord : "⚠️ Translation failed"
+      errorData.romanization = "Translation service unavailable"
+      errorData.showKoreanTranslation = !isTargetLang
+    } else {
+      errorData.japanese = isTargetLang ? cleanWord : "⚠️ Translation failed"
+      errorData.hiragana = "Translation service unavailable"
+      errorData.isJapanese = isTargetLang
+      errorData.showJapaneseTranslation = !isTargetLang
+    }
+
+    setSelectedWord(errorData)
   } finally {
     // Clear loading state
     if (setLoading) {

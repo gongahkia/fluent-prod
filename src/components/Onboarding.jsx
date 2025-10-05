@@ -21,7 +21,7 @@ const Onboarding = ({ onComplete }) => {
   }
 
   // Sample Japanese post for the demo
-  const originalPost = {
+  const originalJapanesePost = {
     author: "田中雪",
     location: "渋谷、東京",
     time: "2時間前",
@@ -31,7 +31,7 @@ const Onboarding = ({ onComplete }) => {
       "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop",
   }
 
-  const translatedPost = {
+  const translatedJapanesePost = {
     author: "Yuki Tanaka",
     location: "Shibuya, Tokyo",
     time: "2 hours ago",
@@ -41,7 +41,28 @@ const Onboarding = ({ onComplete }) => {
       "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop",
   }
 
-  const getInterpolatedContent = (level) => {
+  // Sample Korean post for the demo
+  const originalKoreanPost = {
+    author: "김민지",
+    location: "강남, 서울",
+    time: "2시간 전",
+    content:
+      "오늘 친구들과 새로운 카페에 갔어요. 정말 맛있었어요! 카페 분위기도 너무 좋아서 다시 가고 싶어요. 여러분께도 추천해요.",
+    image:
+      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=200&fit=crop",
+  }
+
+  const translatedKoreanPost = {
+    author: "Minji Kim",
+    location: "Gangnam, Seoul",
+    time: "2 hours ago",
+    content:
+      "Today I went to a new cafe with my friends. It was really delicious! The cafe atmosphere was also very nice, so I want to go again. I recommend it to you all too.",
+    image:
+      "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=200&fit=crop",
+  }
+
+  const getInterpolatedJapaneseContent = (level) => {
     const words = [
       { jp: "今日は", en: "Today" },
       { jp: "友達と", en: "with friends" },
@@ -67,6 +88,38 @@ const Onboarding = ({ onComplete }) => {
         result += word.en + " "
       } else {
         result += word.jp + " "
+      }
+    })
+
+    return result.trim()
+  }
+
+  const getInterpolatedKoreanContent = (level) => {
+    const words = [
+      { kr: "오늘", en: "Today" },
+      { kr: "친구들과", en: "with friends" },
+      { kr: "새로운", en: "new" },
+      { kr: "카페에", en: "cafe" },
+      { kr: "갔어요", en: "went to" },
+      { kr: "정말", en: "really" },
+      { kr: "맛있었어요", en: "delicious" },
+      { kr: "카페", en: "cafe" },
+      { kr: "분위기도", en: "atmosphere" },
+      { kr: "너무", en: "very" },
+      { kr: "좋아서", en: "nice" },
+      { kr: "다시", en: "again" },
+      { kr: "가고 싶어요", en: "want to go" },
+      { kr: "여러분께도", en: "to you all" },
+      { kr: "추천해요", en: "recommend" },
+    ]
+
+    let result = ""
+    words.forEach((word, index) => {
+      const threshold = ((index + 1) / words.length) * 5 // Convert to 1-5 scale
+      if (level >= threshold) {
+        result += word.en + " "
+      } else {
+        result += word.kr + " "
       }
     })
 
@@ -254,38 +307,56 @@ const Onboarding = ({ onComplete }) => {
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-orange-700">
-                    YT
+                    {targetLanguage === "Korean" ? "MK" : "YT"}
                   </span>
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {translationLevel >= 4
-                      ? translatedPost.author
-                      : originalPost.author}
+                    {targetLanguage === "Korean"
+                      ? translationLevel >= 4
+                        ? translatedKoreanPost.author
+                        : originalKoreanPost.author
+                      : translationLevel >= 4
+                        ? translatedJapanesePost.author
+                        : originalJapanesePost.author}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {translationLevel >= 4
-                      ? translatedPost.location
-                      : originalPost.location}{" "}
+                    {targetLanguage === "Korean"
+                      ? translationLevel >= 4
+                        ? translatedKoreanPost.location
+                        : originalKoreanPost.location
+                      : translationLevel >= 4
+                        ? translatedJapanesePost.location
+                        : originalJapanesePost.location}{" "}
                     •{" "}
-                    {translationLevel >= 4
-                      ? translatedPost.time
-                      : originalPost.time}
+                    {targetLanguage === "Korean"
+                      ? translationLevel >= 4
+                        ? translatedKoreanPost.time
+                        : originalKoreanPost.time
+                      : translationLevel >= 4
+                        ? translatedJapanesePost.time
+                        : originalJapanesePost.time}
                   </div>
                 </div>
               </div>
 
               <p className="text-gray-800 mb-4 leading-relaxed">
-                {translationLevel === 1
-                  ? originalPost.content
-                  : translationLevel === 5
-                    ? translatedPost.content
-                    : getInterpolatedContent(translationLevel)}
+                {targetLanguage === "Korean"
+                  ? translationLevel === 1
+                    ? originalKoreanPost.content
+                    : translationLevel === 5
+                      ? translatedKoreanPost.content
+                      : getInterpolatedKoreanContent(translationLevel)
+                  : translationLevel === 1
+                    ? originalJapanesePost.content
+                    : translationLevel === 5
+                      ? translatedJapanesePost.content
+                      : getInterpolatedJapaneseContent(translationLevel)}
               </p>
 
               <img
-                src={originalPost.image}
-                alt="Ramen"
+                src={targetLanguage === "Korean" ? originalKoreanPost.image : originalJapanesePost.image}
+                alt={targetLanguage === "Korean" ? "Cafe" : "Ramen"}
                 className="w-full h-48 object-cover rounded-lg"
               />
             </div>
@@ -294,7 +365,7 @@ const Onboarding = ({ onComplete }) => {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">
-                  Beginner (Japanese)
+                  Beginner ({targetLanguage === "Korean" ? "Korean" : "Japanese"})
                 </span>
                 <span className="text-sm text-gray-600">
                   Native (English)

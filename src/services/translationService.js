@@ -61,14 +61,15 @@ class TranslationService {
    * Create mixed language content for learning
    * @param {string} text - Text to process
    * @param {number} userLevel - User's learning level (1-10)
+   * @param {string} targetLang - Target language code (default: 'ja')
    * @returns {Promise<string>} JSON string with text and metadata
    */
-  async createMixedLanguageContent(text, userLevel = 5) {
+  async createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja') {
     try {
       const response = await fetch(`${API_BASE_URL}/api/translate/mixed-content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, userLevel })
+        body: JSON.stringify({ text, userLevel, targetLang })
       })
 
       if (!response.ok) {

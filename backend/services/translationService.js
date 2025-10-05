@@ -157,7 +157,7 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
 }
 
 // Create mixed language content
-export async function createMixedLanguageContent(text, userLevel = 5) {
+export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja') {
   if (!text || typeof text !== 'string') {
     throw new Error('Invalid text input')
   }
@@ -175,7 +175,8 @@ export async function createMixedLanguageContent(text, userLevel = 5) {
     const result = await processSentenceForMixedContent(
       sentence,
       translationPercentage,
-      processedResult.wordMetadata.length
+      processedResult.wordMetadata.length,
+      targetLang
     )
     processedResult.text += (processedResult.text ? ' ' : '') + result.text
     processedResult.wordMetadata.push(...result.metadata)
@@ -194,7 +195,7 @@ function getTranslationPercentage(level) {
   return 0.9                        // Native - 90% translated
 }
 
-async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0) {
+async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0, targetLang = 'ja') {
   const wordPattern = /(\b\w+\b|\s+|[^\w\s])/g
   const tokens = sentence.match(wordPattern) || []
 
@@ -207,14 +208,22 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
 
   for (const token of tokens) {
     if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
-      const translationResult = await translateText(token, 'en', 'ja')
+      const translationResult = await translateText(token, 'en', targetLang)
 
-      metadata.push({
+      const metadataEntry = {
         index: wordIndex,
         original: token,
-        translation: translationResult.translation,
-        showJapanese: true
-      })
+        translation: translationResult.translation
+      }
+
+      // Add appropriate flag based on target language
+      if (targetLang === 'ko') {
+        metadataEntry.showKorean = true
+      } else {
+        metadataEntry.showJapanese = true
+      }
+
+      metadata.push(metadataEntry)
 
       processedTokens.push(`{{WORD:${wordIndex}}}`)
       wordIndex++
