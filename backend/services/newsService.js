@@ -167,10 +167,10 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     let subreddits;
     switch (query.toLowerCase()) {
       case 'korea':
-        subreddits = ['korea', 'korean', 'southkorea', 'seoul', 'hanguk'];
+        subreddits = ['korea', 'korean', 'southkorea', 'seoul', 'hanguk', 'kpop', 'koreanews', 'koreamemes'];
         break;
       case 'japan':
-        subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese'];
+        subreddits = ['japan', 'japanese', 'japanlife', 'anime', 'manga', 'jpop', 'japannews', 'japanmemes'];
         break;
       default:
         // Default to japan for now
