@@ -1,6 +1,5 @@
 import {
   Bookmark,
-  BookOpen,
   MessageCircle,
   RefreshCw,
   Settings,
@@ -12,8 +11,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import translationService from "../services/translationService"
-import vocabularyService from "../services/vocabularyService"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
+import WordLearningPopup from "./NewsFeed/WordLearningPopup"
+import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
+import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
 
 const NewsFeed = ({
@@ -355,7 +356,7 @@ const NewsFeed = ({
     }
   }
 
-  // Map 1-5 levels to names
+  // Map 1-5 levels to names - needed for post difficulty badges
   const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
   const getLevelName = (level) => {
     return levelNames[level - 1] || 'Beginner'
@@ -545,228 +546,7 @@ const NewsFeed = ({
     )
   }
 
-  // Function to segment Japanese text into meaningful words/phrases
-  const segmentJapaneseText = (text) => {
-    // Define common Japanese word patterns and boundaries
-    const wordPatterns = [
-      // Multi-character words from our database (longest first)
-      "地元の人だけが知る",
-      "何世代にもわたって",
-      "これらの",
-      "family-run",
-      "self-expression",
-      "limited-time",
-      "constantly",
-      "Traditional",
-      "businesses",
-      "generation",
-      "地元",
-      "人だけが",
-      "だけが",
-      "知る",
-      "ラーメン",
-      "東京",
-      "最も",
-      "地区",
-      "地下",
-      "探索",
-      "何世代",
-      "にもわたって",
-      "提供",
-      "してきました",
-      "若者",
-      "creativity",
-      "させています",
-      "変化",
-      "見られます",
-      "文化",
-      "伝統",
-      "桜",
-      "季節",
-      "原宿",
-      "渋谷",
-      "大阪",
-      "京都",
-      "九州",
-      "古い",
-      "生活",
-      "tradition",
-      "elements",
-      "products",
-      "visitors",
-      "attract",
-      "Young",
-      "people",
-      "Tokyo",
-      "modern",
-      "trends",
-      "fusion",
-      "Sakura",
-      "tourism",
-      "industry",
-      "massive",
-      "boost",
-      "Local",
-      "special",
-      "events",
-      "hidden",
-      "culture",
-      "business",
-      "authentic",
-      "style",
-      // Common particles and grammar
-      "の",
-      "が",
-      "は",
-      "を",
-      "に",
-      "で",
-      "と",
-      "も",
-    ]
-
-    const result = []
-    let remaining = text
-
-    while (remaining.length > 0) {
-      let matched = false
-
-      // Try to match longer patterns first
-      for (const pattern of wordPatterns.sort((a, b) => b.length - a.length)) {
-        if (remaining.startsWith(pattern)) {
-          result.push({ text: pattern, isWord: true })
-          remaining = remaining.slice(pattern.length)
-          matched = true
-          break
-        }
-      }
-
-      if (!matched) {
-        // If no pattern matches, take one character
-        result.push({ text: remaining[0], isWord: false })
-        remaining = remaining.slice(1)
-      }
-    }
-
-    return result
-  }
-
   const [translationStates, setTranslationStates] = useState({})
-
-  // Utility to decode HTML entities and clean text
-  const decodeHTMLEntities = (text) => {
-    const textarea = document.createElement('textarea')
-    textarea.innerHTML = text
-    return textarea.value
-  }
-
-  // Parse markdown-style links and format text
-  const parseMarkdownContent = (text, postId = null) => {
-    if (!text) return ""
-
-    // Decode HTML entities
-    let cleaned = decodeHTMLEntities(text)
-
-    // Split by lines to preserve paragraph structure
-    const lines = cleaned.split('\n')
-    const elements = []
-
-    lines.forEach((line, lineIndex) => {
-      if (line.trim() === '') {
-        // Empty line - add spacing
-        elements.push(<br key={`br-${lineIndex}`} />)
-        return
-      }
-
-      // Check for Reddit quote (starts with >)
-      if (line.trim().startsWith('&gt;') || line.trim().startsWith('>')) {
-        const quoteLine = line.replace(/^(&gt;|>)\s*/, '')
-        elements.push(
-          <div key={`quote-${lineIndex}`} className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">
-            {parseLineContent(quoteLine, postId)}
-          </div>
-        )
-        return
-      }
-
-      // Regular line
-      elements.push(
-        <span key={`line-${lineIndex}`}>
-          {parseLineContent(line, postId)}
-          {lineIndex < lines.length - 1 && <br />}
-        </span>
-      )
-    })
-
-    return elements
-  }
-
-  // Parse inline content (links, bold, etc.) within a line - WITH clickable words
-  const parseLineContent = (text, postId = null) => {
-    const parts = []
-    let keyCounter = 0
-
-    // Match markdown links [text](url) and plain URLs
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s]+)/g
-    let lastIndex = 0
-    let match
-
-    while ((match = linkRegex.exec(text)) !== null) {
-      // Add text before match - make it clickable for translation
-      if (match.index > lastIndex) {
-        const textBeforeLink = text.substring(lastIndex, match.index)
-        parts.push(
-          <span key={`text-${keyCounter++}`}>
-            {renderClickableText(textBeforeLink, postId)}
-          </span>
-        )
-      }
-
-      if (match[1] && match[2]) {
-        // Markdown link [text](url)
-        parts.push(
-          <a
-            key={`link-${keyCounter++}`}
-            href={match[2]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline break-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {match[1]}
-          </a>
-        )
-      } else if (match[3]) {
-        // Plain URL
-        parts.push(
-          <a
-            key={`link-${keyCounter++}`}
-            href={match[3]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline break-all"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {match[3]}
-          </a>
-        )
-      }
-
-      lastIndex = match.index + match[0].length
-    }
-
-    // Add remaining text - make it clickable for translation
-    if (lastIndex < text.length) {
-      const remainingText = text.substring(lastIndex)
-      parts.push(
-        <span key={`text-${keyCounter++}`}>
-          {renderClickableText(remainingText, postId)}
-        </span>
-      )
-    }
-
-    return parts.length > 0 ? parts : renderClickableText(text, postId)
-  }
 
   // Toggle post expansion
   const togglePostExpansion = (postId) => {
@@ -774,55 +554,6 @@ const NewsFeed = ({
       ...prev,
       [postId]: !prev[postId]
     }))
-  }
-
-  // Check if content should be truncated
-  const shouldTruncateContent = (content) => {
-    if (!content) return false
-    const wordCount = content.split(/\s+/).length
-    return wordCount > 100
-  }
-
-  // Truncate content to word limit - handles JSON from translation service
-  const truncateContent = (content, wordLimit = 100) => {
-    if (!content) return ""
-
-    // Check if content is JSON from translation service
-    try {
-      if (content.startsWith("{") && content.includes('"wordMetadata"')) {
-        const parsedData = JSON.parse(content)
-
-        if (parsedData.text && parsedData.wordMetadata) {
-          // Truncate the actual text content, not the JSON structure
-          const words = parsedData.text.split(/\s+/)
-
-          if (words.length <= wordLimit) {
-            return content // Return original JSON if under limit
-          }
-
-          // Create truncated version
-          const truncatedText = words.slice(0, wordLimit).join(' ') + '...'
-
-          // Filter metadata to only include words in the truncated text
-          const truncatedMetadata = parsedData.wordMetadata.filter(
-            wordData => truncatedText.includes(`{{WORD:${wordData.index}}}`)
-          )
-
-          // Return new JSON with truncated content
-          return JSON.stringify({
-            text: truncatedText,
-            wordMetadata: truncatedMetadata
-          })
-        }
-      }
-    } catch (e) {
-      // Not JSON, fall through to regular truncation
-    }
-
-    // Regular text truncation
-    const words = content.split(/\s+/)
-    if (words.length <= wordLimit) return content
-    return words.slice(0, wordLimit).join(' ') + '...'
   }
 
   const toggleTranslation = (postId, wordIndex) => {
@@ -833,185 +564,8 @@ const NewsFeed = ({
     }))
   }
 
-  const renderClickableText = (text, postId = null) => {
-    if (!text) return ""
-
-    // Check if text is JSON from translation service
-    let parsedData = null
-    try {
-      if (text.startsWith("{") && text.includes('"wordMetadata"')) {
-        parsedData = JSON.parse(text)
-      }
-    } catch (e) {
-      // Not JSON, continue with normal processing
-    }
-
-    if (parsedData && parsedData.text && parsedData.wordMetadata) {
-      // Process text with word metadata
-      const parts = []
-      let remainingText = parsedData.text
-      let lastIndex = 0
-
-      // Sort metadata by index to process in order
-      const sortedMetadata = [...parsedData.wordMetadata].sort((a, b) => a.index - b.index)
-
-      for (const wordData of sortedMetadata) {
-        const marker = `{{WORD:${wordData.index}}}`
-        const markerIndex = remainingText.indexOf(marker, lastIndex)
-
-        if (markerIndex === -1) continue
-
-        // Add text before this marker
-        if (markerIndex > lastIndex) {
-          parts.push(remainingText.substring(lastIndex, markerIndex))
-        }
-
-        // Check if this word has been toggled
-        const stateKey = postId ? `${postId}-${wordData.index}` : null
-        const isToggled = stateKey ? translationStates[stateKey] : false
-
-        // Determine what to show based on target language
-        const showTargetLang = wordData.showJapanese || wordData.showKorean
-        const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
-        const displayText = isShowingTargetLang ? wordData.translation : wordData.original
-
-        // Determine language flag
-        const targetLangFlag = wordData.showKorean ? '🇰🇷' : '🇯🇵'
-        const targetLangName = wordData.showKorean ? 'Korean' : 'Japanese'
-
-        parts.push(
-          <span
-            key={`word-${wordData.index}`}
-            className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
-            onClick={() => {
-              if (postId) toggleTranslation(postId, wordData.index)
-              handleWordClick(isShowingTargetLang ? wordData.translation : wordData.original, isShowingTargetLang, remainingText)
-            }}
-            title={
-              isShowingTargetLang
-                ? `${targetLangFlag} ${targetLangName}: Click to see English "${wordData.original}"`
-                : `📚 English: Click to see ${targetLangName} "${wordData.translation}"`
-            }
-            style={{ textDecoration: "none" }}
-          >
-            {displayText}
-          </span>
-        )
-
-        lastIndex = markerIndex + marker.length
-      }
-
-      // Add remaining text after last marker
-      if (lastIndex < remainingText.length) {
-        parts.push(remainingText.substring(lastIndex))
-      }
-
-      return parts.length > 0 ? parts : parsedData.text
-    }
-
-    // Split by spaces and punctuation, preserving them
-    const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
-
-    return segments.map((segment, segmentIndex) => {
-      // Keep whitespace and punctuation as-is
-      if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
-        return <span key={segmentIndex}>{segment}</span>
-      }
-
-      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
-        segment
-      )
-      const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
-      const hasEnglish = /[a-zA-Z]/.test(segment)
-
-      if (hasJapanese) {
-        // Use intelligent segmentation for Japanese text
-        const words = segmentJapaneseText(segment)
-
-        return (
-          <span key={segmentIndex}>
-            {words.map((wordObj, wordIndex) => {
-              const { text } = wordObj
-
-              // Check if this Japanese word came from translation (should be highlighted differently)
-              const isTranslatedWord =
-                /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text) &&
-                text.length > 1
-
-              return (
-                <span
-                  key={`${segmentIndex}-${wordIndex}`}
-                  className={
-                    isTranslatedWord
-                      ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
-                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
-                  }
-                  onClick={() => handleWordClick(text, true, text)}
-                  title={
-                    isTranslatedWord
-                      ? `🇯🇵 Translated: Click to see English "${text}"`
-                      : `Click to learn: ${text}`
-                  }
-                  style={{ textDecoration: "none" }}
-                >
-                  {text}
-                </span>
-              )
-            })}
-          </span>
-        )
-      } else if (hasKorean) {
-        // Korean text - make it clickable
-        return (
-          <span key={segmentIndex}>
-            <span
-              className="cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
-              onClick={() => handleWordClick(segment, true, segment)}
-              title={`🇰🇷 Korean: Click to see English "${segment}"`}
-              style={{ textDecoration: "none" }}
-            >
-              {segment}
-            </span>
-          </span>
-        )
-      } else if (hasEnglish) {
-        // Enhanced English word handling with vocabulary detection
-        const cleanWord = segment.trim().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
-
-        // Skip if empty after cleaning
-        if (!cleanWord) {
-          return <span key={segmentIndex}>{segment}</span>
-        }
-
-        const isVocabularyWord =
-          vocabularyService.isValidVocabularyWord(cleanWord)
-
-        // Different styling for vocabulary vs regular words
-        const vocabularyClasses = isVocabularyWord
-          ? "cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
-          : "cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
-
-        const vocabularyTitle = isVocabularyWord
-          ? `📚 Vocabulary: Click to learn "${cleanWord}"`
-          : `Click to translate: ${cleanWord}`
-
-        return (
-          <span key={segmentIndex}>
-            <span
-              className={vocabularyClasses}
-              onClick={() => handleWordClick(cleanWord, false, text)}
-              title={vocabularyTitle}
-              style={{ textDecoration: "none" }}
-            >
-              {segment}
-            </span>
-          </span>
-        )
-      }
-
-      return <span key={segmentIndex}>{segment}</span>
-    })
-  }
+  // Create renderClickableText function using the factory
+  const renderClickableText = createRenderClickableText(translationStates, toggleTranslation, handleWordClick)
 
   if (!selectedCountry) {
     return (
@@ -1125,207 +679,19 @@ const NewsFeed = ({
 
       {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => {
+        <WordLearningPopup
+          selectedWord={selectedWord}
+          isTranslating={isTranslating}
+          feedbackMessage={feedbackMessage}
+          userProfile={userProfile}
+          userDictionary={userDictionary}
+          onClose={() => {
             setSelectedWord(null)
             setIsTranslating(false)
           }}
-        >
-          <div
-            className="bg-white rounded-lg p-6 max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {isTranslating ? (
-              <div className="text-center py-8">
-                <LoadingSpinner size="lg" text="Translating..." />
-              </div>
-            ) : !feedbackMessage ? (
-              <div className="text-center">
-                {/* Word Display - handles both target language and English words bidirectionally */}
-                <div className="mb-4">
-                  {userProfile?.targetLanguage === 'Korean' ? (
-                    // Korean mode
-                    selectedWord.showKoreanTranslation ? (
-                      // English word clicked -> show Korean translation
-                      <>
-                        <div className="text-sm text-gray-500 mb-1">
-                          English word:
-                        </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-2">
-                          {selectedWord.english}
-                        </div>
-                        <div className="text-sm text-gray-500 mb-1">
-                          Korean translation:
-                        </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                          {selectedWord.korean}
-                        </div>
-                        {selectedWord.romanization && (
-                          <div className="text-lg text-gray-600 mb-2">
-                            {selectedWord.romanization}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      // Korean word clicked -> show English translation
-                      <>
-                        <div className="text-sm text-gray-500 mb-1">
-                          Korean word:
-                        </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                          {selectedWord.korean}
-                        </div>
-                        {selectedWord.romanization && selectedWord.romanization !== selectedWord.korean && (
-                          <div className="text-lg text-gray-600 mb-2">
-                            {selectedWord.romanization}
-                          </div>
-                        )}
-                        <div className="text-sm text-gray-500 mb-1">
-                          English translation:
-                        </div>
-                        <div className="text-2xl font-bold text-green-600">
-                          {selectedWord.english}
-                        </div>
-                      </>
-                    )
-                  ) : (
-                    // Japanese mode
-                    selectedWord.showJapaneseTranslation ? (
-                      // English word clicked -> show Japanese translation
-                      <>
-                        <div className="text-sm text-gray-500 mb-1">
-                          English word:
-                        </div>
-                        <div className="text-2xl font-bold text-blue-600 mb-2">
-                          {selectedWord.english}
-                        </div>
-                        <div className="text-sm text-gray-500 mb-1">
-                          Japanese translation:
-                        </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                          {selectedWord.japanese}
-                        </div>
-                        <div className="text-lg text-gray-600 mb-2">
-                          {selectedWord.hiragana}
-                        </div>
-                      </>
-                    ) : (
-                      // Japanese word clicked -> show English translation
-                      <>
-                        <div className="text-sm text-gray-500 mb-1">
-                          Japanese word:
-                        </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                          {selectedWord.japanese}
-                        </div>
-                        {selectedWord.hiragana !== selectedWord.japanese && (
-                          <div className="text-lg text-gray-600 mb-2">
-                            {selectedWord.hiragana}
-                          </div>
-                        )}
-                        <div className="text-sm text-gray-500 mb-1">
-                          English translation:
-                        </div>
-                        <div className="text-2xl font-bold text-green-600">
-                          {selectedWord.english}
-                        </div>
-                      </>
-                    )
-                  )}
-                </div>
-
-                {/* Level Badge */}
-                {selectedWord.level && (
-                  <div className="mb-4 flex items-center space-x-2">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}
-                    >
-                      {getLevelName(selectedWord.level)}
-                    </span>
-                    {selectedWord.isVocabulary && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                        📚 Vocabulary Word
-                      </span>
-                    )}
-                    {selectedWord.wordType && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                        {selectedWord.wordType}
-                      </span>
-                    )}
-                    {selectedWord.isApiTranslated &&
-                      !selectedWord.isVocabulary && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          🌐 Live Translation
-                        </span>
-                      )}
-                    {selectedWord.isApiFallback && (
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                        ⚠️ Basic Translation
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Context section removed as requested */}
-
-                {/* Action Buttons */}
-                <div className="space-y-2">
-                  <button
-                    className="w-full bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
-                    onClick={handleMastered}
-                  >
-                    Mastered! ✨
-                  </button>
-                  <button
-                    className="w-full bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
-                    onClick={handleAddToDictionary}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Add to My Dictionary</span>
-                  </button>
-                </div>
-
-                {/* Dictionary Status */}
-                {(() => {
-                  let wordToCheck, isInDictionary;
-
-                  if (userProfile?.targetLanguage === 'Korean') {
-                    wordToCheck = selectedWord.showKoreanTranslation
-                      ? selectedWord.english
-                      : selectedWord.korean
-                    isInDictionary = userDictionary.some(
-                      (word) => word.korean === wordToCheck
-                    )
-                  } else {
-                    wordToCheck = selectedWord.showJapaneseTranslation
-                      ? selectedWord.english
-                      : selectedWord.japanese
-                    isInDictionary = userDictionary.some(
-                      (word) => word.japanese === wordToCheck
-                    )
-                  }
-
-                  return (
-                    isInDictionary && (
-                      <div className="mt-3 text-sm text-green-600 flex items-center justify-center space-x-1">
-                        <span>✓</span>
-                        <span>Already in your dictionary</span>
-                      </div>
-                    )
-                  )
-                })()}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">{feedbackMessage.icon}</div>
-                <div className="text-xl font-semibold text-gray-900">
-                  {feedbackMessage.message}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+          onAddToDictionary={handleAddToDictionary}
+          onMastered={handleMastered}
+        />
       )}
 
       {/* Error State */}
@@ -1464,9 +830,9 @@ const NewsFeed = ({
                   {article.content ? (
                     <>
                       {expandedPosts[article.id] || !shouldTruncateContent(article.content) ? (
-                        <div>{parseMarkdownContent(article.content, `${article.id}-content`)}</div>
+                        <div>{parseMarkdownContent(article.content, `${article.id}-content`, renderClickableText)}</div>
                       ) : (
-                        <div>{parseMarkdownContent(truncateContent(article.content), `${article.id}-content`)}</div>
+                        <div>{parseMarkdownContent(truncateContent(article.content), `${article.id}-content`, renderClickableText)}</div>
                       )}
                       {shouldTruncateContent(article.content) && (
                         <button

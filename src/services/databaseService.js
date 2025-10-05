@@ -13,6 +13,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { isFirebaseBlocked, getFirebaseErrorMessage, retryFirebaseOperation } from '@/utils/firebaseErrorHandler'
 
 // ================== USER PROFILE OPERATIONS ==================
 
@@ -40,7 +41,7 @@ export const createUserProfile = async (userId, profileData) => {
 export const getUserProfile = async (userId) => {
   try {
     const userRef = doc(db, 'users', userId)
-    const userSnap = await getDoc(userRef)
+    const userSnap = await retryFirebaseOperation(() => getDoc(userRef))
 
     if (userSnap.exists()) {
       return { success: true, data: userSnap.data() }
@@ -48,6 +49,18 @@ export const getUserProfile = async (userId) => {
     return { success: false, error: 'User profile not found' }
   } catch (error) {
     console.error('Error getting user profile:', error)
+
+    // Check if Firebase is blocked
+    if (isFirebaseBlocked(error)) {
+      const errorInfo = getFirebaseErrorMessage(error)
+      return {
+        success: false,
+        error: errorInfo.message,
+        blocked: true,
+        errorInfo
+      }
+    }
+
     return { success: false, error: error.message }
   }
 }
@@ -130,7 +143,7 @@ export const addWordToDictionary = async (userId, wordData) => {
 export const getUserDictionary = async (userId) => {
   try {
     const dictionaryRef = collection(db, 'users', userId, 'dictionary')
-    const querySnapshot = await getDocs(dictionaryRef)
+    const querySnapshot = await retryFirebaseOperation(() => getDocs(dictionaryRef))
 
     const words = []
     querySnapshot.forEach((doc) => {
@@ -140,6 +153,18 @@ export const getUserDictionary = async (userId) => {
     return { success: true, data: words }
   } catch (error) {
     console.error('Error getting user dictionary:', error)
+
+    // Check if Firebase is blocked
+    if (isFirebaseBlocked(error)) {
+      const errorInfo = getFirebaseErrorMessage(error)
+      return {
+        success: false,
+        error: errorInfo.message,
+        blocked: true,
+        errorInfo
+      }
+    }
+
     return { success: false, error: error.message }
   }
 }

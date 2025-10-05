@@ -7,6 +7,7 @@ import NewsFeed from "./components/NewsFeed"
 import Onboarding from "./components/Onboarding"
 import Profile from "./components/Profile"
 import SavedPosts from "./components/SavedPosts"
+import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning"
 import {
   Sheet,
   SheetContent,
@@ -32,15 +33,26 @@ function App() {
   const [userDictionary, setUserDictionary] = useState([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+  const [firebaseError, setFirebaseError] = useState(null)
   const isMobile = useIsMobile()
 
   // Listen to dictionary changes in real-time
   useEffect(() => {
     if (!currentUser) return
 
-    const unsubscribe = onDictionaryChange(currentUser.uid, (words) => {
-      setUserDictionary(words)
-    })
+    const unsubscribe = onDictionaryChange(
+      currentUser.uid,
+      (words) => {
+        setUserDictionary(words)
+      },
+      (error) => {
+        // Handle Firebase errors in real-time listener
+        console.error('Dictionary listener error:', error)
+        if (error.blocked) {
+          setFirebaseError(error.errorInfo)
+        }
+      }
+    )
 
     return () => unsubscribe()
   }, [currentUser])
@@ -137,7 +149,12 @@ function App() {
     }
 
     // Add to Firestore (will trigger real-time update)
-    await addWordToDb(currentUser.uid, newWord)
+    const result = await addWordToDb(currentUser.uid, newWord)
+
+    // Check for Firebase errors
+    if (result && !result.success && result.blocked) {
+      setFirebaseError(result.errorInfo)
+    }
   }
 
   const removeWordFromDictionary = async (wordId) => {
@@ -424,6 +441,14 @@ function App() {
           userDictionary={userDictionary}
         />
       </main>
+
+      {/* Firebase Blocked Warning */}
+      {firebaseError && (
+        <FirebaseBlockedWarning
+          errorInfo={firebaseError}
+          onDismiss={() => setFirebaseError(null)}
+        />
+      )}
     </div>
   )
 }
