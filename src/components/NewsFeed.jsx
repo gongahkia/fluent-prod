@@ -34,6 +34,7 @@ const NewsFeed = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [processingPosts, setProcessingPosts] = useState(false)
+  const [minPostsLoaded, setMinPostsLoaded] = useState(false)
   const [selectedSources, setSelectedSources] = useState(["reddit"])
   const [showSettings, setShowSettings] = useState(false)
   const [apiStatus, setApiStatus] = useState({})
@@ -85,23 +86,23 @@ const NewsFeed = ({
   }, [])
 
   // Process posts with mixed language content based on user level
+  // Now processes posts in parallel and updates state progressively
   const processPostsWithMixedLanguage = useCallback(
-    async (postsToProcess) => {
+    async (postsToProcess, isLoadMore = false) => {
       if (!userProfile?.learningLevel || !postsToProcess.length) {
         return postsToProcess
       }
 
       setProcessingPosts(true)
-      const processed = []
+      const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
 
-      for (const post of postsToProcess) {
+      // Process posts asynchronously
+      const processPromises = postsToProcess.map(async (post, index) => {
         try {
           // Check if post already contains target language
-          const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
           const containsTargetLang = translationService.containsTargetLanguage(post.title, targetLangCode)
 
           // Only process English content and create mixed content
-          // Ensure we actually create mixed content for English posts
           const processedTitle = containsTargetLang
             ? post.title
             : await translationService.createMixedLanguageContent(
@@ -127,30 +128,66 @@ const NewsFeed = ({
             learningLevel: userProfile.learningLevel,
           })
 
-          processed.push({
+          const processedPost = {
             ...post,
             originalTitle: post.title,
             originalContent: post.content,
             title: processedTitle,
             content: processedContent,
             isMixedLanguage: true,
-          })
+          }
+
+          return { post: processedPost, index }
         } catch (error) {
           console.warn("Failed to process post for mixed language:", error)
           // Fallback to original post if processing fails
-          processed.push({
+          const fallbackPost = {
             ...post,
             originalTitle: post.title,
             originalContent: post.content,
             isMixedLanguage: false,
+          }
+          return { post: fallbackPost, index }
+        }
+      })
+
+      // For initial load: show first 3 ASAP, then add rest as they complete
+      if (!isLoadMore) {
+        const initialBatchSize = 3
+
+        // Wait only for first 3 posts
+        Promise.all(processPromises.slice(0, initialBatchSize)).then((firstResults) => {
+          const firstBatch = firstResults
+            .sort((a, b) => a.index - b.index)
+            .map(r => r.post)
+
+          setProcessedPosts(firstBatch)
+          setMinPostsLoaded(true)
+        })
+
+        // Process remaining posts and add them progressively
+        if (processPromises.length > initialBatchSize) {
+          processPromises.slice(initialBatchSize).forEach((promise) => {
+            promise.then((result) => {
+              setProcessedPosts((prev) => [...prev, result.post])
+            })
           })
         }
+      } else {
+        // For "load more": add posts one by one as they complete
+        processPromises.forEach((promise) => {
+          promise.then((result) => {
+            setProcessedPosts((prev) => [...prev, result.post])
+          })
+        })
       }
 
+      // Wait for all to complete before returning
+      const results = await Promise.all(processPromises)
       setProcessingPosts(false)
-      return processed
+      return results.map(r => r.post)
     },
-    [userProfile?.learningLevel]
+    [userProfile?.learningLevel, userProfile?.targetLanguage]
   )
 
   // Load real posts from APIs
@@ -190,10 +227,13 @@ const NewsFeed = ({
             break;
         }
 
+        const initialPostLimit = 10;
+        const loadMorePostLimit = 5;
+
         const realPosts = await fetchPosts({
           sources: enabledSources,
           query: defaultQuery,
-          limit: isLoadMore ? 10 : 20, // Load 10 more posts when loading more, 20 on initial load
+          limit: isLoadMore ? loadMorePostLimit : initialPostLimit, 
           shuffle: true,
           searchQuery: activeSearchQuery && activeSearchQuery.trim() ? activeSearchQuery.trim() : null,
         })
@@ -218,16 +258,9 @@ const NewsFeed = ({
               setHasMorePosts(false)
               return prev
             } else {
-              // Process new posts separately without depending on the callback
+              // Process new posts separately - will update state progressively
               if (userProfile?.learningLevel && newPosts.length > 0) {
-                processPostsWithMixedLanguage(newPosts).then(
-                  (processedNewPosts) => {
-                    setProcessedPosts((prevProcessed) => [
-                      ...prevProcessed,
-                      ...processedNewPosts,
-                    ])
-                  }
-                )
+                processPostsWithMixedLanguage(newPosts, true)
               }
               setCurrentPage((prevPage) => prevPage + 1)
               return [...prev, ...newPosts]
@@ -235,13 +268,17 @@ const NewsFeed = ({
           })
         } else {
           setPosts(enhancedPosts)
+          // Reset minimum posts loaded flag
+          setMinPostsLoaded(false)
           // Process posts for mixed language content
           if (userProfile?.learningLevel && enhancedPosts.length > 0) {
-            const processedPosts =
-              await processPostsWithMixedLanguage(enhancedPosts)
-            setProcessedPosts(processedPosts)
+            // Clear processed posts before starting
+            setProcessedPosts([])
+            // Process posts asynchronously - will update state progressively
+            await processPostsWithMixedLanguage(enhancedPosts, false)
           } else {
             setProcessedPosts(enhancedPosts)
+            setMinPostsLoaded(true)
           }
         }
       } catch (err) {
@@ -253,8 +290,11 @@ const NewsFeed = ({
           setProcessedPosts([])
         }
       } finally {
-        setLoading(false)
-        setLoadingMore(false)
+        // Only hide loading state if we're loading more, or if minimum posts are loaded
+        if (isLoadMore) {
+          setLoadingMore(false)
+        }
+        // For initial load, wait for minPostsLoaded to be true before hiding loading
       }
     },
     [
@@ -272,6 +312,13 @@ const NewsFeed = ({
       loadPosts()
     }
   }, [selectedSources, apiStatus, userProfile?.learningLevel, activeSearchQuery, loadPosts])
+
+  // Turn off loading state when minimum posts are loaded
+  useEffect(() => {
+    if (minPostsLoaded && loading) {
+      setLoading(false)
+    }
+  }, [minPostsLoaded, loading])
 
   // Scroll detection for "see more" button
   useEffect(() => {
@@ -736,9 +783,43 @@ const NewsFeed = ({
     return wordCount > 100
   }
 
-  // Truncate content to word limit
+  // Truncate content to word limit - handles JSON from translation service
   const truncateContent = (content, wordLimit = 100) => {
     if (!content) return ""
+
+    // Check if content is JSON from translation service
+    try {
+      if (content.startsWith("{") && content.includes('"wordMetadata"')) {
+        const parsedData = JSON.parse(content)
+
+        if (parsedData.text && parsedData.wordMetadata) {
+          // Truncate the actual text content, not the JSON structure
+          const words = parsedData.text.split(/\s+/)
+
+          if (words.length <= wordLimit) {
+            return content // Return original JSON if under limit
+          }
+
+          // Create truncated version
+          const truncatedText = words.slice(0, wordLimit).join(' ') + '...'
+
+          // Filter metadata to only include words in the truncated text
+          const truncatedMetadata = parsedData.wordMetadata.filter(
+            wordData => truncatedText.includes(`{{WORD:${wordData.index}}}`)
+          )
+
+          // Return new JSON with truncated content
+          return JSON.stringify({
+            text: truncatedText,
+            wordMetadata: truncatedMetadata
+          })
+        }
+      }
+    } catch (e) {
+      // Not JSON, fall through to regular truncation
+    }
+
+    // Regular text truncation
     const words = content.split(/\s+/)
     if (words.length <= wordLimit) return content
     return words.slice(0, wordLimit).join(' ') + '...'
@@ -1247,13 +1328,6 @@ const NewsFeed = ({
         </div>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="lg" text="Loading latest posts..." />
-        </div>
-      )}
-
       {/* Error State */}
       {error && !loading && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
@@ -1289,7 +1363,7 @@ const NewsFeed = ({
         !error &&
         (processedPosts.length > 0 ? processedPosts : posts).map((article) => (
           <div
-            key={article.id}
+            key={article.url || article.id}
             className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
           >
             {/* Article Header */}

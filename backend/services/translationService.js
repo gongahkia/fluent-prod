@@ -156,7 +156,7 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
   return { translations }
 }
 
-// Create mixed language content
+// Create mixed language content - now processes sentences in parallel
 export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja') {
   if (!text || typeof text !== 'string') {
     throw new Error('Invalid text input')
@@ -166,18 +166,38 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
 
   // Split text into sentences
   const sentences = text.split(/(?<=[.!?])\s+/)
+
+  // Process sentences in parallel for better performance
+  const sentencePromises = sentences.map(async (sentence, index) => {
+    // Calculate starting index for this sentence's words
+    let startIndex = 0
+    for (let i = 0; i < index; i++) {
+      const prevTokens = sentences[i].match(/\b\w+\b/g) || []
+      startIndex += prevTokens.length
+    }
+
+    const result = await processSentenceForMixedContent(
+      sentence,
+      translationPercentage,
+      startIndex,
+      targetLang
+    )
+
+    return {
+      ...result,
+      originalIndex: index
+    }
+  })
+
+  const sentenceResults = await Promise.all(sentencePromises)
+
+  // Reconstruct in original order
   const processedResult = {
     text: '',
     wordMetadata: []
   }
 
-  for (const sentence of sentences) {
-    const result = await processSentenceForMixedContent(
-      sentence,
-      translationPercentage,
-      processedResult.wordMetadata.length,
-      targetLang
-    )
+  for (const result of sentenceResults) {
     processedResult.text += (processedResult.text ? ' ' : '') + result.text
     processedResult.wordMetadata.push(...result.metadata)
   }
@@ -202,18 +222,35 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
   const wordTokens = tokens.filter(token => /^\w+$/.test(token))
   const wordsToTranslate = await selectWordsForTranslation(wordTokens, translationPercentage)
 
+  // Translate all words in parallel
+  const translationMap = new Map()
+  const translationPromises = []
+
+  for (const token of tokens) {
+    if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
+      const promise = translateText(token, 'en', targetLang).then(result => {
+        translationMap.set(token, result.translation)
+      })
+      translationPromises.push(promise)
+    }
+  }
+
+  // Wait for all translations to complete
+  await Promise.all(translationPromises)
+
+  // Build the result with translations
   const processedTokens = []
   const metadata = []
   let wordIndex = startIndex
 
   for (const token of tokens) {
     if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
-      const translationResult = await translateText(token, 'en', targetLang)
+      const translation = translationMap.get(token)
 
       const metadataEntry = {
         index: wordIndex,
         original: token,
-        translation: translationResult.translation
+        translation: translation
       }
 
       // Add appropriate flag based on target language
