@@ -2,6 +2,11 @@
 
 A language learning platform that helps you learn Japanese through real-world content from Reddit, news sources, and social media.
 
+## Credentials
+
+Gmail account: appinfluent@gmail.com
+Gmail password: f|^(I5pgmnZ.t22LEu
+
 ## Tech Stack
 
 - **Frontend**: React 19 + Vite
