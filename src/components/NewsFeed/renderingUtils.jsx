@@ -163,6 +163,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const isToggled = stateKey ? translationStates[stateKey] : false
 
         // Determine what to show based on target language
+        // wordData.showJapanese/showKorean indicates this is an ENGLISH word that can be translated to Japanese/Korean
         const showTargetLang = wordData.showJapanese || wordData.showKorean
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
         const displayText = isShowingTargetLang ? wordData.translation : wordData.original
@@ -177,7 +178,10 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
             onClick={() => {
               if (postId) toggleTranslation(postId, wordData.index)
-              handleWordClick(isShowingTargetLang ? wordData.translation : wordData.original, isShowingTargetLang, remainingText)
+              // When clicking, pass the ACTUAL language of the currently displayed text
+              // If showing target lang (Korean/Japanese), the word IS in target lang -> translate to English
+              // If showing English, the word is NOT in target lang -> translate to target lang
+              handleWordClick(displayText, isShowingTargetLang, remainingText)
             }}
             title={
               isShowingTargetLang

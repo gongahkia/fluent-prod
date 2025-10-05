@@ -4,13 +4,13 @@ A language learning platform that helps you learn Japanese through real-world co
 
 ## Credentials
 
-Gmail account: appinfluent@gmail.com
-Gmail password: f|^(I5pgmnZ.t22LEu
+Gmail account: appinfluent@gmail.com  
+Gmail password: f|^(I5pgmnZ.t22LEu  
 
 Test account already logged in
 
-Gmail account: dev@gmail.com
-Gmail password: dev123
+Gmail account: dev@gmail.com  
+Gmail password: dev123  
 
 ## Tech Stack
 

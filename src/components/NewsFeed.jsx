@@ -727,9 +727,9 @@ const NewsFeed = ({
       {/* Posts */}
       {!loading &&
         !error &&
-        (processedPosts.length > 0 ? processedPosts : posts).map((article) => (
+        (processedPosts.length > 0 ? processedPosts : posts).map((article, index) => (
           <div
-            key={article.url || article.id}
+            key={article.id || article.url || `post-${index}`}
             className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
           >
             {/* Article Header */}
@@ -801,11 +801,6 @@ const NewsFeed = ({
                       />
                     </svg>
                   </a>
-                  {article.isMixedLanguage && (
-                    <span className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      🇯🇵 {getLevelName(userProfile?.learningLevel || 1)}
-                    </span>
-                  )}
                   {article.difficulty && (
                     <span className={`${getLevelColor(article.difficulty)} text-white px-2 py-1 rounded text-xs font-medium`}>
                       {getLevelName(article.difficulty)}
