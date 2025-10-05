@@ -1,11 +1,10 @@
-x 2025-10-05 Integrate Firebase for user data persistence +Database @Backend
-x 2025-10-05 Implement user authentication system with email/password +Auth @Backend
-x 2025-10-05 Add data encryption for user data +Security @Backend
-x 2025-10-05 Set up Firebase configuration and services +Database @Backend
-
-(A) Expand language support beyond Japanese add Korean +Features @i18n
-(A) Update translation service to support more language pairs +Features @i18n
-(A) Modify UI to support different writing systems +Features @Frontend
+x Integrate Firebase for user data persistence +Database @Backend
+x Implement user authentication system with email/password +Auth @Backend
+x Add data encryption for user data +Security @Backend
+x Set up Firebase configuration and services +Database @Backend
+x Expand language support beyond Japanese add Korean +Features @i18n
+x Update translation service to support more language pairs +Features @i18n
+x Modify UI to support different writing systems +Features @Frontend
 
 (A) Deploy backend to cloud service +Deployment @Backend
 (A) Deploy frontend to hosting service +Deployment @Frontend
