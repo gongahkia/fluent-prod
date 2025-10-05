@@ -10,6 +10,7 @@ import dotenv from 'dotenv'
 import newsRoutes from './routes/news.js'
 import translationRoutes from './routes/translation.js'
 import vocabularyRoutes from './routes/vocabulary.js'
+import aiRoutes from './routes/ai.js'
 
 // Load environment variables
 dotenv.config()
@@ -56,7 +57,7 @@ app.use('/api/', limiter)
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'LivePeek Backend API',
+    message: 'Influent Backend API',
     version: '1.0.0',
     endpoints: {
       health: '/health',
@@ -80,6 +81,7 @@ app.get('/health', (req, res) => {
 app.use('/api/news', newsRoutes)
 app.use('/api/translate', translationRoutes)
 app.use('/api/vocabulary', vocabularyRoutes)
+app.use('/api/ai', aiRoutes)
 
 // 404 handler
 app.use((req, res) => {
@@ -97,7 +99,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 LivePeek Backend running on http://localhost:${PORT}`)
+  console.log(`🚀 Influent Backend running on http://localhost:${PORT}`)
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`)
 })

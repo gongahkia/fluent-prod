@@ -6,6 +6,7 @@ import Flashcards from "./components/Flashcards"
 import NewsFeed from "./components/NewsFeed"
 import Onboarding from "./components/Onboarding"
 import Profile from "./components/Profile"
+import SavedPosts from "./components/SavedPosts"
 import {
   Sheet,
   SheetContent,
@@ -19,7 +20,7 @@ import "./App.css"
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', or 'flashcards'
+  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', or 'savedposts'
   const [userProfile, setUserProfile] = useState(null)
   const [userDictionary, setUserDictionary] = useState([
     // Start with empty dictionary - users will build their own
@@ -62,7 +63,7 @@ function App() {
       example: wordData.example || `${wordData.japanese}の例文です。`,
       exampleEn:
         wordData.exampleEn || `Example sentence with ${wordData.english}.`,
-      source: wordData.source || "LivePeek Post",
+      source: wordData.source || "Influent Post",
       dateAdded: new Date().toISOString(),
     }
 
@@ -116,6 +117,15 @@ function App() {
     )
   }
 
+  // Show saved posts page
+  if (currentView === "savedposts") {
+    return (
+      <SavedPosts
+        onBack={() => handleNavigation("feed")}
+      />
+    )
+  }
+
   // Show profile page
   if (currentView === "profile") {
     return (
@@ -136,13 +146,18 @@ function App() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <img
-                  src="/livepeek-logo.png"
-                  alt="LivePeek Logo"
+                  src="/influent-logo.png"
+                  alt="Influent Logo"
                   className="w-8 h-8 rounded-full object-cover"
                 />
-                <span className="text-xl font-bold text-gray-900">
-                  LivePeek
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xl font-bold text-gray-900">
+                    Influent
+                  </span>
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full border border-orange-300">
+                    BETA
+                  </span>
+                </div>
               </div>
 
               {/* Mobile Menu Button */}
@@ -194,6 +209,17 @@ function App() {
                         <span className="text-lg">🃏</span>
                         <span className="font-medium">Flashcards</span>
                       </button>
+                      <button
+                        onClick={() => handleNavigation("savedposts")}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === "savedposts"
+                            ? "bg-orange-100 text-orange-900"
+                            : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-lg">🔖</span>
+                        <span className="font-medium">Saved Posts</span>
+                      </button>
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -205,7 +231,7 @@ function App() {
                 <span className="text-sm text-gray-600">🇯🇵 Japan</span>
                 <select className="text-sm border border-gray-300 rounded px-2 py-1 bg-white">
                   <option value="japanese">
-                    🇯🇵 Japanese (More languages coming soon!)
+                    🇯🇵 Japanese
                   </option>
                 </select>
               </div>
@@ -272,6 +298,16 @@ function App() {
               }`}
             >
               <span>Flashcards</span>
+            </button>
+            <button
+              onClick={() => handleNavigation("savedposts")}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                currentView === "savedposts"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Saved Posts
             </button>
           </div>
         )}

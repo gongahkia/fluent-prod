@@ -8,7 +8,7 @@ import {
   UserCheck,
   UserPlus,
 } from "lucide-react"
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import translationService from "../services/translationService"
@@ -35,7 +35,6 @@ const NewsFeed = ({
   const [error, setError] = useState(null)
   const [processingPosts, setProcessingPosts] = useState(false)
   const [selectedSources, setSelectedSources] = useState(["reddit"])
-  const [query, setQuery] = useState("japan")
   const [showSettings, setShowSettings] = useState(false)
   const [apiStatus, setApiStatus] = useState({})
   const [, setCurrentPage] = useState(1)
@@ -45,7 +44,9 @@ const NewsFeed = ({
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState([])
+  const [activeSearchQuery, setActiveSearchQuery] = useState("")
+  const searchTimeoutRef = useRef(null)
+  const [expandedPosts, setExpandedPosts] = useState({})
 
   // Check API configuration on component mount
   useEffect(() => {
@@ -72,6 +73,15 @@ const NewsFeed = ({
       }
     }
     loadApiStatus()
+  }, [])
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
   }, [])
 
   // Process posts with mixed language content based on user level
@@ -162,16 +172,17 @@ const NewsFeed = ({
 
         const realPosts = await fetchPosts({
           sources: enabledSources,
-          query: query,
+          query: 'japan',
           limit: isLoadMore ? 10 : 20, // Load 10 more posts when loading more, 20 on initial load
           shuffle: true,
+          searchQuery: activeSearchQuery && activeSearchQuery.trim() ? activeSearchQuery.trim() : null,
         })
 
         // Ensure real posts have the necessary structure for translation
         const enhancedPosts = realPosts.map((post) => ({
           ...post,
           tags: post.tags || ["#tech", "#news"],
-          difficulty: 6, // Default difficulty for real news
+          difficulty: 3, // Default difficulty for real news (Advanced level)
           source: post.source || "reddit",
         }))
 
@@ -228,19 +239,19 @@ const NewsFeed = ({
     },
     [
       selectedSources,
-      query,
       apiStatus,
       userProfile?.learningLevel,
       processPostsWithMixedLanguage,
+      activeSearchQuery,
     ]
   )
 
-  // Load posts when sources, query, API status, or user level changes
+  // Load posts when sources, API status, user level, or search changes
   useEffect(() => {
     if (Object.keys(apiStatus).length > 0) {
       loadPosts()
     }
-  }, [selectedSources, query, apiStatus, userProfile?.learningLevel, loadPosts])
+  }, [selectedSources, apiStatus, userProfile?.learningLevel, activeSearchQuery, loadPosts])
 
   // Scroll detection for "see more" button
   useEffect(() => {
@@ -277,11 +288,18 @@ const NewsFeed = ({
     }
   }
 
+  // Map 1-5 levels to names
+  const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
+  const getLevelName = (level) => {
+    return levelNames[level - 1] || 'Beginner'
+  }
+
   const getLevelColor = (level) => {
-    if (level <= 3) return "bg-green-500"
-    if (level <= 6) return "bg-blue-500"
-    if (level <= 8) return "bg-green-500"
-    return "bg-red-500"
+    if (level === 1) return "bg-green-500"  // Beginner
+    if (level === 2) return "bg-blue-500"   // Intermediate
+    if (level === 3) return "bg-yellow-500" // Advanced
+    if (level === 4) return "bg-orange-500" // Expert
+    return "bg-red-500"                      // Native
   }
 
   const showFeedback = (message, icon) => {
@@ -305,7 +323,7 @@ const NewsFeed = ({
           level: selectedWord.level,
           example: selectedWord.example,
           exampleEn: selectedWord.exampleEn,
-          source: "LivePeek Post",
+          source: "Influent Post",
         }
       } else {
         // Japanese word - add normally
@@ -316,7 +334,7 @@ const NewsFeed = ({
           level: selectedWord.level,
           example: selectedWord.example,
           exampleEn: selectedWord.exampleEn,
-          source: "LivePeek Post",
+          source: "Influent Post",
         }
       }
 
@@ -368,29 +386,23 @@ const NewsFeed = ({
 
   const handleSearch = (query) => {
     setSearchQuery(query)
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Debounce search to avoid too many API calls
     if (query.trim()) {
       setIsSearching(true)
-      // Search through current processed posts (includes mixed language content)
-      setTimeout(() => {
-        const postsToSearch = processedPosts.length > 0 ? processedPosts : posts
-        const filtered = postsToSearch.filter(
-          (post) =>
-            post.title.toLowerCase().includes(query.toLowerCase()) ||
-            (post.content &&
-              post.content.toLowerCase().includes(query.toLowerCase())) ||
-            (post.author &&
-              post.author.toLowerCase().includes(query.toLowerCase())) ||
-            // Also search original content if it exists
-            (post.originalTitle &&
-              post.originalTitle.toLowerCase().includes(query.toLowerCase())) ||
-            (post.originalContent &&
-              post.originalContent.toLowerCase().includes(query.toLowerCase()))
-        )
-        setSearchResults(filtered.slice(0, 5))
+      // Trigger search after user stops typing (800ms delay)
+      searchTimeoutRef.current = setTimeout(() => {
+        setActiveSearchQuery(query.trim())
         setIsSearching(false)
-      }, 500)
+      }, 800)
     } else {
-      setSearchResults([])
+      // Clear search immediately if query is empty
+      setActiveSearchQuery("")
       setIsSearching(false)
     }
   }
@@ -534,6 +546,144 @@ const NewsFeed = ({
 
   const [translationStates, setTranslationStates] = useState({})
 
+  // Utility to decode HTML entities and clean text
+  const decodeHTMLEntities = (text) => {
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+  }
+
+  // Parse markdown-style links and format text
+  const parseMarkdownContent = (text, postId = null) => {
+    if (!text) return ""
+
+    // Decode HTML entities
+    let cleaned = decodeHTMLEntities(text)
+
+    // Split by lines to preserve paragraph structure
+    const lines = cleaned.split('\n')
+    const elements = []
+
+    lines.forEach((line, lineIndex) => {
+      if (line.trim() === '') {
+        // Empty line - add spacing
+        elements.push(<br key={`br-${lineIndex}`} />)
+        return
+      }
+
+      // Check for Reddit quote (starts with >)
+      if (line.trim().startsWith('&gt;') || line.trim().startsWith('>')) {
+        const quoteLine = line.replace(/^(&gt;|>)\s*/, '')
+        elements.push(
+          <div key={`quote-${lineIndex}`} className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">
+            {parseLineContent(quoteLine, postId)}
+          </div>
+        )
+        return
+      }
+
+      // Regular line
+      elements.push(
+        <span key={`line-${lineIndex}`}>
+          {parseLineContent(line, postId)}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      )
+    })
+
+    return elements
+  }
+
+  // Parse inline content (links, bold, etc.) within a line - WITH clickable words
+  const parseLineContent = (text, postId = null) => {
+    const parts = []
+    let keyCounter = 0
+
+    // Match markdown links [text](url) and plain URLs
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s]+)/g
+    let lastIndex = 0
+    let match
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Add text before match - make it clickable for translation
+      if (match.index > lastIndex) {
+        const textBeforeLink = text.substring(lastIndex, match.index)
+        parts.push(
+          <span key={`text-${keyCounter++}`}>
+            {renderClickableText(textBeforeLink, postId)}
+          </span>
+        )
+      }
+
+      if (match[1] && match[2]) {
+        // Markdown link [text](url)
+        parts.push(
+          <a
+            key={`link-${keyCounter++}`}
+            href={match[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {match[1]}
+          </a>
+        )
+      } else if (match[3]) {
+        // Plain URL
+        parts.push(
+          <a
+            key={`link-${keyCounter++}`}
+            href={match[3]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {match[3]}
+          </a>
+        )
+      }
+
+      lastIndex = match.index + match[0].length
+    }
+
+    // Add remaining text - make it clickable for translation
+    if (lastIndex < text.length) {
+      const remainingText = text.substring(lastIndex)
+      parts.push(
+        <span key={`text-${keyCounter++}`}>
+          {renderClickableText(remainingText, postId)}
+        </span>
+      )
+    }
+
+    return parts.length > 0 ? parts : renderClickableText(text, postId)
+  }
+
+  // Toggle post expansion
+  const togglePostExpansion = (postId) => {
+    setExpandedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }))
+  }
+
+  // Check if content should be truncated
+  const shouldTruncateContent = (content) => {
+    if (!content) return false
+    const wordCount = content.split(/\s+/).length
+    return wordCount > 100
+  }
+
+  // Truncate content to word limit
+  const truncateContent = (content, wordLimit = 100) => {
+    if (!content) return ""
+    const words = content.split(/\s+/)
+    if (words.length <= wordLimit) return content
+    return words.slice(0, wordLimit).join(' ') + '...'
+  }
+
   const toggleTranslation = (postId, wordIndex) => {
     const key = `${postId}-${wordIndex}`
     setTranslationStates((prev) => ({
@@ -647,7 +797,7 @@ const NewsFeed = ({
                   className={
                     isTranslatedWord
                       ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
-                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
                   onClick={() => handleWordClick(text, true, text)}
                   title={
@@ -710,7 +860,7 @@ const NewsFeed = ({
             <span className="text-2xl">🌍</span>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Welcome to LivePeek
+            Welcome to Influent
           </h3>
           <p className="text-gray-600">
             Discover authentic content from around the world. Starting with
@@ -759,7 +909,7 @@ const NewsFeed = ({
           <div className="relative">
             <input
               type="text"
-              placeholder="Search posts..."
+              placeholder="Search anything..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -775,56 +925,40 @@ const NewsFeed = ({
         {/* Settings Panel */}
         {showSettings && (
           <div className="border-t border-gray-200 pt-4 mt-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Query Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Query
-                </label>
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Enter keywords..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Sources Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  News Sources
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(apiStatus).map(([sourceId, config]) => (
-                    <label
-                      key={sourceId}
-                      className="flex items-center space-x-2"
+            {/* Sources Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                News Sources
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(apiStatus).map(([sourceId, config]) => (
+                  <label
+                    key={sourceId}
+                    className="flex items-center space-x-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSources.includes(sourceId)}
+                      onChange={() => handleSourceToggle(sourceId)}
+                      disabled={!config.enabled || !config.hasApiKey}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span
+                      className={`text-sm ${
+                        !config.enabled || !config.hasApiKey
+                          ? "text-gray-400"
+                          : "text-gray-700"
+                      }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedSources.includes(sourceId)}
-                        onChange={() => handleSourceToggle(sourceId)}
-                        disabled={!config.enabled || !config.hasApiKey}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span
-                        className={`text-sm ${
-                          !config.enabled || !config.hasApiKey
-                            ? "text-gray-400"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {config.name}
-                        {(!config.enabled || !config.hasApiKey) && (
-                          <span className="text-xs text-red-500 ml-1">
-                            (API key needed)
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                      {config.name}
+                      {(!config.enabled || !config.hasApiKey) && sourceId !== 'reddit' && (
+                        <span className="text-xs text-red-500 ml-1">
+                          (API key needed)
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>
@@ -901,7 +1035,7 @@ const NewsFeed = ({
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}
                     >
-                      Level {selectedWord.level}
+                      {getLevelName(selectedWord.level)}
                     </span>
                     {selectedWord.isVocabulary && (
                       <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
@@ -1016,12 +1150,7 @@ const NewsFeed = ({
       {/* Posts */}
       {!loading &&
         !error &&
-        (searchResults.length > 0
-          ? searchResults
-          : processedPosts.length > 0
-            ? processedPosts
-            : posts
-        ).map((article) => (
+        (processedPosts.length > 0 ? processedPosts : posts).map((article) => (
           <div
             key={article.id}
             className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
@@ -1097,12 +1226,12 @@ const NewsFeed = ({
                   </a>
                   {article.isMixedLanguage && (
                     <span className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      🇯🇵 Mixed Language Level {userProfile?.learningLevel}
+                      🇯🇵 {getLevelName(userProfile?.learningLevel || 1)}
                     </span>
                   )}
                   {article.difficulty && (
-                    <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      Level {article.difficulty}
+                    <span className={`${getLevelColor(article.difficulty)} text-white px-2 py-1 rounded text-xs font-medium`}>
+                      {getLevelName(article.difficulty)}
                     </span>
                   )}
                   {article.source && (
@@ -1120,9 +1249,25 @@ const NewsFeed = ({
                 <h2 className="text-xl font-bold text-gray-900 mb-3">
                   {renderClickableText(article.title, `${article.id}-title`)}
                 </h2>
-                <p className="text-gray-800 leading-relaxed mb-4">
-                  {article.content ? renderClickableText(article.content, `${article.id}-content`) : ""}
-                </p>
+                <div className="text-gray-800 leading-relaxed mb-4 whitespace-pre-wrap">
+                  {article.content ? (
+                    <>
+                      {expandedPosts[article.id] || !shouldTruncateContent(article.content) ? (
+                        <div>{parseMarkdownContent(article.content, `${article.id}-content`)}</div>
+                      ) : (
+                        <div>{parseMarkdownContent(truncateContent(article.content), `${article.id}-content`)}</div>
+                      )}
+                      {shouldTruncateContent(article.content) && (
+                        <button
+                          onClick={() => togglePostExpansion(article.id)}
+                          className="text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block"
+                        >
+                          {expandedPosts[article.id] ? 'See Less' : 'See More'}
+                        </button>
+                      )}
+                    </>
+                  ) : ""}
+                </div>
 
                 {article.image && (
                   <img
@@ -1176,6 +1321,8 @@ const NewsFeed = ({
             {showComments[article.id] && (
               <EnhancedCommentSystem
                 articleId={article.id}
+                postContent={article.content}
+                postTitle={article.title}
                 userProfile={userProfile}
                 userDictionary={userDictionary}
                 onAddWordToDictionary={onAddWordToDictionary}

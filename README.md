@@ -1,4 +1,4 @@
-# LivePeek
+# Influent
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@
 ## Usage
 
 ```console
-$ git clone https://github.com/gongahkia/cs206-livepeek && cd livepeek && pnpm install 
+$ git clone https://github.com/gongahkia/cs206-influent && cd influent && pnpm install 
 $ cd backend && npm install 
 ```
 
@@ -55,8 +55,34 @@ $ pnpm run dev
 
 ## News Sources Status
 
-| Source | Status | API Key Required | Notes |
-|--------|--------|------------------|-------|
-| Reddit | ✅ Active | No | Pulling from Japanese-themed subreddits (japan, japanese, japanlife, japantravel, learnjapanese) |
-| NewsAPI.org | ⚙️ Configurable | Yes | Requires `NEWSAPI_KEY` in backend `.env` |
-| The Guardian | ⚙️ Configurable | Yes | Requires `GUARDIAN_API_KEY` in backend `.env` |
+| Source | Status | API Key Required | Configuration |
+|--------|--------|------------------|---------------|
+| Reddit | ✅ Active | No | Enabled by default - Pulls from Japanese-themed subreddits (japan, japanese, japanlife, japantravel, learnjapanese) |
+| Twitter | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Twitter API Bearer Token from [developer.twitter.com](https://developer.twitter.com) |
+| Instagram | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Instagram username and password (use a dedicated account) |
+
+**Note:** Twitter and Instagram credentials are stored in your browser's sessionStorage and are never sent to our servers. They are only used for API requests to fetch posts.
+
+## AI Features
+
+### Comment Suggestions (Powered by Google Gemini 2.0 Flash)
+
+Influent now includes AI-powered comment suggestions to help you practice writing in mixed Japanese-English:
+
+- **Smart Suggestions**: Get contextual comment suggestions based on post content
+- **Mixed Language**: AI suggests comments that naturally blend English and Japanese
+- **Learning Focused**: Suggestions are designed to help language learners practice
+- **Free Tier**: Uses Gemini 2.0 Flash (free tier) - no cost to use
+- **Fallback Support**: Works even without API key with basic suggestions
+
+**Setup**:
+1. Get a free API key from [Google AI Studio](https://ai.google.dev/)
+2. Add to `backend/.env`: `GEMINI_API_KEY=your_api_key_here`
+3. The AI Help button in comments will now use real-time AI suggestions
+
+### Reddit-Style Comment Threading
+
+- **Nested Replies**: Reply to any comment to create conversation threads
+- **Collapse/Expand**: Click arrows to hide/show comment threads
+- **Visual Threading**: Vertical lines show comment hierarchy
+- **Interactive**: Like, reply, and learn from every comment
