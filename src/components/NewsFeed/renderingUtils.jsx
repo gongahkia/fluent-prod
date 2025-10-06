@@ -124,7 +124,7 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
 }
 
 // Create renderClickableText function factory
-export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick) => {
+export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese') => {
   return (text, postId = null) => {
     if (!text) return ""
 
@@ -224,6 +224,9 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         // Use intelligent segmentation for Japanese text
         const words = segmentJapaneseText(segment)
 
+        // Japanese is target language if user is learning Japanese
+        const isTargetLanguage = targetLanguage === 'Japanese'
+
         return (
           <span key={segmentIndex}>
             {words.map((wordObj, wordIndex) => {
@@ -242,10 +245,10 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                       ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
                       : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
-                  onClick={() => handleWordClick(text, true, text)}
+                  onClick={() => handleWordClick(text, isTargetLanguage, text)}
                   title={
                     isTranslatedWord
-                      ? `🇯🇵 Translated: Click to see English "${text}"`
+                      ? `🇯🇵 Japanese: Click to see English "${text}"`
                       : `Click to learn: ${text}`
                   }
                   style={{ textDecoration: "none" }}
@@ -258,11 +261,14 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         )
       } else if (hasKorean) {
         // Korean text - make it clickable
+        // Korean is target language if user is learning Korean
+        const isTargetLanguage = targetLanguage === 'Korean'
+
         return (
           <span key={segmentIndex}>
             <span
               className="cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
-              onClick={() => handleWordClick(segment, true, segment)}
+              onClick={() => handleWordClick(segment, isTargetLanguage, segment)}
               title={`🇰🇷 Korean: Click to see English "${segment}"`}
               style={{ textDecoration: "none" }}
             >

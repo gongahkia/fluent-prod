@@ -1,45 +1,56 @@
 import { ArrowLeft, Bookmark, Trash2, ExternalLink } from "lucide-react"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { getSavedPosts, removeSavedPost } from "@/services/databaseService"
+import { useAuth } from "@/contexts/AuthContext"
+import LoadingSpinner from "@/components/ui/LoadingSpinner"
 
 const SavedPosts = ({ onBack }) => {
-  const [savedPosts, setSavedPosts] = useState([
-    {
-      id: 1,
-      title: "地元の人だけが知る hidden ラーメン店",
-      content: "東京の最も busy な地区で地下の food culture を探索...",
-      author: "田中雪",
-      image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=200&fit=crop",
-      savedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 2,
-      title: "Tokyo の新しい digital art museum が一般公開",
-      content: "Interactive な digital art 展示は、traditional な日本の美学...",
-      author: "佐藤博",
-      image: "https://images.unsplash.com/photo-1549887534-1541e9326642?w=400&h=200&fit=crop",
-      savedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 3,
-      title: "桜の季節が来ました！Perfect timing for hanami",
-      content: "今年の桜は特に beautiful です。The cherry blossoms are in full bloom...",
-      author: "山田花子",
-      image: "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=400&h=200&fit=crop",
-      savedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 4,
-      title: "日本の street food culture を探る journey",
-      content: "From たこ焼き to yakitori, exploring the amazing world of Japanese street food...",
-      author: "佐々木太郎",
-      image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=200&fit=crop",
-      savedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ])
+  const { currentUser } = useAuth()
+  const [savedPosts, setSavedPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const handleRemove = (postId) => {
-    setSavedPosts(savedPosts.filter(post => post.id !== postId))
+  // Load saved posts from Firestore
+  useEffect(() => {
+    const loadSavedPosts = async () => {
+      if (!currentUser) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const result = await getSavedPosts(currentUser.uid)
+        if (result.success) {
+          setSavedPosts(result.data)
+        } else {
+          setError(result.error)
+        }
+      } catch (err) {
+        console.error('Error loading saved posts:', err)
+        setError('Failed to load saved posts')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSavedPosts()
+  }, [currentUser])
+
+  const handleRemove = async (postId) => {
+    if (!currentUser) return
+
+    try {
+      const result = await removeSavedPost(currentUser.uid, postId)
+      if (result.success) {
+        setSavedPosts(savedPosts.filter(post => post.id !== postId))
+      } else {
+        console.error('Failed to remove post:', result.error)
+      }
+    } catch (err) {
+      console.error('Error removing post:', err)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -52,6 +63,42 @@ const SavedPosts = ({ onBack }) => {
     if (diffDays < 7) return `${diffDays} days ago`
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
     return date.toLocaleDateString()
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading saved posts..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16">
+            <div className="text-red-500 text-lg mb-4">Error loading saved posts</div>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={onBack} className="bg-orange-500 hover:bg-orange-600">
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

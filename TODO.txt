@@ -9,9 +9,14 @@ x Modify UI to support different writing systems +Features @Frontend
 (A) Stop posts on the user dashboard from showing multiple times, have the backend register each post with a unique ID and propogate that throughout to debug the "react-dom_client.js?v=a88b823c:5749 Encountered two children with the same key, `1nyjf73`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version." error
 (A) Stop posts on the user dashboard from constantly updating, after 10 posts are loaded, halt the continuous loading of posts when users are translating
 (A) Fix how the translation pop-up right now has a black background, make it a translucent background instead
-(A) Stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
 (A) Fix saved posts to actually work and not show hardcoded defaults
 (A) Remove anymore hardcoded translation defaults and remove the hardcoded post sources that are fallbacks to reddit. Instead if reddit doesn't work don't show anything at all.
+
+(A) Test whether the above 5 changes have been properly implemented
+(A) Fix the broken English --> Korean/Japanese and Japanese/Korean --> English translation
+(A) Universalise translation to be a JSON file where we can specify mappings for Language 1 --> Language 2 and vice versa
+
+(A) Stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
 (A) Fix the broken onboarding process.
 
 (A) Deploy backend to cloud service +Deployment @Backend

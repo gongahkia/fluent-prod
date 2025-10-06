@@ -89,15 +89,8 @@ export async function checkApiConfiguration() {
     return data.sources || []
   } catch (error) {
     console.error('API configuration check error:', error)
-    // Return default configuration if backend is unavailable
-    return [
-      {
-        id: 'reddit',
-        name: 'Reddit',
-        enabled: true,
-        configured: true
-      }
-    ]
+    // Don't return fallback - let the app handle the error
+    throw error
   }
 }
 

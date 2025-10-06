@@ -63,15 +63,9 @@ const NewsFeed = ({
         setApiStatus(statusMap)
       } catch (error) {
         console.error('Failed to load API status:', error)
-        // Set default for reddit if API fails
-        setApiStatus({
-          reddit: {
-            id: 'reddit',
-            name: 'Reddit',
-            enabled: true,
-            configured: true
-          }
-        })
+        // Don't set fallback - show error instead
+        setError('Failed to connect to backend API. Please ensure the server is running.')
+        setLoading(false)
       }
     }
     loadApiStatus()
@@ -308,11 +302,39 @@ const NewsFeed = ({
   )
 
   // Load posts when sources, API status, user level, or search changes
+  // Use ref to track if we should reload posts
+  const shouldReloadRef = useRef(true)
+  const prevDepsRef = useRef({
+    selectedSources: [],
+    apiStatusKeys: [],
+    learningLevel: null,
+    activeSearchQuery: ''
+  })
+
   useEffect(() => {
-    if (Object.keys(apiStatus).length > 0) {
-      loadPosts()
+    if (Object.keys(apiStatus).length === 0) return
+
+    // Check if dependencies actually changed
+    const currentDeps = {
+      selectedSources: selectedSources.join(','),
+      apiStatusKeys: Object.keys(apiStatus).sort().join(','),
+      learningLevel: userProfile?.learningLevel,
+      activeSearchQuery
     }
-  }, [selectedSources, apiStatus, userProfile?.learningLevel, activeSearchQuery, loadPosts])
+
+    const prevDeps = prevDepsRef.current
+    const depsChanged =
+      currentDeps.selectedSources !== prevDeps.selectedSources ||
+      currentDeps.apiStatusKeys !== prevDeps.apiStatusKeys ||
+      currentDeps.learningLevel !== prevDeps.learningLevel ||
+      currentDeps.activeSearchQuery !== prevDeps.activeSearchQuery
+
+    if (depsChanged || shouldReloadRef.current) {
+      loadPosts()
+      prevDepsRef.current = currentDeps
+      shouldReloadRef.current = false
+    }
+  }, [selectedSources, apiStatus, userProfile?.learningLevel, activeSearchQuery])
 
   // Turn off loading state when minimum posts are loaded
   useEffect(() => {
@@ -565,7 +587,7 @@ const NewsFeed = ({
   }
 
   // Create renderClickableText function using the factory
-  const renderClickableText = createRenderClickableText(translationStates, toggleTranslation, handleWordClick)
+  const renderClickableText = createRenderClickableText(translationStates, toggleTranslation, handleWordClick, userProfile?.targetLanguage || 'Japanese')
 
   if (!selectedCountry) {
     return (

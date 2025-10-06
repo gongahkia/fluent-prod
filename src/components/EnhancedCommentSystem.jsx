@@ -198,7 +198,8 @@ const EnhancedCommentSystem = ({
       isJapanese,
       fullContext,
       null,
-      setIsTranslating
+      setIsTranslating,
+      userProfile?.targetLanguage || 'Japanese'
     )
   }
 
@@ -299,22 +300,40 @@ const EnhancedCommentSystem = ({
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
         segment
       )
+      const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
+        // Japanese is target language if user is learning Japanese
+        const isTargetLanguage = userProfile?.targetLanguage === 'Japanese'
         return (
           <span key={segmentIndex}>
             {segment.split("").map((char, charIndex) => (
               <span
                 key={`${segmentIndex}-${charIndex}`}
                 className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
-                onClick={() => handleWordClick(char, true, text)}
+                onClick={() => handleWordClick(char, isTargetLanguage, text)}
                 title={`Click to learn: ${char}`}
                 style={{ textDecoration: "none" }}
               >
                 {char}
               </span>
             ))}
+          </span>
+        )
+      } else if (hasKorean) {
+        // Korean is target language if user is learning Korean
+        const isTargetLanguage = userProfile?.targetLanguage === 'Korean'
+        return (
+          <span key={segmentIndex}>
+            <span
+              className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+              onClick={() => handleWordClick(segment.trim(), isTargetLanguage, text)}
+              title={`Click to learn: ${segment.trim()}`}
+              style={{ textDecoration: "none" }}
+            >
+              {segment}
+            </span>
           </span>
         )
       } else if (hasEnglish) {

@@ -114,7 +114,7 @@ const normalizePost = (post, source) => {
       const redditContent = post.selftext || post.title || ''
       return {
         ...basePost,
-        id: post.id,
+        id: `reddit_${post.id}`,
         title: post.title || 'No title',
         content: post.selftext || '',
         url: post.url || `https://reddit.com${post.permalink}`,
@@ -129,7 +129,7 @@ const normalizePost = (post, source) => {
       const twitterContent = post.text || ''
       return {
         ...basePost,
-        id: post.id || 'unknown',
+        id: `twitter_${post.id || 'unknown'}`,
         title: post.text ? post.text.substring(0, 100) : 'No title',
         content: post.text || '',
         url: `https://twitter.com/i/status/${post.id}`,
@@ -144,7 +144,7 @@ const normalizePost = (post, source) => {
       const instagramContent = post.caption?.text || ''
       return {
         ...basePost,
-        id: post.id || post.pk,
+        id: `instagram_${post.id || post.pk}`,
         title: post.caption?.text ? post.caption.text.substring(0, 100) : 'Instagram Post',
         content: post.caption?.text || '',
         url: `https://www.instagram.com/p/${post.code}/`,
