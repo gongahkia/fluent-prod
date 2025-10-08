@@ -14,9 +14,11 @@ x Modify UI to support different writing systems +Features @Frontend
 (A) Remove anymore hardcoded translation defaults and remove the hardcoded post sources that are fallbacks to reddit. Instead if reddit doesn't work don't show anything at all.
 (A) Universalise translation to be a JSON file where we can specify mappings for Language 1 --> Language 2 and vice versa
 
+(C) Fix the broken onboarding process.
+(C) Enhance onboarding flow with interactive examples +Features @Frontend
+
 (A) Test whether the above 7 changes have been properly implemented and debug as necessary
-(A) Stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
-(A) Fix the broken onboarding process.
+(A) Test via stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
 
 (A) Deploy backend to cloud service +Deployment @Backend
 (A) Deploy frontend to hosting service +Deployment @Frontend
@@ -39,7 +41,6 @@ x Modify UI to support different writing systems +Features @Frontend
 (B) Create personalized difficulty recommendations +Features @Algorithm
 (B) Ensure content correlation with difficulty level +Features @Content
 
-(C) Enhance onboarding flow with interactive examples +Features @Frontend
 (C) Create better level assessment quiz +Features @Frontend
 (C) Add preview of different difficulty levels +Features @Frontend
 (C) Implement A/B testing for onboarding approaches +Features @Analytics

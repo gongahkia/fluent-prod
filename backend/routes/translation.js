@@ -42,13 +42,13 @@ router.post('/batch', async (req, res, next) => {
 // POST /api/translate/mixed-content - Create mixed language content
 router.post('/mixed-content', async (req, res, next) => {
   try {
-    const { text, userLevel = 5, targetLang = 'ja' } = req.body
+    const { text, userLevel = 5, targetLang = 'ja', sourceLang = 'en' } = req.body
 
     if (!text) {
       return res.status(400).json({ error: 'Text is required' })
     }
 
-    const result = await createMixedLanguageContent(text, userLevel, targetLang)
+    const result = await createMixedLanguageContent(text, userLevel, targetLang, sourceLang)
     res.json(result)
   } catch (error) {
     next(error)

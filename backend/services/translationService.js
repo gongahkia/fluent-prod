@@ -1,24 +1,59 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
 import { isValidVocabularyWord } from './vocabularyService.js'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+// Get current directory path
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// Load translation mappings
+const translationMappings = JSON.parse(
+  readFileSync(join(__dirname, '../config/translationMappings.json'), 'utf-8')
+)
 
 // Cache for 30 days (translations rarely change)
 const cache = new NodeCache({ stdTTL: 2592000 })
 
-const API_ENDPOINTS = {
-  lingva: 'https://lingva.ml/api/v1',
-  mymemory: 'https://api.mymemory.translated.net/get',
-  libretranslate: 'https://libretranslate.com/translate'
+// Helper function to check if a translation pair is supported
+function isTranslationPairSupported(fromLang, toLang) {
+  const pairKey = `${fromLang}-${toLang}`
+  const pair = translationMappings.translationPairs[pairKey]
+  return pair && pair.enabled
+}
+
+// Helper function to get API providers for a language pair
+function getAPIProvidersForPair(fromLang, toLang) {
+  const pairKey = `${fromLang}-${toLang}`
+  const pair = translationMappings.translationPairs[pairKey]
+  if (!pair) return ['lingva', 'mymemory', 'libretranslate'] // fallback
+  return pair.apiProviders || ['lingva', 'mymemory', 'libretranslate']
 }
 
 // Main translation function
 export async function translateText(text, fromLang = 'en', toLang = 'ja') {
+  // Validate language pair
+  if (!isTranslationPairSupported(fromLang, toLang)) {
+    console.warn(`Translation pair ${fromLang}-${toLang} is not supported or disabled`)
+    return {
+      original: text,
+      translation: text,
+      fromLang,
+      toLang,
+      cached: false,
+      provider: 'unsupported',
+      error: 'Translation pair not supported'
+    }
+  }
+
   const cacheKey = `translation:${text}:${fromLang}:${toLang}`
 
   // Check cache first
   const cached = cache.get(cacheKey)
   if (cached) {
-    console.log(`Cache hit for: ${text}`)
+    console.log(`Cache hit for: ${text} (${fromLang}->${toLang})`)
     return {
       original: text,
       translation: cached,
@@ -32,19 +67,31 @@ export async function translateText(text, fromLang = 'en', toLang = 'ja') {
   let translation = null
   let provider = null
 
+  // Get API providers for this language pair
+  const providers = getAPIProvidersForPair(fromLang, toLang)
+
   try {
-    // Try Lingva first (most reliable)
-    translation = await tryLingvaTranslate(text, fromLang, toLang)
-    provider = 'lingva'
-
-    if (!translation) {
-      translation = await tryMyMemoryTranslation(text, fromLang, toLang)
-      provider = 'mymemory'
-    }
-
-    if (!translation) {
-      translation = await tryLibreTranslate(text, fromLang, toLang)
-      provider = 'libretranslate'
+    // Try providers in order
+    for (const providerName of providers) {
+      if (providerName === 'lingva') {
+        translation = await tryLingvaTranslate(text, fromLang, toLang)
+        if (translation) {
+          provider = 'lingva'
+          break
+        }
+      } else if (providerName === 'mymemory') {
+        translation = await tryMyMemoryTranslation(text, fromLang, toLang)
+        if (translation) {
+          provider = 'mymemory'
+          break
+        }
+      } else if (providerName === 'libretranslate') {
+        translation = await tryLibreTranslate(text, fromLang, toLang)
+        if (translation) {
+          provider = 'libretranslate'
+          break
+        }
+      }
     }
 
     // Cache the result
@@ -77,8 +124,11 @@ export async function translateText(text, fromLang = 'en', toLang = 'ja') {
 // Lingva Translate API
 async function tryLingvaTranslate(text, fromLang, toLang) {
   try {
-    const url = `${API_ENDPOINTS.lingva}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
-    const { data } = await axios.get(url, { timeout: 5000 })
+    const endpoint = translationMappings.apiEndpoints.lingva
+    if (!endpoint.enabled) return null
+
+    const url = `${endpoint.baseUrl}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
+    const { data } = await axios.get(url, { timeout: endpoint.timeout })
 
     if (data && data.translation) {
       const translation = data.translation
@@ -101,8 +151,11 @@ async function tryLingvaTranslate(text, fromLang, toLang) {
 // MyMemory Translation API
 async function tryMyMemoryTranslation(text, fromLang, toLang) {
   try {
-    const url = `${API_ENDPOINTS.mymemory}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
-    const { data } = await axios.get(url, { timeout: 5000 })
+    const endpoint = translationMappings.apiEndpoints.mymemory
+    if (!endpoint.enabled) return null
+
+    const url = `${endpoint.baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
+    const { data } = await axios.get(url, { timeout: endpoint.timeout })
 
     if (data.responseStatus === 200 && data.responseData) {
       const translation = data.responseData.translatedText
@@ -126,8 +179,11 @@ async function tryMyMemoryTranslation(text, fromLang, toLang) {
 // LibreTranslate API
 async function tryLibreTranslate(text, fromLang, toLang) {
   try {
+    const endpoint = translationMappings.apiEndpoints.libretranslate
+    if (!endpoint.enabled) return null
+
     const { data } = await axios.post(
-      API_ENDPOINTS.libretranslate,
+      endpoint.baseUrl,
       {
         q: text,
         source: fromLang,
@@ -136,7 +192,7 @@ async function tryLibreTranslate(text, fromLang, toLang) {
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 5000
+        timeout: endpoint.timeout
       }
     )
 
@@ -157,9 +213,14 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
 }
 
 // Create mixed language content - now processes sentences in parallel
-export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja') {
+export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
     throw new Error('Invalid text input')
+  }
+
+  // Validate translation pair
+  if (!isTranslationPairSupported(sourceLang, targetLang)) {
+    throw new Error(`Translation pair ${sourceLang}-${targetLang} is not supported`)
   }
 
   const translationPercentage = getTranslationPercentage(userLevel)
@@ -180,6 +241,7 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
       sentence,
       translationPercentage,
       startIndex,
+      sourceLang,
       targetLang
     )
 
@@ -207,15 +269,11 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
 
 function getTranslationPercentage(level) {
   const levelNum = parseInt(level, 10)
-  // 5-level system: Beginner (1), Intermediate (2), Advanced (3), Expert (4), Native (5)
-  if (levelNum === 1) return 0.15  // Beginner - 15% translated
-  if (levelNum === 2) return 0.35  // Intermediate - 35% translated
-  if (levelNum === 3) return 0.55  // Advanced - 55% translated
-  if (levelNum === 4) return 0.75  // Expert - 75% translated
-  return 0.9                        // Native - 90% translated
+  const levelConfig = translationMappings.learningLevels[levelNum]
+  return levelConfig ? levelConfig.translationPercentage : 0.15
 }
 
-async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0, targetLang = 'ja') {
+async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0, sourceLang = 'en', targetLang = 'ja') {
   const wordPattern = /(\b\w+\b|\s+|[^\w\s])/g
   const tokens = sentence.match(wordPattern) || []
 
@@ -228,7 +286,7 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
 
   for (const token of tokens) {
     if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
-      const promise = translateText(token, 'en', targetLang).then(result => {
+      const promise = translateText(token, sourceLang, targetLang).then(result => {
         translationMap.set(token, result.translation)
       })
       translationPromises.push(promise)
@@ -250,13 +308,14 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
       const metadataEntry = {
         index: wordIndex,
         original: token,
-        translation: translation
+        translation: translation,
+        targetLanguage: targetLang
       }
 
       // Add appropriate flag based on target language
       if (targetLang === 'ko') {
         metadataEntry.showKorean = true
-      } else {
+      } else if (targetLang === 'ja') {
         metadataEntry.showJapanese = true
       }
 
@@ -322,24 +381,43 @@ async function selectWordsForTranslation(words, percentage) {
   return wordsToTranslate
 }
 
-// Language detection helpers
+// Language detection helpers - now use mappings
 export function containsJapanese(text) {
-  return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)
+  const regex = new RegExp(translationMappings.languages.ja.characterRanges.regex)
+  return regex.test(text)
 }
 
 export function containsKorean(text) {
-  return /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(text)
+  const regex = new RegExp(translationMappings.languages.ko.characterRanges.regex)
+  return regex.test(text)
 }
 
 export function containsTargetLanguage(text, languageCode) {
-  if (languageCode === 'ja') {
-    return containsJapanese(text)
-  } else if (languageCode === 'ko') {
-    return containsKorean(text)
-  }
-  return false
+  const language = translationMappings.languages[languageCode]
+  if (!language) return false
+  const regex = new RegExp(language.characterRanges.regex)
+  return regex.test(text)
 }
 
 export function isEnglishOnly(text) {
-  return /^[a-zA-Z\s.,!?;:"'()[\]{}—–-]+$/.test(text)
+  const regex = new RegExp(translationMappings.languages.en.characterRanges.regex)
+  return regex.test(text)
+}
+
+// Get all supported translation pairs
+export function getSupportedTranslationPairs() {
+  return Object.entries(translationMappings.translationPairs)
+    .filter(([_, pair]) => pair.enabled)
+    .map(([key, pair]) => ({
+      key,
+      from: pair.from,
+      to: pair.to,
+      fromLanguage: translationMappings.languages[pair.from],
+      toLanguage: translationMappings.languages[pair.to]
+    }))
+}
+
+// Get language information
+export function getLanguageInfo(languageCode) {
+  return translationMappings.languages[languageCode] || null
 }
