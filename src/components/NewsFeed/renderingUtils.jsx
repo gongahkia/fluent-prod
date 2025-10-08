@@ -140,22 +140,40 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
     if (parsedData && parsedData.text && parsedData.wordMetadata) {
       // Process text with word metadata
-      const parts = []
-      let remainingText = parsedData.text
-      let lastIndex = 0
+      let processedText = parsedData.text
+
+      // Build a map of all markers and their positions
+      const markerPositions = []
 
       // Sort metadata by index to process in order
       const sortedMetadata = [...parsedData.wordMetadata].sort((a, b) => a.index - b.index)
 
       for (const wordData of sortedMetadata) {
         const marker = `{{WORD:${wordData.index}}}`
-        const markerIndex = remainingText.indexOf(marker, lastIndex)
+        const markerIndex = processedText.indexOf(marker)
 
-        if (markerIndex === -1) continue
+        if (markerIndex !== -1) {
+          markerPositions.push({
+            index: markerIndex,
+            marker,
+            wordData
+          })
+        } else {
+          console.warn(`Marker ${marker} not found in text`)
+        }
+      }
 
+      // Sort by position in text
+      markerPositions.sort((a, b) => a.index - b.index)
+
+      // Build the final output
+      const parts = []
+      let lastIndex = 0
+
+      for (const { index: markerIndex, marker, wordData } of markerPositions) {
         // Add text before this marker
         if (markerIndex > lastIndex) {
-          parts.push(remainingText.substring(lastIndex, markerIndex))
+          parts.push(processedText.substring(lastIndex, markerIndex))
         }
 
         // Check if this word has been toggled
@@ -181,7 +199,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
               // When clicking, pass the ACTUAL language of the currently displayed text
               // If showing target lang (Korean/Japanese), the word IS in target lang -> translate to English
               // If showing English, the word is NOT in target lang -> translate to target lang
-              handleWordClick(displayText, isShowingTargetLang, remainingText)
+              handleWordClick(displayText, isShowingTargetLang, processedText)
             }}
             title={
               isShowingTargetLang
@@ -198,8 +216,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       }
 
       // Add remaining text after last marker
-      if (lastIndex < remainingText.length) {
-        parts.push(remainingText.substring(lastIndex))
+      if (lastIndex < processedText.length) {
+        parts.push(processedText.substring(lastIndex))
       }
 
       return parts.length > 0 ? parts : parsedData.text

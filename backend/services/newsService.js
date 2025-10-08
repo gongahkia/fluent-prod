@@ -112,9 +112,11 @@ const normalizePost = (post, source) => {
   switch (source) {
     case 'reddit':
       const redditContent = post.selftext || post.title || ''
+      // Use subreddit + post id for unique key
+      const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
       return {
         ...basePost,
-        id: `reddit_${post.id}`,
+        id: uniqueRedditId,
         title: post.title || 'No title',
         content: post.selftext || '',
         url: post.url || `https://reddit.com${post.permalink}`,

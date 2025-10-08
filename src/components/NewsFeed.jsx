@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import translationService from "../services/translationService"
+import { savePost } from "../services/databaseService"
+import { useAuth } from "../contexts/AuthContext"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
@@ -23,12 +25,11 @@ const NewsFeed = ({
   onAddWordToDictionary,
   userDictionary,
 }) => {
+  const { currentUser } = useAuth()
   const [showComments, setShowComments] = useState({})
   const [selectedWord, setSelectedWord] = useState(null)
   const [feedbackMessage, setFeedbackMessage] = useState(null)
-  const [followingUsers, setFollowingUsers] = useState(
-    new Set(["佐藤博", "高橋美咲"])
-  )
+  const [followingUsers, setFollowingUsers] = useState(new Set())
   const [isTranslating, setIsTranslating] = useState(false)
   const [posts, setPosts] = useState([])
   const [processedPosts, setProcessedPosts] = useState([])
@@ -49,6 +50,9 @@ const NewsFeed = ({
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
   const searchTimeoutRef = useRef(null)
   const [expandedPosts, setExpandedPosts] = useState({})
+  const [savedPostIds, setSavedPostIds] = useState(new Set())
+  const [savingPost, setSavingPost] = useState(null)
+  const [sharePopup, setSharePopup] = useState(null)
 
   // Check API configuration on component mount
   useEffect(() => {
@@ -238,7 +242,7 @@ const NewsFeed = ({
           ...post,
           tags: post.tags || ["#tech", "#news"],
           // difficulty is now calculated by backend
-          source: post.source || "reddit",
+          source: post.source,
         }))
 
         if (isLoadMore) {
@@ -353,12 +357,16 @@ const NewsFeed = ({
       // Show "see more" button when user scrolls to bottom 200px
       const isNearBottom = scrollTop + windowHeight >= documentHeight - 200
 
+      // Don't show button if user is translating/processing
       if (
         isNearBottom &&
         posts.length > 0 &&
         hasMorePosts &&
         !loading &&
-        !loadingMore
+        !loadingMore &&
+        !processingPosts &&
+        !selectedWord &&
+        !isTranslating
       ) {
         setShowSeeMoreButton(true)
       } else {
@@ -368,11 +376,12 @@ const NewsFeed = ({
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [posts.length, hasMorePosts, loading, loadingMore])
+  }, [posts.length, hasMorePosts, loading, loadingMore, processingPosts, selectedWord, isTranslating])
 
   // Function to load more posts
   const handleLoadMore = () => {
-    if (!loadingMore && hasMorePosts) {
+    // Don't load more if user is actively translating (processing posts or has translation popup open)
+    if (!loadingMore && hasMorePosts && !processingPosts && !selectedWord && !isTranslating) {
       loadPosts(true)
       setShowSeeMoreButton(false) // Hide button after clicking
     }
@@ -543,17 +552,74 @@ const NewsFeed = ({
     }))
   }
 
+  const handleSavePost = async (article) => {
+    if (!currentUser) {
+      alert('Please sign in to save posts')
+      return
+    }
+
+    if (savedPostIds.has(article.id)) {
+      alert('Post already saved!')
+      return
+    }
+
+    setSavingPost(article.id)
+
+    try {
+      const postData = {
+        id: article.id,
+        title: article.title,
+        content: article.content,
+        author: article.author,
+        url: article.url,
+        image: article.image,
+        source: article.source,
+        publishedAt: article.publishedAt,
+      }
+
+      const result = await savePost(currentUser.uid, postData)
+
+      if (result.success) {
+        setSavedPostIds(prev => new Set([...prev, article.id]))
+        showFeedback('Post saved! ✓', '📌')
+      } else {
+        alert('Failed to save post: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error saving post:', error)
+      alert('Failed to save post')
+    } finally {
+      setSavingPost(null)
+    }
+  }
+
+  const handleSharePost = async (article) => {
+    const shareUrl = article.externalUrl || article.url
+    const shareTitle = article.title
+
+    // Show share popup
+    setSharePopup({
+      url: shareUrl,
+      title: shareTitle,
+      id: article.id
+    })
+  }
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      showFeedback('Link copied! ✓', '🔗')
+      setSharePopup(null)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+      alert('Failed to copy link')
+    }
+  }
+
   // Get actual comment count for each article
   const getCommentCount = (articleId) => {
-    const commentCounts = {
-      1: 6, // Article 1 has 6 comments
-      2: 6, // Article 2 has 6 comments
-      3: 6, // Article 3 has 6 comments
-      4: 6, // Article 4 has 6 comments
-      5: 6, // Article 5 has 6 comments
-      6: 6, // Article 6 has 6 comments
-    }
-    return commentCounts[articleId] || 0
+    // Return 0 if no comment count available - no hardcoded values
+    return 0
   }
 
   const handleWordClick = async (word, isJapanese, context = null) => {
@@ -714,6 +780,50 @@ const NewsFeed = ({
           onAddToDictionary={handleAddToDictionary}
           onMastered={handleMastered}
         />
+      )}
+
+      {/* Share Popup */}
+      {sharePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Share Post</h3>
+            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{sharePopup.title}</p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => copyToClipboard(sharePopup.url)}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Copy Link</span>
+              </button>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(sharePopup.url)}&text=${encodeURIComponent(sharePopup.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Twitter</span>
+              </a>
+
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Facebook</span>
+              </a>
+
+              <button
+                onClick={() => setSharePopup(null)}
+                className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Error State */}
@@ -887,9 +997,19 @@ const NewsFeed = ({
               {/* Engagement Buttons */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex items-center space-x-6">
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors">
-                    <Bookmark className="w-5 h-5" />
-                    <span className="text-sm font-medium">Save</span>
+                  <button
+                    onClick={() => handleSavePost(article)}
+                    disabled={savingPost === article.id || savedPostIds.has(article.id)}
+                    className={`flex items-center space-x-2 transition-colors ${
+                      savedPostIds.has(article.id)
+                        ? 'text-orange-500'
+                        : 'text-gray-600 hover:text-orange-500'
+                    }`}
+                  >
+                    <Bookmark className={`w-5 h-5 ${savedPostIds.has(article.id) ? 'fill-current' : ''}`} />
+                    <span className="text-sm font-medium">
+                      {savingPost === article.id ? 'Saving...' : savedPostIds.has(article.id) ? 'Saved' : 'Save'}
+                    </span>
                   </button>
                   <button
                     onClick={() => toggleComments(article.id)}
@@ -901,11 +1021,12 @@ const NewsFeed = ({
                       comments
                     </span>
                   </button>
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors">
+                  <button
+                    onClick={() => handleSharePost(article)}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                  >
                     <Share className="w-5 h-5" />
-                    <span className="text-sm font-medium">
-                      {article.shares || "Share"}
-                    </span>
+                    <span className="text-sm font-medium">Share</span>
                   </button>
                 </div>
               </div>
