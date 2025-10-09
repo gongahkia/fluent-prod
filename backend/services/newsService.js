@@ -201,7 +201,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     const { data } = await axios.get(url, {
       params,
       headers: {
-        'User-Agent': 'Fluent/1.0'
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0; +https://big-livepeek-backend.onrender.com)'
       }
     })
 
@@ -212,7 +212,12 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
 
     return posts.map((post) => normalizePost(post, 'reddit'))
   } catch (error) {
-    console.error('Reddit API error:', error.message)
+    console.error('Reddit API error:', {
+      message: error.message,
+      response: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
     return []
   }
 }
