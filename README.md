@@ -8,7 +8,8 @@ Details in the [Trello](https://trello.com/invite/b/68e720e4a8fe9ee3e93a9788/ATT
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite
+- **Frontend**: React 19 + Vite, Vercel
+- **Backend**: Node.js, Render
 - **Styling**: Tailwind CSS + shadcn/ui components
 - **Icons**: Lucide React
 - **State Management**: React Hooks + Context API
