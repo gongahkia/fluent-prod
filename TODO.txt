@@ -16,11 +16,11 @@ x Fix saved posts to actually work and not show hardcoded defaults, allow the sa
 x Fix the share button so it actually works and shows a pop-up that allows users to share posts
 x Remove anymore hardcoded translation defaults and remove the hardcoded post sources that are fallbacks to reddit. Instead if reddit doesn't work don't show anything at all.
 x Universalise translation to be a JSON file where we can specify mappings for Language 1 --> Language 2 and vice versa
+x Fix the broken partial translation feature, I want to pre-process and cache the mixed language versions in Firestore during the scheduled job
+x Fix the broken see more feature, just show all 25 posts immediately called from firestore and have a message below saying "no more posts, all 25 from cache" instead of having a see more that shows 10 at first and loads 5 upon clicking.
 
 @ Gabriel
 
-x (A) Fix the broken partial translation feature, I want to pre-process and cache the mixed language versions in Firestore during the scheduled job
-x (A) Fix the broken see more feature, just show all 25 posts immediately called from firestore and have a message below saying "no more posts, all 25 from cache" instead of having a see more that shows 10 at first and loads 5 upon clicking.
 
 (A) Fix the broken posts, posts should automatically refresh and call the backend firestore cache when users swap language from korean to japanese 
 (A) Remove redundant and repeated files that aren't being used by any other files
