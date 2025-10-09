@@ -21,16 +21,20 @@ x Fix the broken see more feature, just show all 25 posts immediately called fro
 x Fix the broken posts, posts should automatically refresh and call the backend firestore cache when users swap language from korean to japanese 
 x Remove redundant and repeated files that aren't being used by any other files
 x Examine codebase and ensure that all posts (that are called and saved to firestore are from reddit, no other sites allowed)
+x Deploy backend and ensure everything works
+x Generate new architecture diagram that explains how current system works
 
 @ Gabriel
 
-(A) Deploy backend and ensure everything works
-(A) Generate new architecture diagram that explains how current system works
-(A) Why do posts from reddit sometimes say invalid date
+(A) Debug why posts from reddit sometimes say invalid date
+(A) Work on mobile view and bottom navbar instead of top
+(A) Improve mobile UI/UX +Performance @Frontend
+(A) Add touch gestures for word interaction +Performance @Frontend
 
 @ Astin 
 
 (A) Fix the broken onboarding process.
+(A) Integrate prioritising Kanji on the backend
 (A) Enhance onboarding flow with interactive examples +Features @Frontend
 (A) See how passwords are stored in the DB
 (A) Test via stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
@@ -83,9 +87,6 @@ x Examine codebase and ensure that all posts (that are called and saved to fires
 (B) Add lazy loading for posts +Performance @Frontend
 (B) Optimize images +Performance @Frontend
 (B) Implement code splitting +Performance @Frontend
-(B) Improve mobile UI/UX +Performance @Frontend
-(B) Add touch gestures for word interaction +Performance @Frontend
-(B) Implement offline support +Performance @Frontend
 
 (C) Add learning analytics track progress over time +Features @Analytics
 (C) Identify learning patterns +Features @Analytics

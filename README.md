@@ -18,6 +18,8 @@ Details in the [Trello](https://trello.com/invite/b/68e720e4a8fe9ee3e93a9788/ATT
 - **Build Tool**: Vite
 - **Package Manager**: pnpm
 
+For anything else, see [here](./ARCHITECTURE.md).
+
 ## Local Development Setup
 
 ### Prerequisites
