@@ -1,5 +1,7 @@
 import express from 'express'
 import { fetchNews, getAvailableSources } from '../services/newsService.js'
+import { runPostsFetchJob } from '../jobs/fetchPostsJob.js'
+import { listCachedPosts, getPostsMetadata } from '../services/storageService.js'
 
 const router = express.Router()
 
@@ -12,6 +14,9 @@ router.post('/', async (req, res, next) => {
       limit = 10,
       shuffle = true,
       search = null,
+      offset = 0,
+      userLevel = null,
+      targetLang = 'ja',
       // API credentials from frontend
       twitterBearerToken = null,
       instagramUsername = null,
@@ -24,6 +29,9 @@ router.post('/', async (req, res, next) => {
       limit,
       shuffle,
       searchQuery: search,
+      offset,
+      userLevel,
+      targetLang,
       twitterBearerToken,
       instagramUsername,
       instagramPassword
@@ -89,6 +97,49 @@ router.get('/sources', async (req, res, next) => {
   try {
     const sources = getAvailableSources()
     res.json({ sources })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// POST /api/news/fetch - Manually trigger posts fetch job (for testing)
+router.post('/fetch', async (req, res, next) => {
+  try {
+    console.log('📡 Manual fetch triggered via API')
+
+    // Run the fetch job asynchronously
+    runPostsFetchJob().catch(err => {
+      console.error('❌ Manual fetch failed:', err.message)
+    })
+
+    res.json({
+      message: 'Posts fetch job started. Check server logs for progress.',
+      status: 'running'
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// GET /api/news/cache - Get information about cached posts
+router.get('/cache', async (req, res, next) => {
+  try {
+    const cachedFiles = await listCachedPosts()
+
+    const fileInfo = await Promise.all(
+      cachedFiles.map(async (fileName) => {
+        const metadata = await getPostsMetadata(fileName)
+        return {
+          fileName,
+          ...metadata
+        }
+      })
+    )
+
+    res.json({
+      cachedFiles: fileInfo,
+      count: cachedFiles.length
+    })
   } catch (error) {
     next(error)
   }

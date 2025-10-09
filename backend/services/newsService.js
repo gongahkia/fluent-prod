@@ -3,8 +3,9 @@ import NodeCache from 'node-cache'
 import { TwitterApi } from 'twitter-api-v2'
 import { IgApiClient } from 'instagram-private-api'
 import { syllable } from 'syllable'
+import { downloadPostsFromStorage } from './storageService.js'
 
-// Cache for 15 minutes
+// Cache for 15 minutes (now mainly used for search results)
 const cache = new NodeCache({ stdTTL: 900 })
 
 // API Configuration
@@ -162,10 +163,106 @@ const normalizePost = (post, source) => {
   }
 }
 
-// Fetch from individual sources
-async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null) {
+// Fetch posts from Firebase Storage (pre-cached)
+async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null, offset = 0, userLevel = null, targetLang = 'ja') {
   try {
-    // Determine subreddits based on query
+    // Determine which cached file to use based on query
+    let fileName
+    switch (query.toLowerCase()) {
+      case 'korea':
+        fileName = 'posts-korea.json'
+        break
+      case 'japan':
+        fileName = 'posts-japan.json'
+        break
+      default:
+        // Default to japan
+        fileName = 'posts-japan.json'
+        break
+    }
+
+    console.log(`📥 Reading cached posts from ${fileName} (offset: ${offset}, limit: ${limit}, level: ${userLevel}, lang: ${targetLang})`)
+
+    // Download posts from Firebase Storage
+    let posts = await downloadPostsFromStorage(fileName)
+
+    if (!posts || posts.length === 0) {
+      console.warn(`⚠️  No cached posts found for ${query}. Run the scheduled job to fetch posts.`)
+      return { posts: [], totalCount: 0 }
+    }
+
+    const totalCount = posts.length
+
+    // If user level is provided, use pre-processed versions
+    if (userLevel && userLevel >= 1 && userLevel <= 5) {
+      posts = posts.map(post => {
+        const processedVersion = post.processedVersions?.[targetLang]?.[userLevel]
+
+        if (processedVersion && processedVersion.title) {
+          // Stringify the processed content so frontend can parse it
+          return {
+            ...post,
+            title: typeof processedVersion.title === 'object'
+              ? JSON.stringify(processedVersion.title)
+              : processedVersion.title,
+            content: processedVersion.content
+              ? (typeof processedVersion.content === 'object'
+                  ? JSON.stringify(processedVersion.content)
+                  : processedVersion.content)
+              : post.content,
+            originalTitle: post.title,
+            originalContent: post.content,
+            isMixedLanguage: true,
+            userLevel
+          }
+        }
+
+        // Fallback to original if no processed version
+        return post
+      })
+    }
+
+    // If search query provided, filter posts by search term
+    if (searchQuery && searchQuery.trim().length > 0) {
+      const searchLower = searchQuery.toLowerCase()
+      posts = posts.filter(post => {
+        const titleMatch = post.title?.toLowerCase().includes(searchLower)
+        const contentMatch = post.content?.toLowerCase().includes(searchLower)
+        return titleMatch || contentMatch
+      })
+      console.log(`🔍 Filtered to ${posts.length} posts matching "${searchQuery}"`)
+    }
+
+    // Shuffle posts for variety (unless searching) - only on first load (offset = 0)
+    if (!searchQuery && offset === 0) {
+      posts = posts.sort(() => Math.random() - 0.5)
+    }
+
+    // Apply offset and limit for pagination
+    const paginatedPosts = posts.slice(offset, offset + limit)
+
+    console.log(`✅ Returning ${paginatedPosts.length} posts for ${query} (${offset}-${offset + paginatedPosts.length} of ${posts.length} total)`)
+
+    return {
+      posts: paginatedPosts,
+      totalCount: posts.length,
+      hasMore: (offset + paginatedPosts.length) < posts.length
+    }
+  } catch (error) {
+    console.error('Firebase Storage read error:', {
+      message: error.message,
+      query,
+      searchQuery
+    })
+    return { posts: [], totalCount: 0, hasMore: false }
+  }
+}
+
+// OLD IMPLEMENTATION - kept for reference
+// This made live Reddit API calls which got blocked by datacenter IP blocking
+/*
+async function fetchRedditPostsLive(query = 'japan', limit = 10, searchQuery = null) {
+  try {
     let subreddits;
     switch (query.toLowerCase()) {
       case 'korea':
@@ -175,41 +272,34 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
         subreddits = ['japan', 'japanese', 'japanlife', 'anime', 'manga', 'jpop', 'japannews', 'japanmemes'];
         break;
       default:
-        // Default to japan for now
         subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese'];
         break;
     }
     const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]
 
-    // Use simpler .json endpoint which is less likely to be blocked
     let url
-    const params = {
-      limit: limit * 2 // Get more to filter
-    }
+    const params = { limit: limit * 2 }
 
-    // If search query provided, use Reddit search endpoint
     if (searchQuery && searchQuery.trim().length > 0) {
       url = `https://www.reddit.com/r/${subreddit}/search.json`
       params.q = searchQuery
-      params.restrict_sr = 'true' // Restrict search to subreddit
+      params.restrict_sr = 'true'
       params.sort = 'relevance'
     } else {
-      // No search query - use simple .json endpoint (more permissive than /hot.json)
       url = `https://www.reddit.com/r/${subreddit}.json`
     }
 
     const { data } = await axios.get(url, {
       params,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain',
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept-Encoding': 'gzip, deflate, br',
         'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'Connection': 'keep-alive'
       },
-      timeout: 10000 // 10 second timeout
+      timeout: 10000
     })
 
     const posts = (data?.data?.children || [])
@@ -219,15 +309,11 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
 
     return posts.map((post) => normalizePost(post, 'reddit'))
   } catch (error) {
-    console.error('Reddit API error:', {
-      message: error.message,
-      response: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    })
+    console.error('Reddit API error:', error.message)
     return []
   }
 }
+*/
 
 async function fetchTwitterPosts(query = 'japan', limit = 10, searchQuery = null, bearerToken = null) {
   if (!bearerToken) {
@@ -306,13 +392,16 @@ export async function fetchNews(options = {}) {
     limit = 10,
     shuffle = true,
     searchQuery = null,
+    offset = 0,
+    userLevel = null,
+    targetLang = 'ja',
     // API credentials from sessionStorage
     twitterBearerToken = null,
     instagramUsername = null,
     instagramPassword = null
   } = options
 
-  const cacheKey = `news:${sources.join(',')}:${query}:${limit}:${searchQuery || 'default'}`
+  const cacheKey = `news:${sources.join(',')}:${query}:${limit}:${offset}:${userLevel || 'none'}:${targetLang}:${searchQuery || 'default'}`
   const cached = cache.get(cacheKey)
   if (cached) {
     console.log('Returning cached news')
@@ -334,20 +423,29 @@ export async function fetchNews(options = {}) {
   const fetchPromises = availableSources.map((source) => {
     switch (source) {
       case 'reddit':
-        return fetchRedditPosts(query, limit, searchQuery)
+        return fetchRedditPosts(query, limit, searchQuery, offset, userLevel, targetLang)
       case 'twitter':
         return fetchTwitterPosts(query, limit, searchQuery, twitterBearerToken)
       case 'instagram':
         return fetchInstagramPosts(query, limit, searchQuery, instagramUsername, instagramPassword)
       default:
-        return Promise.resolve([])
+        return Promise.resolve({ posts: [], totalCount: 0, hasMore: false })
     }
   })
 
   const results = await Promise.all(fetchPromises)
-  let allPosts = results.flat()
 
-  if (shuffle) {
+  // For Reddit (main source), use the pagination data
+  const redditResult = results.find(r => r.posts !== undefined) || { posts: [], totalCount: 0, hasMore: false }
+
+  // For other sources (Twitter, Instagram), get just the posts
+  const otherPosts = results
+    .filter(r => Array.isArray(r))
+    .flat()
+
+  let allPosts = [...redditResult.posts, ...otherPosts]
+
+  if (shuffle && offset === 0) {
     allPosts = allPosts.sort(() => Math.random() - 0.5)
   }
 
@@ -358,7 +456,12 @@ export async function fetchNews(options = {}) {
     metadata: {
       count: allPosts.length,
       sources: availableSources,
-      searchQuery: searchQuery || null
+      searchQuery: searchQuery || null,
+      totalCount: redditResult.totalCount,
+      hasMore: redditResult.hasMore,
+      offset,
+      userLevel,
+      targetLang
     }
   }
 

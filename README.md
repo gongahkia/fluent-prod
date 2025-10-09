@@ -4,13 +4,7 @@ A language learning platform that helps you learn Japanese through real-world co
 
 ## Credentials
 
-Gmail account: app@gmail.com  
-Gmail password: f|^(I5pgmnZ.t22LEu  
-
-Test account already logged in
-
-Gmail account: dev@gmail.com  
-Gmail password: dev123  
+Details in the [Trello](https://trello.com/invite/b/68e720e4a8fe9ee3e93a9788/ATTI9a0b6e9fd51a7f333e5911cbe95ed4a21996498F/fluent).
 
 ## Tech Stack
 

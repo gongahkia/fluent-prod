@@ -12,8 +12,20 @@ import translationRoutes from './routes/translation.js'
 import vocabularyRoutes from './routes/vocabulary.js'
 import aiRoutes from './routes/ai.js'
 
+// Import Firebase and scheduled jobs
+import { initializeFirebase } from './config/firebase.js'
+import { initializeScheduledJob, runPostsFetchJob } from './jobs/fetchPostsJob.js'
+
 // Load environment variables
 dotenv.config()
+
+// Initialize Firebase Admin SDK
+try {
+  initializeFirebase()
+} catch (error) {
+  console.error('⚠️  Firebase initialization failed:', error.message)
+  console.error('⚠️  Posts will not be fetched/cached. Check your Firebase configuration.')
+}
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -105,4 +117,20 @@ app.listen(PORT, () => {
   console.log(`🚀 Fluent Backend running on http://localhost:${PORT}`)
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`)
+
+  // Initialize scheduled job for daily posts fetching
+  try {
+    initializeScheduledJob()
+    console.log('⏰ Daily posts fetch job initialized')
+
+    // Optionally run job immediately on startup (useful for testing)
+    if (process.env.RUN_FETCH_ON_STARTUP === 'true') {
+      console.log('🔄 Running initial posts fetch...')
+      runPostsFetchJob().catch(err => {
+        console.error('❌ Initial posts fetch failed:', err.message)
+      })
+    }
+  } catch (error) {
+    console.error('⚠️  Scheduled job initialization failed:', error.message)
+  }
 })

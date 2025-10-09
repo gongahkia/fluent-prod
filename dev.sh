@@ -23,9 +23,9 @@ echo -e "${GREEN}Starting backend server...${NC}"
 cd backend && npm run dev &
 BACKEND_PID=$!
 
-# Start frontend
+# Start frontend with dev mode flag
 echo -e "${GREEN}Starting frontend server...${NC}"
-cd "$(dirname "$0")" && pnpm dev &
+cd "$(dirname "$0")" && VITE_USE_LOCAL_API=true pnpm dev &
 FRONTEND_PID=$!
 
 echo -e "\n${BLUE}Both servers are running!${NC}"

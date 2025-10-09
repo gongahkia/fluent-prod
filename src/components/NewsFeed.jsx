@@ -44,6 +44,8 @@ const NewsFeed = ({
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [showSeeMoreButton, setShowSeeMoreButton] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const [totalCachedPosts, setTotalCachedPosts] = useState(0)
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -198,6 +200,7 @@ const NewsFeed = ({
         setLoading(true)
         setCurrentPage(1)
         setHasMorePosts(true)
+        setOffset(0)
       }
       setError(null)
 
@@ -229,13 +232,34 @@ const NewsFeed = ({
         const initialPostLimit = 10;
         const loadMorePostLimit = 5;
 
-        const realPosts = await fetchPosts({
+        const currentOffset = isLoadMore ? offset : 0;
+
+        // Determine target language code
+        const targetLangCode = userProfile?.targetLanguage === 'Korean' ? 'ko' : 'ja';
+
+        const result = await fetchPosts({
           sources: enabledSources,
           query: defaultQuery,
-          limit: isLoadMore ? loadMorePostLimit : initialPostLimit, 
-          shuffle: true,
+          limit: isLoadMore ? loadMorePostLimit : initialPostLimit,
+          shuffle: !isLoadMore, // Only shuffle on initial load
           searchQuery: activeSearchQuery && activeSearchQuery.trim() ? activeSearchQuery.trim() : null,
+          offset: currentOffset,
+          userLevel: userProfile?.learningLevel || null,
+          targetLang: targetLangCode
         })
+
+        const realPosts = result.posts || []
+        const metadata = result.metadata || {}
+
+        // Update total cached posts count
+        if (metadata.totalCount !== undefined) {
+          setTotalCachedPosts(metadata.totalCount)
+        }
+
+        // Update hasMore based on metadata
+        if (metadata.hasMore !== undefined) {
+          setHasMorePosts(metadata.hasMore)
+        }
 
         // Ensure real posts have the necessary structure for translation
         const enhancedPosts = realPosts.map((post) => ({
@@ -257,28 +281,21 @@ const NewsFeed = ({
               setHasMorePosts(false)
               return prev
             } else {
-              // Process new posts separately - will update state progressively
-              if (userProfile?.learningLevel && newPosts.length > 0) {
-                processPostsWithMixedLanguage(newPosts, true)
-              }
               setCurrentPage((prevPage) => prevPage + 1)
+              // Update offset for next load
+              setOffset(currentOffset + newPosts.length)
+              // Add new posts directly to processed posts (no frontend processing needed)
+              setProcessedPosts((prev) => [...prev, ...newPosts])
               return [...prev, ...newPosts]
             }
           })
         } else {
           setPosts(enhancedPosts)
-          // Reset minimum posts loaded flag
-          setMinPostsLoaded(false)
-          // Process posts for mixed language content
-          if (userProfile?.learningLevel && enhancedPosts.length > 0) {
-            // Clear processed posts before starting
-            setProcessedPosts([])
-            // Process posts asynchronously - will update state progressively
-            await processPostsWithMixedLanguage(enhancedPosts, false)
-          } else {
-            setProcessedPosts(enhancedPosts)
-            setMinPostsLoaded(true)
-          }
+          // Set processed posts directly (backend already processed them)
+          setProcessedPosts(enhancedPosts)
+          setMinPostsLoaded(true)
+          // Set initial offset
+          setOffset(enhancedPosts.length)
         }
       } catch (err) {
         setError(err.message)
@@ -302,6 +319,7 @@ const NewsFeed = ({
       userProfile?.learningLevel,
       processPostsWithMixedLanguage,
       activeSearchQuery,
+      offset,
     ]
   )
 
@@ -1092,11 +1110,16 @@ const NewsFeed = ({
       {!hasMorePosts &&
         (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
           <div className="text-center py-8">
-            <div className="inline-flex items-center space-x-2 text-gray-500">
-              <span className="text-2xl">🎉</span>
+            <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
+              <span className="text-2xl">📚</span>
               <span className="font-medium">
-                You've reached the end! Check back later for more posts.
+                All cached posts currently displayed
               </span>
+              {totalCachedPosts > 0 && (
+                <span className="text-sm text-gray-400">
+                  {(processedPosts.length > 0 ? processedPosts : posts).length} of {totalCachedPosts} posts shown
+                </span>
+              )}
             </div>
           </div>
         )}

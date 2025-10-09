@@ -1,5 +1,8 @@
 // News Service - Backend API Client
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+// In dev mode (VITE_USE_LOCAL_API=true), use localhost. Otherwise use production URL.
+const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
+  ? 'http://localhost:3001'
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
 
 /**
  * Get API credentials from sessionStorage
@@ -20,6 +23,9 @@ function getApiCredentials() {
  * @param {string} options.query - Search query
  * @param {number} options.limit - Maximum number of posts
  * @param {boolean} options.shuffle - Whether to shuffle results
+ * @param {number} options.offset - Offset for pagination (default: 0)
+ * @param {number} options.userLevel - User's learning level (1-5)
+ * @param {string} options.targetLang - Target language code ('ja' or 'ko')
  * @returns {Promise<Object>} Posts and metadata
  */
 export async function fetchPosts(options = {}) {
@@ -28,7 +34,10 @@ export async function fetchPosts(options = {}) {
     query = 'japan',
     limit = 10,
     shuffle = true,
-    searchQuery = null
+    searchQuery = null,
+    offset = 0,
+    userLevel = null,
+    targetLang = 'ja'
   } = options
 
   // Get credentials from sessionStorage
@@ -40,6 +49,9 @@ export async function fetchPosts(options = {}) {
     limit,
     shuffle,
     search: searchQuery && searchQuery.trim().length > 0 ? searchQuery.trim() : null,
+    offset,
+    userLevel,
+    targetLang,
     ...credentials
   }
 
@@ -57,7 +69,10 @@ export async function fetchPosts(options = {}) {
     }
 
     const data = await response.json()
-    return data.posts || []
+    return {
+      posts: data.posts || [],
+      metadata: data.metadata || {}
+    }
   } catch (error) {
     console.error('News fetch error:', error)
     throw error
