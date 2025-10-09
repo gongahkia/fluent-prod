@@ -94,13 +94,13 @@ async function fetchRedditPostsForQuery(query, limit = 30) {
     let subreddits
     switch (query.toLowerCase()) {
       case 'korea':
-        subreddits = ['korea', 'korean', 'southkorea', 'seoul', 'hanguk', 'kpop', 'koreanews', 'koreamemes']
+        subreddits = ['hanguk', 'kpop', 'koreanews', 'koreamemes']
         break
       case 'japan':
-        subreddits = ['tokyo', 'japanese', 'anime', 'manga', 'jpop', 'japannews', 'japanmemes', 'shibuya', 'harakuju']
+        subreddits = ['lowlevelaware', 'newsokur', 'BakaNewsJP', 'tokyo', 'anime', 'manga', 'jpop', 'japannews', 'japanmemes', 'shibuya', 'harakuju']
         break
       default:
-        subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese']
+        subreddits = ['memes', 'trending']
         break
     }
 

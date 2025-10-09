@@ -26,6 +26,8 @@ x (A) Fix the broken see more feature, just show all 25 posts immediately called
 (A) Remove redundant and repeated files that aren't being used by any other files
 (A) Deploy backend and ensure everything works
 (A) Generate new architecture diagram that explains how current system works
+(A) Why do posts from reddit sometimes say invalid date
+(A) Examine codebase and ensure that all posts (that are called and saved to firestore are from reddit, no other sites allowed)
 
 @ Astin 
 
