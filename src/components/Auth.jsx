@@ -146,12 +146,12 @@ const Auth = ({ onAuthComplete }) => {
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4">
             <img
-              src="/influent-logo.png"
-              alt="Influent Logo"
+              src="/-logo.png"
+              alt="Fluent Logo"
               className="w-full h-full rounded-full object-cover"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Influent</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Fluent</h1>
           <p className="text-gray-600">
             {isLogin ? "Welcome back!" : "Start your language learning journey"}
           </p>
@@ -438,12 +438,12 @@ const Auth = ({ onAuthComplete }) => {
               <div className="prose prose-sm max-w-none">
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">1. Acceptance of Terms</h3>
                 <p className="text-gray-700">
-                  By accessing and using Influent ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these Terms of Service, please do not use the Service.
+                  By accessing and using Fluent ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these Terms of Service, please do not use the Service.
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">2. Description of Service</h3>
                 <p className="text-gray-700">
-                  Influent provides a language learning platform that aggregates content from various sources including Reddit and other public APIs. The Service offers translation features, vocabulary management, and interactive learning tools to help users learn Japanese and other languages.
+                  Fluent provides a language learning platform that aggregates content from various sources including Reddit and other public APIs. The Service offers translation features, vocabulary management, and interactive learning tools to help users learn Japanese and other languages.
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">3. User Accounts</h3>
@@ -468,12 +468,12 @@ const Auth = ({ onAuthComplete }) => {
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">7. Intellectual Property</h3>
                 <p className="text-gray-700">
-                  The Service and its original content, features, and functionality are owned by Influent and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                  The Service and its original content, features, and functionality are owned by Fluent and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">8. Limitation of Liability</h3>
                 <p className="text-gray-700">
-                  In no event shall Influent, its directors, employees, partners, or suppliers be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses, resulting from your use of the Service.
+                  In no event shall Fluent, its directors, employees, partners, or suppliers be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses, resulting from your use of the Service.
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">9. Disclaimer of Warranties</h3>
@@ -493,7 +493,7 @@ const Auth = ({ onAuthComplete }) => {
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">12. Governing Law</h3>
                 <p className="text-gray-700 mb-8">
-                  These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Influent operates, without regard to its conflict of law provisions. Any disputes arising from these terms will be resolved in the appropriate courts of that jurisdiction.
+                  These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Fluent operates, without regard to its conflict of law provisions. Any disputes arising from these terms will be resolved in the appropriate courts of that jurisdiction.
                 </p>
               </div>
             </div>
@@ -601,7 +601,7 @@ const Auth = ({ onAuthComplete }) => {
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-4">12. Contact Us</h3>
                 <p className="text-gray-700 mb-8">
-                  If you have any questions about this Privacy Policy or our data practices, please contact us at privacy@influent.app. We will respond to your inquiry within a reasonable timeframe.
+                  If you have any questions about this Privacy Policy or our data practices, please contact us at privacy@.app. We will respond to your inquiry within a reasonable timeframe.
                 </p>
               </div>
             </div>

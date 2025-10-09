@@ -184,7 +184,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     let url
     const params = {
       limit: limit * 2, // Get more to filter
-      'User-Agent': 'Influent/1.0'
+      'User-Agent': 'Fluent/1.0'
     }
 
     // If search query provided, use Reddit search endpoint
@@ -201,7 +201,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     const { data } = await axios.get(url, {
       params,
       headers: {
-        'User-Agent': 'Influent/1.0'
+        'User-Agent': 'Fluent/1.0'
       }
     })
 

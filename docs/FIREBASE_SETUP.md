@@ -1,6 +1,6 @@
-# Firebase Setup Guide for Influent
+# Firebase Setup Guide for Fluent
 
-This guide will walk you through setting up Firebase for authentication and data persistence in the Influent app.
+This guide will walk you through setting up Firebase for authentication and data persistence in the Fluent app.
 
 ## Table of Contents
 
@@ -30,13 +30,13 @@ This guide will walk you through setting up Firebase for authentication and data
 
 2. **Create a new project**
    - Click "Add project"
-   - Enter project name (e.g., "influent-app")
+   - Enter project name (e.g., "-app")
    - (Optional) Enable Google Analytics
    - Click "Create project"
 
 3. **Register your web app**
    - In the Firebase console, click the web icon (`</>`)
-   - Register app nickname (e.g., "Influent Web")
+   - Register app nickname (e.g., "Fluent Web")
    - Check "Also set up Firebase Hosting" (optional)
    - Click "Register app"
 

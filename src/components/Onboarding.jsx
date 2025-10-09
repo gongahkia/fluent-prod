@@ -179,7 +179,7 @@ const Onboarding = ({ onComplete }) => {
               <Globe className="w-8 h-8 text-gray-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Welcome to Influent!
+              Welcome to Fluent!
             </h2>
             <p className="text-gray-600 mb-8">
               Discover authentic content from around the world. Start with
@@ -295,7 +295,7 @@ const Onboarding = ({ onComplete }) => {
               <Lightbulb className="w-8 h-8 text-orange-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              How Influent Works
+              How Fluent Works
             </h2>
             <p className="text-gray-600 mb-8">
               Slide to control how much translation you need. Stop when you
@@ -528,7 +528,7 @@ const Onboarding = ({ onComplete }) => {
               </h3>
               <ul className="space-y-2 text-orange-800 text-sm">
                 <li>
-                  • Influent is currently in <strong>beta testing</strong>
+                  • Fluent is currently in <strong>beta testing</strong>
                 </li>
                 <li>
                   • You may encounter bugs or incomplete features
@@ -548,7 +548,7 @@ const Onboarding = ({ onComplete }) => {
               </h3>
               <ul className="space-y-2 text-blue-800 text-sm">
                 <li>
-                  • Influent is designed for{" "}
+                  • Fluent is designed for{" "}
                   <strong>intermediate to advanced</strong> language learners
                 </li>
                 <li>

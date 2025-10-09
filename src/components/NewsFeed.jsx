@@ -424,7 +424,7 @@ const NewsFeed = ({
             level: selectedWord.level,
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
-            source: "Influent Post",
+            source: "Fluent Post",
           }
         } else {
           // Korean word - add normally
@@ -435,7 +435,7 @@ const NewsFeed = ({
             level: selectedWord.level,
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
-            source: "Influent Post",
+            source: "Fluent Post",
           }
         }
 
@@ -460,7 +460,7 @@ const NewsFeed = ({
             level: selectedWord.level,
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
-            source: "Influent Post",
+            source: "Fluent Post",
           }
         } else {
           // Japanese word - add normally
@@ -471,7 +471,7 @@ const NewsFeed = ({
             level: selectedWord.level,
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
-            source: "Influent Post",
+            source: "Fluent Post",
           }
         }
 
@@ -663,7 +663,7 @@ const NewsFeed = ({
             <span className="text-2xl">🌍</span>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Welcome to Influent
+            Welcome to Fluent
           </h3>
           <p className="text-gray-600">
             Discover authentic content from around the world. Starting with

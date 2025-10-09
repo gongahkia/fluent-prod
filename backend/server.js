@@ -57,7 +57,7 @@ app.use('/api/', limiter)
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'Influent Backend API',
+    message: 'Fluent Backend API',
     version: '1.0.0',
     endpoints: {
       health: '/health',
@@ -99,7 +99,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Influent Backend running on http://localhost:${PORT}`)
+  console.log(`🚀 Fluent Backend running on http://localhost:${PORT}`)
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`)
 })

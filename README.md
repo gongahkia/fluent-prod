@@ -1,10 +1,10 @@
-# Influent
+# Fluent
 
 A language learning platform that helps you learn Japanese through real-world content from Reddit, news sources, and social media.
 
 ## Credentials
 
-Gmail account: appinfluent@gmail.com  
+Gmail account: app@gmail.com  
 Gmail password: f|^(I5pgmnZ.t22LEu  
 
 Test account already logged in
@@ -28,8 +28,8 @@ Gmail password: dev123
 1. Clone and Install Dependencies
 
 ```console
-$ git clone https://github.com/gongahkia/big-influent
-$ cd influent
+$ git clone https://github.com/gongahkia/big-
+$ cd 
 $ pnpm install
 $ cd backend
 $ npm install

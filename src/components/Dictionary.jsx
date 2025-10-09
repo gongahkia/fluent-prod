@@ -150,7 +150,7 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `influent-dictionary-${new Date().toISOString().split('T')[0]}.json`
+    link.download = `-dictionary-${new Date().toISOString().split('T')[0]}.json`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -178,7 +178,7 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `influent-dictionary-${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `-dictionary-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }

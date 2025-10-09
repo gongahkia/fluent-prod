@@ -238,7 +238,7 @@ export const addWordToDictionary = (
         level: selectedWord.level,
         example: selectedWord.example,
         exampleEn: selectedWord.exampleEn,
-        source: "Influent",
+        source: "Fluent",
       }
     } else {
       // Japanese word - add normally
@@ -249,7 +249,7 @@ export const addWordToDictionary = (
         level: selectedWord.level,
         example: selectedWord.example,
         exampleEn: selectedWord.exampleEn,
-        source: "Influent",
+        source: "Fluent",
       }
     }
 

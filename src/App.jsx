@@ -124,7 +124,7 @@ function App() {
       english: wordData.english,
       example: wordData.example,
       exampleEn: wordData.exampleEn || `Example sentence with ${wordData.english}.`,
-      source: wordData.source || "Influent Post",
+      source: wordData.source || "Fluent Post",
     }
 
     // Add language-specific fields
@@ -243,13 +243,13 @@ function App() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <img
-                  src="/influent-logo.png"
-                  alt="Influent Logo"
+                  src="/-logo.png"
+                  alt="Fluent Logo"
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div className="flex items-center space-x-2">
                   <span className="text-xl font-bold text-gray-900">
-                    Influent
+                    Fluent
                   </span>
                   <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full border border-orange-300">
                     BETA

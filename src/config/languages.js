@@ -1,4 +1,4 @@
-// Language Configuration System for Influent
+// Language Configuration System for Fluent
 // Centralized configuration for all supported languages
 // Now uses translationMappings.json for true universal configuration
 
