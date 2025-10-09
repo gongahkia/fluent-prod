@@ -18,24 +18,23 @@ x Remove anymore hardcoded translation defaults and remove the hardcoded post so
 x Universalise translation to be a JSON file where we can specify mappings for Language 1 --> Language 2 and vice versa
 x Fix the broken partial translation feature, I want to pre-process and cache the mixed language versions in Firestore during the scheduled job
 x Fix the broken see more feature, just show all 25 posts immediately called from firestore and have a message below saying "no more posts, all 25 from cache" instead of having a see more that shows 10 at first and loads 5 upon clicking.
+x Fix the broken posts, posts should automatically refresh and call the backend firestore cache when users swap language from korean to japanese 
+x Remove redundant and repeated files that aren't being used by any other files
+x Examine codebase and ensure that all posts (that are called and saved to firestore are from reddit, no other sites allowed)
 
 @ Gabriel
 
-
-(A) Fix the broken posts, posts should automatically refresh and call the backend firestore cache when users swap language from korean to japanese 
-(A) Remove redundant and repeated files that aren't being used by any other files
 (A) Deploy backend and ensure everything works
 (A) Generate new architecture diagram that explains how current system works
 (A) Why do posts from reddit sometimes say invalid date
-(A) Examine codebase and ensure that all posts (that are called and saved to firestore are from reddit, no other sites allowed)
 
 @ Astin 
 
-(C) Fix the broken onboarding process.
-(C) Enhance onboarding flow with interactive examples +Features @Frontend
-(C) See how passwords are stored in the DB
-(C) Test via stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
-(C) Twitter into the backend (API)
+(A) Fix the broken onboarding process.
+(A) Enhance onboarding flow with interactive examples +Features @Frontend
+(A) See how passwords are stored in the DB
+(A) Test via stress-test the translation and hopping from learning japanese to learning korean mode, check console log for anymore bugs
+(A) Twitter into the backend (API)
 
 @ Noone
 

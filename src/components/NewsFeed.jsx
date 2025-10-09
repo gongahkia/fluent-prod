@@ -297,19 +297,21 @@ const NewsFeed = ({
       selectedSources,
       apiStatus,
       userProfile?.learningLevel,
+      userProfile?.targetLanguage,
       processPostsWithMixedLanguage,
       activeSearchQuery,
       offset,
     ]
   )
 
-  // Load posts when sources, API status, user level, or search changes
+  // Load posts when sources, API status, user level, target language, or search changes
   // Use ref to track if we should reload posts
   const shouldReloadRef = useRef(true)
   const prevDepsRef = useRef({
     selectedSources: [],
     apiStatusKeys: [],
     learningLevel: null,
+    targetLanguage: null,
     activeSearchQuery: ''
   })
 
@@ -321,6 +323,7 @@ const NewsFeed = ({
       selectedSources: selectedSources.join(','),
       apiStatusKeys: Object.keys(apiStatus).sort().join(','),
       learningLevel: userProfile?.learningLevel,
+      targetLanguage: userProfile?.targetLanguage,
       activeSearchQuery
     }
 
@@ -329,14 +332,27 @@ const NewsFeed = ({
       currentDeps.selectedSources !== prevDeps.selectedSources ||
       currentDeps.apiStatusKeys !== prevDeps.apiStatusKeys ||
       currentDeps.learningLevel !== prevDeps.learningLevel ||
+      currentDeps.targetLanguage !== prevDeps.targetLanguage ||
       currentDeps.activeSearchQuery !== prevDeps.activeSearchQuery
 
     if (depsChanged || shouldReloadRef.current) {
+      // Log language change for debugging
+      if (currentDeps.targetLanguage !== prevDeps.targetLanguage && prevDeps.targetLanguage) {
+        console.log(`🌐 Language changed: ${prevDeps.targetLanguage} → ${currentDeps.targetLanguage}`)
+        // Clear posts immediately on language change for better UX
+        setPosts([])
+        setProcessedPosts([])
+      }
+      
+      console.log('🔄 Dependencies changed, reloading posts:', {
+        targetLanguage: currentDeps.targetLanguage,
+        learningLevel: currentDeps.learningLevel
+      })
       loadPosts()
       prevDepsRef.current = currentDeps
       shouldReloadRef.current = false
     }
-  }, [selectedSources, apiStatus, userProfile?.learningLevel, activeSearchQuery])
+  }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, activeSearchQuery, loadPosts])
 
   // Turn off loading state when minimum posts are loaded
   useEffect(() => {

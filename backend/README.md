@@ -239,10 +239,45 @@ Content-Type: application/json
 }
 ```
 
+## Configuration
+
+### Subreddit Configuration (`config/subreddits.json`)
+
+The backend uses a JSON configuration file to determine which subreddits to fetch posts from for each language. This makes it easy to add, remove, or modify subreddit sources without changing code.
+
+**Structure:**
+```json
+{
+  "queries": {
+    "korea": {
+      "language": "Korean",
+      "targetLang": "ko",
+      "subreddits": ["hanguk", "kpop", "korea", ...]
+    },
+    "japan": {
+      "language": "Japanese",
+      "targetLang": "ja",
+      "subreddits": ["lowlevelaware", "newsokur", "anime", ...]
+    }
+  },
+  "settings": {
+    "maxSubredditsPerQuery": 4,
+    "postsPerSubreddit": 10,
+    "shuffleResults": true
+  }
+}
+```
+
+**To customize subreddits:**
+1. Edit `backend/config/subreddits.json`
+2. Add/remove subreddits from the `subreddits` array
+3. Adjust `maxSubredditsPerQuery` to fetch from more/fewer subreddits
+4. Restart the server for changes to take effect
+
 ## Caching Strategy
 
 - **Translations**: 30 days TTL
-- **News posts**: 15 minutes TTL
+- **News posts**: 15 minutes TTL (cached in Firestore, refreshed daily at 3 AM)
 - **Vocabulary**: 1 hour TTL
 
 Caching significantly improves performance and reduces external API calls.

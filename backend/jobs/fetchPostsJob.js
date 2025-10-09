@@ -3,6 +3,16 @@ import axios from 'axios'
 import { uploadPostsToStorage } from '../services/storageService.js'
 import { syllable } from 'syllable'
 import { createMixedLanguageContent } from '../services/translationService.js'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+// Load subreddit configuration
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const subredditConfig = JSON.parse(
+  readFileSync(join(__dirname, '../config/subreddits.json'), 'utf-8')
+)
 
 /**
  * Difficulty Calculation for English Text
@@ -90,27 +100,20 @@ async function fetchRedditPostsForQuery(query, limit = 30) {
   try {
     console.log(`🔍 Fetching ${limit} posts for query: ${query}`)
 
-    // Determine subreddits based on query
-    let subreddits
-    switch (query.toLowerCase()) {
-      case 'korea':
-        subreddits = ['hanguk', 'kpop']
-        break
-      case 'japan':
-        subreddits = ['lowlevelaware', 'newsokur', 'BakaNewsJP']
-        // ['anime', 'manga', 'jpop', 'japannews', 'japanmemes', 'shibuya', 'harakuju']
-        break
-      default:
-        subreddits = ['memes', 'trending']
-        break
-    }
+    // Get subreddits from configuration
+    const queryKey = query.toLowerCase()
+    const queryConfig = subredditConfig.queries[queryKey] || subredditConfig.queries.default
+    const subreddits = queryConfig.subreddits
+    
+    console.log(`📋 Using ${subreddits.length} subreddits for ${queryKey}:`, subreddits.join(', '))
 
     // Fetch from multiple subreddits to get variety
-    const fetchPromises = subreddits.slice(0, 4).map(async (subreddit) => {
+    const maxSubreddits = subredditConfig.settings.maxSubredditsPerQuery || 4
+    const fetchPromises = subreddits.slice(0, maxSubreddits).map(async (subreddit) => {
       try {
         const url = `https://www.reddit.com/r/${subreddit}.json`
         const { data } = await axios.get(url, {
-          params: { limit: Math.ceil(limit / 4) },
+          params: { limit: Math.ceil(limit / maxSubreddits) },
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',

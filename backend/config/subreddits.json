@@ -1,0 +1,54 @@
+{
+  "description": "Configuration for Reddit subreddits to fetch posts from for each language/query",
+  "queries": {
+    "korea": {
+      "language": "Korean",
+      "targetLang": "ko",
+      "subreddits": [
+        "hanguk",
+        "kpop",
+        "korea",
+        "korean",
+        "southkorea",
+        "seoul",
+        "koreanews",
+        "koreamemes"
+      ],
+      "description": "Korean language and culture subreddits"
+    },
+    "japan": {
+      "language": "Japanese",
+      "targetLang": "ja",
+      "subreddits": [
+        "lowlevelaware",
+        "newsokur",
+        "anime",
+        "BakaNewsJP",
+        "manga",
+        "jpop",
+        "japannews",
+        "japanmemes",
+        "shibuya",
+        "harajuku"
+      ],
+      "description": "Japanese language and culture subreddits"
+    },
+    "default": {
+      "language": "English",
+      "targetLang": "en",
+      "subreddits": [
+        "memes",
+        "trending",
+        "news",
+        "worldnews"
+      ],
+      "description": "Default fallback subreddits"
+    }
+  },
+  "settings": {
+    "maxSubredditsPerQuery": 4,
+    "postsPerSubreddit": 10,
+    "shuffleResults": true
+  }
+}
+
