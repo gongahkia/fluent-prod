@@ -93,6 +93,10 @@ $ pnpm run dev
 
 | Source | Status | API Key Required | Configuration |
 |--------|--------|------------------|---------------|
-| Reddit | ✅ Active | No | Enabled by default - Pulls from Japanese-themed subreddits (japan, japanese, japanlife, japantravel, learnjapanese) |
-| Twitter | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Twitter API Bearer Token from [developer.twitter.com](https://developer.twitter.com) |
-| Instagram | ⚙️ Configurable | Yes | Configure via **Profile > Developer Mode** tab - Enter your Instagram username and password (use a dedicated account) |
+| Reddit | ✅ Active | No | Enabled by default - Pulls from language-specific subreddits configured in `backend/config/subreddits.json` |
+
+**Note:** Fluent exclusively uses Reddit as its content source to ensure:
+- Consistent post quality and structure
+- Pre-processed translations cached in Firestore
+- Fast, reliable content delivery
+- No additional API credentials needed

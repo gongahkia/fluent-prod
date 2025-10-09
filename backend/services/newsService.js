@@ -1,28 +1,23 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
-import { TwitterApi } from 'twitter-api-v2'
-import { IgApiClient } from 'instagram-private-api'
+// Twitter and Instagram imports removed - Reddit only policy
+// import { TwitterApi } from 'twitter-api-v2'
+// import { IgApiClient } from 'instagram-private-api'
 import { syllable } from 'syllable'
 import { downloadPostsFromStorage } from './storageService.js'
 
 // Cache for 15 minutes (now mainly used for search results)
 const cache = new NodeCache({ stdTTL: 900 })
 
-// API Configuration
+// API Configuration - REDDIT ONLY
+// Twitter and Instagram are disabled to ensure only Reddit posts are cached
 const API_CONFIG = {
   reddit: {
     name: 'Reddit',
-    baseUrl: 'https://www.reddit.com', // Using .json endpoints which are more permissive
+    baseUrl: 'https://www.reddit.com',
     enabled: true
-  },
-  twitter: {
-    name: 'Twitter',
-    enabled: false // Will be enabled when credentials provided
-  },
-  instagram: {
-    name: 'Instagram',
-    enabled: false // Will be enabled when credentials provided
   }
+  // Twitter and Instagram removed - Reddit only policy
 }
 
 // Difficulty Calculation for English Text
@@ -95,71 +90,29 @@ function calculateEnglishDifficulty(text) {
   return difficulty
 }
 
-// Utility functions
+// Utility functions - REDDIT ONLY
 const normalizePost = (post, source) => {
-  const basePost = {
-    id: null,
-    title: '',
-    content: '',
-    url: '',
-    author: '',
-    publishedAt: new Date(),
-    source: source,
-    image: null,
-    tags: [],
-    difficulty: 3 // Default difficulty
+  // Only accept Reddit posts
+  if (source !== 'reddit') {
+    console.warn(`⚠️  Attempted to normalize non-Reddit post from source: ${source}. Rejected.`)
+    return null
   }
 
-  switch (source) {
-    case 'reddit':
-      const redditContent = post.selftext || post.title || ''
-      // Use subreddit + post id for unique key
-      const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
-      return {
-        ...basePost,
-        id: uniqueRedditId,
-        title: post.title || 'No title',
-        content: post.selftext || '',
-        url: post.url || `https://reddit.com${post.permalink}`,
-        author: post.author || 'deleted',
-        publishedAt: new Date(post.created_utc * 1000),
-        image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
-        tags: ['reddit', post.subreddit],
-        difficulty: calculateEnglishDifficulty(redditContent)
-      }
-
-    case 'twitter':
-      const twitterContent = post.text || ''
-      return {
-        ...basePost,
-        id: `twitter_${post.id || 'unknown'}`,
-        title: post.text ? post.text.substring(0, 100) : 'No title',
-        content: post.text || '',
-        url: `https://twitter.com/i/status/${post.id}`,
-        author: 'Twitter User',
-        publishedAt: new Date(post.timestamp ? post.timestamp * 1000 : Date.now()),
-        image: null,
-        tags: ['twitter'],
-        difficulty: calculateEnglishDifficulty(twitterContent)
-      }
-
-    case 'instagram':
-      const instagramContent = post.caption?.text || ''
-      return {
-        ...basePost,
-        id: `instagram_${post.id || post.pk}`,
-        title: post.caption?.text ? post.caption.text.substring(0, 100) : 'Instagram Post',
-        content: post.caption?.text || '',
-        url: `https://www.instagram.com/p/${post.code}/`,
-        author: post.user?.username || 'Unknown',
-        publishedAt: new Date((post.taken_at || post.device_timestamp) * 1000),
-        image: post.image_versions2?.candidates?.[0]?.url || post.thumbnail_url || null,
-        tags: ['instagram', ...(post.caption?.hashtags || [])],
-        difficulty: calculateEnglishDifficulty(instagramContent)
-      }
-
-    default:
-      return basePost
+  const redditContent = post.selftext || post.title || ''
+  // Use subreddit + post id for unique key
+  const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
+  
+  return {
+    id: uniqueRedditId,
+    title: post.title || 'No title',
+    content: post.selftext || '',
+    url: post.url || `https://reddit.com${post.permalink}`,
+    author: post.author || 'deleted',
+    publishedAt: new Date(post.created_utc * 1000),
+    source: 'reddit',
+    image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
+    tags: ['reddit', post.subreddit],
+    difficulty: calculateEnglishDifficulty(redditContent)
   }
 }
 
@@ -258,74 +211,23 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
   }
 }
 
+// TWITTER AND INSTAGRAM DISABLED - REDDIT ONLY POLICY
+// These functions are kept for reference but are not used
+// The codebase only supports Reddit to ensure consistent post quality and caching
+
+/*
 async function fetchTwitterPosts(query = 'japan', limit = 10, searchQuery = null, bearerToken = null) {
-  if (!bearerToken) {
-    console.log('Twitter API credentials not provided')
-    return []
-  }
-
-  try {
-    const searchTerm = searchQuery || query
-    const client = new TwitterApi(bearerToken)
-
-    // Search for recent tweets
-    const tweets = await client.v2.search(searchTerm, {
-      max_results: Math.min(limit, 100), // Twitter API v2 allows max 100
-      'tweet.fields': ['created_at', 'author_id', 'public_metrics', 'entities'],
-      'user.fields': ['username', 'name']
-    })
-
-    const results = []
-    for (const tweet of tweets.data?.data || []) {
-      results.push({
-        id: tweet.id,
-        text: tweet.text,
-        timestamp: new Date(tweet.created_at).getTime() / 1000,
-        author_id: tweet.author_id,
-        entities: tweet.entities
-      })
-    }
-
-    return results
-      .filter((tweet) => tweet.text && tweet.text.length > 20)
-      .slice(0, limit)
-      .map((tweet) => normalizePost(tweet, 'twitter'))
-  } catch (error) {
-    console.error('Twitter API error:', error.message)
-    return []
-  }
+  // DISABLED - Reddit only
+  console.warn('Twitter posts are disabled. Only Reddit is supported.')
+  return []
 }
 
 async function fetchInstagramPosts(query = 'japan', limit = 10, searchQuery = null, username = null, password = null) {
-  if (!username || !password) {
-    console.log('Instagram credentials not provided')
-    return []
-  }
-
-  try {
-    const ig = new IgApiClient()
-    ig.state.generateDevice(username)
-
-    // Login to Instagram
-    await ig.account.login(username, password)
-
-    const searchTerm = searchQuery || query
-    const posts = []
-
-    // Search for hashtag posts
-    const hashtagFeed = ig.feed.tags(searchTerm, 'recent')
-    const hashtagItems = await hashtagFeed.items()
-
-    posts.push(...hashtagItems.slice(0, limit))
-
-    return posts
-      .filter((post) => post.caption?.text && post.caption.text.length > 20)
-      .map((post) => normalizePost(post, 'instagram'))
-  } catch (error) {
-    console.error('Instagram scraping error:', error.message)
-    return []
-  }
+  // DISABLED - Reddit only
+  console.warn('Instagram posts are disabled. Only Reddit is supported.')
+  return []
 }
+*/
 
 // Main export function
 export async function fetchNews(options = {}) {
@@ -351,29 +253,25 @@ export async function fetchNews(options = {}) {
     return cached
   }
 
-  // Determine which sources are available based on credentials
+  // REDDIT ONLY - Filter out any non-Reddit sources
   const availableSources = sources.filter((source) => {
     if (source === 'reddit') return true
-    if (source === 'twitter') return !!twitterBearerToken
-    if (source === 'instagram') return !!(instagramUsername && instagramPassword)
+    // Reject all other sources
+    console.warn(`⚠️  Source "${source}" is not allowed. Only Reddit is supported.`)
     return false
   })
 
   if (availableSources.length === 0) {
-    throw new Error('No enabled news sources found')
+    throw new Error('No enabled news sources found. Only Reddit is supported.')
   }
 
+  // Only fetch from Reddit - no other sources allowed
   const fetchPromises = availableSources.map((source) => {
-    switch (source) {
-      case 'reddit':
-        return fetchRedditPosts(query, limit, searchQuery, offset, userLevel, targetLang)
-      case 'twitter':
-        return fetchTwitterPosts(query, limit, searchQuery, twitterBearerToken)
-      case 'instagram':
-        return fetchInstagramPosts(query, limit, searchQuery, instagramUsername, instagramPassword)
-      default:
-        return Promise.resolve({ posts: [], totalCount: 0, hasMore: false })
+    if (source === 'reddit') {
+      return fetchRedditPosts(query, limit, searchQuery, offset, userLevel, targetLang)
     }
+    // Reject any other source
+    return Promise.resolve({ posts: [], totalCount: 0, hasMore: false })
   })
 
   const results = await Promise.all(fetchPromises)
@@ -413,24 +311,12 @@ export async function fetchNews(options = {}) {
 }
 
 export function getAvailableSources(credentials = {}) {
-  const { twitterBearerToken, instagramUsername, instagramPassword } = credentials
-
+  // REDDIT ONLY - Ignore any credentials for other sources
   return Object.entries(API_CONFIG).map(([id, config]) => ({
     id,
     name: config.name,
-    enabled: id === 'reddit'
-      ? true
-      : id === 'twitter'
-        ? !!twitterBearerToken
-        : id === 'instagram'
-          ? !!(instagramUsername && instagramPassword)
-          : false,
-    configured: id === 'reddit'
-      ? true
-      : id === 'twitter'
-        ? !!twitterBearerToken
-        : id === 'instagram'
-          ? !!(instagramUsername && instagramPassword)
-          : false
+    enabled: id === 'reddit', // Only Reddit is enabled
+    configured: id === 'reddit', // Only Reddit is configured
+    hasApiKey: id === 'reddit' // Reddit doesn't need API key
   }))
 }
