@@ -20,10 +20,10 @@ x Universalise translation to be a JSON file where we can specify mappings for L
 @ Gabriel
 
 (A) Fix the broken partial translation feature, I want to pre-process and cache the mixed language versions in Firestore during the scheduled job
-(A) Fix the broken see more feature, just show all 25 posts instead of having a see more
+(A) Fix the broken see more feature, just show all 25 posts immediately called from firestore and have a message below saying "no more posts, all 25 from cache" instead of having a see more that shows 10 at first and loads 5 upon clicking.
+
 (A) Fix the broken posts, posts should automatically refresh and call the backend firestore cache when users swap language from korean to japanese 
 (A) Remove redundant and repeated files that aren't being used by any other files
-(A) Remove all documentation files that aren't presently relevant
 
 @ Astin 
 
