@@ -207,7 +207,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
 
     const posts = (data?.data?.children || [])
       .map((child) => child.data)
-      .filter((post) => !post.stickied && post.selftext && post.selftext.length > 50)
+      .filter((post) => !post.stickied && (post.selftext?.length > 20 || post.title))
       .slice(0, limit)
 
     return posts.map((post) => normalizePost(post, 'reddit'))
