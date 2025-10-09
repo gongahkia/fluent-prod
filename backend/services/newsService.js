@@ -258,63 +258,6 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
   }
 }
 
-// OLD IMPLEMENTATION - kept for reference
-// This made live Reddit API calls which got blocked by datacenter IP blocking
-/*
-async function fetchRedditPostsLive(query = 'japan', limit = 10, searchQuery = null) {
-  try {
-    let subreddits;
-    switch (query.toLowerCase()) {
-      case 'korea':
-        subreddits = ['korea', 'korean', 'southkorea', 'seoul', 'hanguk', 'kpop', 'koreanews', 'koreamemes'];
-        break;
-      case 'japan':
-        subreddits = ['japan', 'japanese', 'japanlife', 'anime', 'manga', 'jpop', 'japannews', 'japanmemes'];
-        break;
-      default:
-        subreddits = ['japan', 'japanese', 'japanlife', 'japantravel', 'learnjapanese'];
-        break;
-    }
-    const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]
-
-    let url
-    const params = { limit: limit * 2 }
-
-    if (searchQuery && searchQuery.trim().length > 0) {
-      url = `https://www.reddit.com/r/${subreddit}/search.json`
-      params.q = searchQuery
-      params.restrict_sr = 'true'
-      params.sort = 'relevance'
-    } else {
-      url = `https://www.reddit.com/r/${subreddit}.json`
-    }
-
-    const { data } = await axios.get(url, {
-      params,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json, text/plain',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive'
-      },
-      timeout: 10000
-    })
-
-    const posts = (data?.data?.children || [])
-      .map((child) => child.data)
-      .filter((post) => !post.stickied && (post.selftext?.length > 20 || post.title))
-      .slice(0, limit)
-
-    return posts.map((post) => normalizePost(post, 'reddit'))
-  } catch (error) {
-    console.error('Reddit API error:', error.message)
-    return []
-  }
-}
-*/
-
 async function fetchTwitterPosts(query = 'japan', limit = 10, searchQuery = null, bearerToken = null) {
   if (!bearerToken) {
     console.log('Twitter API credentials not provided')
