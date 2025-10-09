@@ -1,9 +1,5 @@
 # Fluent - System Architecture Documentation
 
-> **A language learning platform that helps users learn Japanese and Korean through real-world content from Reddit**
-
----
-
 ## 📋 Table of Contents
 
 1. [System Overview](#system-overview)
@@ -1278,10 +1274,3 @@ Fluent is architected as a modern, scalable language learning platform with clea
 - **Security**: Defense in depth with encryption, auth, and rate limiting
 
 The architecture is designed to scale from free-tier deployment to production-grade infrastructure with minimal refactoring.
-
----
-
-**Last Updated**: October 9, 2025  
-**Version**: 1.0.0  
-**Maintained by**: Fluent Development Team
-
