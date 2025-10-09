@@ -11,7 +11,7 @@ const cache = new NodeCache({ stdTTL: 900 })
 const API_CONFIG = {
   reddit: {
     name: 'Reddit',
-    baseUrl: 'https://old.reddit.com', // old.reddit.com is more permissive
+    baseUrl: 'https://www.reddit.com', // Using .json endpoints which are more permissive
     enabled: true
   },
   twitter: {
@@ -181,6 +181,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     }
     const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]
 
+    // Use simpler .json endpoint which is less likely to be blocked
     let url
     const params = {
       limit: limit * 2 // Get more to filter
@@ -188,13 +189,13 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
 
     // If search query provided, use Reddit search endpoint
     if (searchQuery && searchQuery.trim().length > 0) {
-      url = `${API_CONFIG.reddit.baseUrl}/r/${subreddit}/search.json`
+      url = `https://www.reddit.com/r/${subreddit}/search.json`
       params.q = searchQuery
       params.restrict_sr = 'true' // Restrict search to subreddit
       params.sort = 'relevance'
     } else {
-      // No search query - show hot/trending posts
-      url = `${API_CONFIG.reddit.baseUrl}/r/${subreddit}/hot.json`
+      // No search query - use simple .json endpoint (more permissive than /hot.json)
+      url = `https://www.reddit.com/r/${subreddit}.json`
     }
 
     const { data } = await axios.get(url, {
