@@ -41,64 +41,52 @@ Fluent is a full-stack web application that provides an immersive language learn
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            CLIENT LAYER                                  │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                      React 19 SPA (Vite)                          │  │
-│  │  ┌──────────┐  ┌───────────┐  ┌─────────┐  ┌──────────────────┐ │  │
-│  │  │ NewsFeed │  │ Dictionary│  │Flashcard│  │  Profile/Settings│ │  │
-│  │  └──────────┘  └───────────┘  └─────────┘  └──────────────────┘ │  │
-│  │                                                                   │  │
-│  │  ┌──────────────────────────────────────────────────────────────┐│  │
-│  │  │              shadcn/ui Components + Tailwind CSS             ││  │
-│  │  └──────────────────────────────────────────────────────────────┘│  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬───────────────────────────────────────────┘
-                               │
-                               │ HTTPS/REST API
-                               │
-┌──────────────────────────────┴───────────────────────────────────────────┐
-│                         APPLICATION LAYER                                 │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │              Express.js Backend API (Node.js 18+)                  │  │
-│  │                                                                    │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────┐  │  │
-│  │  │  News API   │  │Translation   │  │Vocabulary│  │  AI API  │  │  │
-│  │  │  /api/news  │  │/api/translate│  │  /api/   │  │ /api/ai  │  │  │
-│  │  └─────────────┘  └──────────────┘  └──────────┘  └──────────┘  │  │
-│  │                                                                    │  │
-│  │  ┌─────────────────────────────────────────────────────────────┐ │  │
-│  │  │         Middleware: CORS, Helmet, Rate Limiting             │ │  │
-│  │  └─────────────────────────────────────────────────────────────┘ │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬───────────────────────────────────────────┘
-                               │
-                               │ Firebase Admin SDK
-                               │
-┌──────────────────────────────┴───────────────────────────────────────────┐
-│                          DATA LAYER                                       │
-│                                                                           │
-│  ┌──────────────────────────┐        ┌────────────────────────────────┐ │
-│  │   Firebase Firestore 🔥  │        │  Firebase Storage 📦           │ │
-│  │  ┌────────────────────┐  │        │  ┌──────────────────────────┐ │ │
-│  │  │ • User Profiles    │  │        │  │ • Cached Reddit Posts    │ │ │
-│  │  │ • Dictionaries     │  │        │  │   (posts-japan.json)     │ │ │
-│  │  │ • Saved Posts      │  │        │  │ • Processed Translations │ │ │
-│  │  │ • Learning Stats   │  │        │  │   (posts-korea.json)     │ │ │
-│  │  │ • User Settings    │  │        │  └──────────────────────────┘ │ │
-│  │  └────────────────────┘  │        └────────────────────────────────┘ │
-│  └──────────────────────────┘                                            │
-└───────────────────────────────────────────────────────────────────────────┘
-
-┌───────────────────────────────────────────────────────────────────────────┐
-│                        EXTERNAL SERVICES                                  │
-│                                                                           │
-│  ┌──────────────┐  ┌────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  Reddit API  │  │  Lingva    │  │  MyMemory    │  │   Gemini AI  │  │
-│  │  (Public)    │  │ Translate  │  │  Translate   │  │  (Google)    │  │
-│  └──────────────┘  └────────────┘  └──────────────┘  └──────────────┘  │
-└───────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph CLIENT["🖥️ CLIENT LAYER"]
+        subgraph SPA["React 19 SPA (Vite)"]
+            NewsFeed[NewsFeed]
+            Dictionary[Dictionary]
+            Flashcard[Flashcard]
+            Profile[Profile/Settings]
+            UI["shadcn/ui + Tailwind CSS"]
+        end
+    end
+    
+    subgraph APP["⚙️ APPLICATION LAYER"]
+        subgraph Backend["Express.js Backend API (Node.js 18+)"]
+            NewsAPI["/api/news"]
+            TranslateAPI["/api/translate"]
+            VocabAPI["/api/vocabulary"]
+            AIAPI["/api/ai"]
+            Middleware["Middleware: CORS, Helmet, Rate Limiting"]
+        end
+    end
+    
+    subgraph DATA["💾 DATA LAYER"]
+        subgraph Firestore["Firebase Firestore 🔥"]
+            Users["• User Profiles<br/>• Dictionaries<br/>• Saved Posts<br/>• Learning Stats<br/>• User Settings"]
+        end
+        subgraph Storage["Firebase Storage 📦"]
+            Cache["• Cached Reddit Posts<br/>  (posts-japan.json)<br/>• Processed Translations<br/>  (posts-korea.json)"]
+        end
+    end
+    
+    subgraph EXTERNAL["🌐 EXTERNAL SERVICES"]
+        Reddit["Reddit API<br/>(Public)"]
+        Lingva["Lingva<br/>Translate"]
+        MyMemory["MyMemory<br/>Translate"]
+        Gemini["Gemini AI<br/>(Google)"]
+    end
+    
+    CLIENT -->|HTTPS/REST API| APP
+    APP -->|Firebase Admin SDK| DATA
+    APP -.->|API Calls| EXTERNAL
+    
+    style CLIENT fill:#e1f5ff
+    style APP fill:#fff4e6
+    style DATA fill:#f3e5f5
+    style EXTERNAL fill:#e8f5e9
 ```
 
 ---
@@ -107,46 +95,51 @@ Fluent is a full-stack web application that provides an immersive language learn
 
 ### Component Hierarchy
 
-```
-App.jsx (Root)
-│
-├── AuthContext (Global State)
-│   ├── currentUser
-│   ├── userProfile
-│   └── authentication state
-│
-├── Auth.jsx (Authentication UI)
-│   ├── Login/Signup Forms
-│   └── Firebase Auth Integration
-│
-├── Onboarding.jsx (First-time user setup)
-│   └── Level Selection (1-5)
-│
-├── NewsFeed.jsx ⭐ (Main Content View)
-│   ├── Post Filtering (difficulty, language)
-│   ├── renderingUtils.jsx (Text rendering logic)
-│   ├── WordLearningPopup.jsx (Click-to-translate)
-│   └── EnhancedCommentSystem.jsx (AI suggestions)
-│
-├── Dictionary.jsx (User's saved words)
-│   ├── Word List (with translations)
-│   ├── Search & Filter
-│   └── Export functionality
-│
-├── Flashcards.jsx (Spaced repetition)
-│   ├── Swipe-based review
-│   ├── Progress tracking
-│   └── Multiple review modes
-│
-├── SavedPosts.jsx (Bookmarked content)
-│   └── Persistent storage via Firestore
-│
-└── Profile.jsx (Settings & Stats)
-    ├── GeneralTab.jsx (User info)
-    ├── LearningTab.jsx (Language preferences)
-    ├── NotificationsTab.jsx (Email/Push)
-    ├── PrivacyTab.jsx (Data settings)
-    └── DeveloperTab.jsx (API credentials)
+```mermaid
+graph TD
+    App["App.jsx<br/>(Root)"]
+    
+    App --> AuthContext["AuthContext<br/>(Global State)"]
+    AuthContext --> CurrentUser[currentUser]
+    AuthContext --> UserProfile[userProfile]
+    AuthContext --> AuthState[authentication state]
+    
+    App --> Auth["Auth.jsx<br/>(Authentication UI)"]
+    Auth --> LoginForms[Login/Signup Forms]
+    Auth --> FirebaseAuth[Firebase Auth Integration]
+    
+    App --> Onboarding["Onboarding.jsx<br/>(First-time user setup)"]
+    Onboarding --> LevelSelect[Level Selection 1-5]
+    
+    App --> NewsFeed["NewsFeed.jsx ⭐<br/>(Main Content View)"]
+    NewsFeed --> PostFilter[Post Filtering]
+    NewsFeed --> RenderUtils[renderingUtils.jsx]
+    NewsFeed --> WordPopup[WordLearningPopup.jsx]
+    NewsFeed --> CommentSystem[EnhancedCommentSystem.jsx]
+    
+    App --> Dictionary["Dictionary.jsx<br/>(User's saved words)"]
+    Dictionary --> WordList[Word List with translations]
+    Dictionary --> SearchFilter[Search & Filter]
+    Dictionary --> Export[Export functionality]
+    
+    App --> Flashcards["Flashcards.jsx<br/>(Spaced repetition)"]
+    Flashcards --> SwipeReview[Swipe-based review]
+    Flashcards --> Progress[Progress tracking]
+    Flashcards --> ReviewModes[Multiple review modes]
+    
+    App --> SavedPosts["SavedPosts.jsx<br/>(Bookmarked content)"]
+    SavedPosts --> FirestoreStorage[Persistent storage via Firestore]
+    
+    App --> ProfileComp["Profile.jsx<br/>(Settings & Stats)"]
+    ProfileComp --> GeneralTab[GeneralTab.jsx]
+    ProfileComp --> LearningTab[LearningTab.jsx]
+    ProfileComp --> NotifTab[NotificationsTab.jsx]
+    ProfileComp --> PrivacyTab[PrivacyTab.jsx]
+    ProfileComp --> DevTab[DeveloperTab.jsx]
+    
+    style App fill:#ff6b6b
+    style NewsFeed fill:#ffd93d
+    style AuthContext fill:#6bcf7f
 ```
 
 ### State Management
@@ -334,48 +327,21 @@ backend/
 
 ### Middleware Stack
 
-```
-Request Flow:
-┌─────────────────────────────────────────────────────┐
-│  Client Request                                     │
-└────────────────────┬────────────────────────────────┘
-                     │
-                     ▼
-            ┌────────────────┐
-            │ helmet()       │ ← Security headers
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ cors()         │ ← ALLOWED_ORIGINS check
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ compression()  │ ← Gzip response
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ express.json() │ ← Parse JSON body
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ morgan()       │ ← HTTP logging
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ rate-limit     │ ← 100 req/min
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ Route Handler  │
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ Error Handler  │ ← Catch-all
-            └────────┬───────┘
-                     ▼
-            ┌────────────────┐
-            │ Response       │
-            └────────────────┘
+```mermaid
+flowchart TD
+    Start([Client Request]) --> Helmet[helmet<br/>Security headers]
+    Helmet --> CORS[cors<br/>ALLOWED_ORIGINS check]
+    CORS --> Compression[compression<br/>Gzip response]
+    Compression --> JSON[express.json<br/>Parse JSON body]
+    JSON --> Morgan[morgan<br/>HTTP logging]
+    Morgan --> RateLimit[rate-limit<br/>100 req/min]
+    RateLimit --> RouteHandler[Route Handler]
+    RouteHandler --> ErrorHandler[Error Handler<br/>Catch-all]
+    ErrorHandler --> End([Response])
+    
+    style Start fill:#4caf50
+    style End fill:#2196f3
+    style ErrorHandler fill:#ff9800
 ```
 
 ---
@@ -510,257 +476,162 @@ CREATE INDEX idx_saved_source ON savedPosts.posts(source, publishedAt DESC);
 
 ### 1. Authentication Flow
 
-```
-┌─────────┐
-│  User   │
-└────┬────┘
-     │ 1. Enter email/password
-     ▼
-┌──────────────────┐
-│  Auth.jsx        │
-└────┬─────────────┘
-     │ 2. signInWithEmail()
-     ▼
-┌──────────────────┐
-│ authService.js   │
-└────┬─────────────┘
-     │ 3. Firebase Auth SDK
-     ▼
-┌──────────────────────────┐
-│ Firebase Authentication  │ 🔥
-└────┬─────────────────────┘
-     │ 4. Auth token + User object
-     ▼
-┌──────────────────┐
-│ AuthContext      │
-└────┬─────────────┘
-     │ 5. Fetch user profile
-     ▼
-┌──────────────────┐
-│ databaseService  │
-└────┬─────────────┘
-     │ 6. getUserProfile(userId)
-     ▼
-┌──────────────────────────┐
-│ Firestore: users/{uid}   │ 💾
-└────┬─────────────────────┘
-     │ 7. User profile data
-     ▼
-┌──────────────────┐
-│  App.jsx         │
-│  ✅ Authenticated │
-└──────────────────┘
+```mermaid
+sequenceDiagram
+    actor User
+    participant Auth as Auth.jsx
+    participant AuthSvc as authService.js
+    participant Firebase as Firebase Auth 🔥
+    participant Context as AuthContext
+    participant DB as databaseService
+    participant Firestore as Firestore 💾
+    participant App as App.jsx
+    
+    User->>Auth: 1. Enter email/password
+    Auth->>AuthSvc: 2. signInWithEmail()
+    AuthSvc->>Firebase: 3. Authenticate
+    Firebase-->>Context: 4. Auth token + User object
+    Context->>DB: 5. Fetch user profile
+    DB->>Firestore: 6. getUserProfile(userId)
+    Firestore-->>DB: 7. User profile data
+    DB-->>App: 8. Profile loaded
+    App->>App: ✅ Authenticated
 ```
 
 ### 2. News Feed Content Flow
 
-```
-┌──────────────┐
-│  NewsFeed    │ User opens app
-└──────┬───────┘
-       │ 1. fetchPosts({ query: 'japan', userLevel: 3, targetLang: 'ja' })
-       ▼
-┌──────────────────┐
-│ newsService.js   │ Frontend
-└──────┬───────────┘
-       │ 2. POST /api/news
-       ▼
-┌──────────────────────────┐
-│ backend/routes/news.js   │
-└──────┬───────────────────┘
-       │ 3. fetchNews()
-       ▼
-┌──────────────────────────┐
-│ newsService.js           │ Backend
-└──────┬───────────────────┘
-       │ 4. Check NodeCache
-       ├─ Cache Hit → Return cached data
-       │
-       └─ Cache Miss:
-           │ 5. downloadPostsFromStorage('posts-japan.json')
-           ▼
-       ┌────────────────────┐
-       │ Firebase Storage   │ 📦
-       │ Cached posts       │
-       └────────┬───────────┘
-                │ 6. Filter by userLevel & targetLang
-                ▼
-       ┌────────────────────┐
-       │ processedVersions  │
-       │ [level][language]  │
-       └────────┬───────────┘
-                │ 7. Return posts
-                ▼
-       ┌────────────────────┐
-       │  NewsFeed.jsx      │
-       │  Display content   │
-       └────────────────────┘
+```mermaid
+sequenceDiagram
+    actor User as User opens app
+    participant Feed as NewsFeed.jsx
+    participant FrontSvc as newsService.js<br/>(Frontend)
+    participant Route as backend/routes/news.js
+    participant BackSvc as newsService.js<br/>(Backend)
+    participant Cache as NodeCache
+    participant Storage as Firebase Storage 📦
+    
+    User->>Feed: Open app
+    Feed->>FrontSvc: 1. fetchPosts({query: 'japan', userLevel: 3})
+    FrontSvc->>Route: 2. POST /api/news
+    Route->>BackSvc: 3. fetchNews()
+    BackSvc->>Cache: 4. Check cache
+    
+    alt Cache Hit
+        Cache-->>Feed: Return cached data
+    else Cache Miss
+        BackSvc->>Storage: 5. downloadPostsFromStorage('posts-japan.json')
+        Storage-->>BackSvc: 6. Cached posts
+        BackSvc->>BackSvc: 7. Filter by userLevel & targetLang
+        BackSvc-->>Feed: 8. Return processedVersions[level][language]
+    end
+    
+    Feed->>Feed: Display content
 ```
 
 ### 3. Word Click-to-Translate Flow
 
-```
-User clicks word "美しい" in post
-       │
-       ▼
-┌────────────────────────┐
-│ wordDatabase.js        │
-│ handleWordClick()      │
-└────────┬───────────────┘
-         │ 1. Detect if Japanese/Korean/English
-         ▼
-┌────────────────────────┐
-│ vocabularyService.js   │ Frontend
-└────────┬───────────────┘
-         │ 2. POST /api/vocabulary/detect
-         ▼
-┌────────────────────────┐
-│ backend/vocabulary.js  │
-└────────┬───────────────┘
-         │ 3. detectVocabulary()
-         ▼
-┌────────────────────────────┐
-│ vocabularyService.js       │ Backend
-│ Uses Compromise.js NLP     │
-└────────┬───────────────────┘
-         │ 4. Extract word metadata
-         │    (type, difficulty)
-         ▼
-┌────────────────────────┐
-│ translationService.js  │
-└────────┬───────────────┘
-         │ 5. translateText('美しい', 'ja', 'en')
-         ├─ Try Lingva Translate
-         ├─ Fallback: MyMemory
-         └─ Fallback: LibreTranslate
-         │
-         ▼
-┌────────────────────────┐
-│ WordLearningPopup.jsx  │
-│ Display:               │
-│ • 美しい (utsukushii)   │
-│ • beautiful            │
-│ • [Add to Dictionary]  │
-└────────┬───────────────┘
-         │ User clicks "Add"
-         ▼
-┌────────────────────────┐
-│ databaseService.js     │
-│ addWordToDictionary()  │
-└────────┬───────────────┘
-         │ 6. Update Firestore
-         ▼
-┌─────────────────────────────┐
-│ Firestore:                  │
-│ dictionaries/{userId}       │
-│ ✅ Word added to array      │
-└─────────────────────────────┘
+```mermaid
+sequenceDiagram
+    actor User
+    participant Word as wordDatabase.js
+    participant VocabFront as vocabularyService.js<br/>(Frontend)
+    participant VocabRoute as backend/vocabulary.js
+    participant VocabBack as vocabularyService.js<br/>(Backend + NLP)
+    participant TransSvc as translationService.js
+    participant Lingva as Lingva Translate
+    participant MyMemory as MyMemory
+    participant Popup as WordLearningPopup.jsx
+    participant DB as databaseService.js
+    participant Firestore as Firestore 💾
+    
+    User->>Word: Click word "美しい"
+    Word->>VocabFront: 1. Detect language
+    VocabFront->>VocabRoute: 2. POST /api/vocabulary/detect
+    VocabRoute->>VocabBack: 3. detectVocabulary()
+    VocabBack->>VocabBack: 4. Extract metadata<br/>(type, difficulty)
+    VocabBack->>TransSvc: 5. translateText('美しい', 'ja', 'en')
+    
+    TransSvc->>Lingva: Try Lingva
+    alt Lingva Success
+        Lingva-->>Popup: Translation: "beautiful"
+    else Lingva Fails
+        TransSvc->>MyMemory: Fallback: MyMemory
+        MyMemory-->>Popup: Translation: "beautiful"
+    end
+    
+    Popup->>Popup: Display:<br/>• 美しい (utsukushii)<br/>• beautiful
+    User->>Popup: Click "Add to Dictionary"
+    Popup->>DB: addWordToDictionary()
+    DB->>Firestore: Update dictionaries/{userId}
+    Firestore-->>Popup: ✅ Word added
 ```
 
 ### 4. Scheduled Post Caching Flow
 
-```
-⏰ Cron: Daily at 3:00 AM
-       │
-       ▼
-┌────────────────────────┐
-│ fetchPostsJob.js       │
-│ runPostsFetchJob()     │
-└────────┬───────────────┘
-         │ For each query (japan, korea):
-         │
-         │ 1. fetchRedditPostsForQuery('japan', 30)
-         ▼
-┌────────────────────────────────┐
-│ Fetch from configured          │
-│ subreddits (parallel)          │
-│ • r/anime                      │
-│ • r/manga                      │
-│ • r/japannews                  │
-│ • ... (10 total)               │
-└────────┬───────────────────────┘
-         │ 2. Normalize posts
-         ▼
-┌────────────────────────────────┐
-│ For each post:                 │
-│ processPostWithMixedLanguage() │
-└────────┬───────────────────────┘
-         │ 3. Create 5 versions (levels 1-5)
-         │    Using createMixedLanguageContent()
-         ▼
-┌────────────────────────────────┐
-│ translationService.js          │
-│ • Level 1: 80% Japanese        │
-│ • Level 2: 60% Japanese        │
-│ • Level 3: 40% Japanese        │
-│ • Level 4: 20% Japanese        │
-│ • Level 5: 10% Japanese        │
-└────────┬───────────────────────┘
-         │ 4. Upload to Firebase Storage
-         ▼
-┌────────────────────────────────┐
-│ storageService.js              │
-│ uploadPostsToStorage()         │
-└────────┬───────────────────────┘
-         │ 5. Write to Firebase
-         ▼
-┌────────────────────────────────┐
-│ Firebase Storage               │
-│ cached-posts/posts-japan.json  │
-│ ✅ 30 posts with 5 levels each │
-└────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Cron as ⏰ Cron Job<br/>(Daily 3:00 AM)
+    participant Job as fetchPostsJob.js
+    participant Reddit as Reddit API<br/>(10 subreddits)
+    participant Process as processPostWithMixedLanguage()
+    participant Trans as translationService.js
+    participant Storage as storageService.js
+    participant Firebase as Firebase Storage 📦
+    
+    Cron->>Job: Trigger
+    Job->>Job: For each query (japan, korea)
+    
+    loop Each query
+        Job->>Reddit: 1. fetchRedditPostsForQuery('japan', 30)
+        Reddit-->>Job: Raw posts from<br/>r/anime, r/manga, etc.
+        
+        Job->>Job: 2. Normalize posts
+        
+        loop Each post
+            Job->>Process: 3. processPostWithMixedLanguage()
+            Process->>Trans: Create 5 versions (levels 1-5)
+            Trans->>Trans: • Level 1: 80% Japanese<br/>• Level 2: 60%<br/>• Level 3: 40%<br/>• Level 4: 20%<br/>• Level 5: 10%
+            Trans-->>Process: Processed versions
+        end
+        
+        Process->>Storage: 4. uploadPostsToStorage()
+        Storage->>Firebase: 5. Write posts-japan.json
+        Firebase-->>Job: ✅ 30 posts with 5 levels cached
+    end
 ```
 
 ### 5. Flashcard Review Flow
 
-```
-┌────────────┐
-│ User opens │
-│ Flashcards │
-└──────┬─────┘
-       │ 1. Load dictionary
-       ▼
-┌──────────────────┐
-│ databaseService  │
-│ getDictionary()  │
-└──────┬───────────┘
-       │ 2. Fetch from Firestore
-       ▼
-┌──────────────────────────┐
-│ Firestore:               │
-│ dictionaries/{userId}    │
-└──────┬───────────────────┘
-       │ 3. Filter words due for review
-       │    (nextReview <= now)
-       ▼
-┌──────────────────┐
-│ Flashcards.jsx   │
-│ Swipe UI         │
-└──────┬───────────┘
-       │ 4. User swipes card
-       │    (Correct/Incorrect)
-       ▼
-┌──────────────────────────┐
-│ Calculate next review:   │
-│ • Correct: +2 days       │
-│ • Incorrect: +1 day      │
-│ Spaced Repetition        │
-└──────┬───────────────────┘
-       │ 5. Update word in Firestore
-       ▼
-┌──────────────────────────┐
-│ databaseService          │
-│ updateUserProfile()      │
-│ • reviewCount++          │
-│ • lastReviewed = now     │
-│ • nextReview = calculated│
-└──────┬───────────────────┘
-       │ 6. Real-time sync
-       ▼
-┌──────────────────────────┐
-│ All devices updated      │
-│ via Firestore listeners  │
-└──────────────────────────┘
+```mermaid
+sequenceDiagram
+    actor User
+    participant Flash as Flashcards.jsx
+    participant DB as databaseService
+    participant Firestore as Firestore 💾
+    participant Calc as Spaced Repetition<br/>Algorithm
+    participant Sync as Real-time Listeners
+    
+    User->>Flash: Open Flashcards
+    Flash->>DB: 1. getDictionary()
+    DB->>Firestore: 2. Fetch dictionaries/{userId}
+    Firestore-->>DB: Word list
+    DB->>Flash: 3. Filter words (nextReview <= now)
+    
+    Flash->>Flash: Display swipe UI
+    User->>Flash: 4. Swipe card (Correct/Incorrect)
+    
+    Flash->>Calc: Calculate next review
+    alt Correct
+        Calc->>Calc: nextReview = +2 days
+    else Incorrect
+        Calc->>Calc: nextReview = +1 day
+    end
+    
+    Calc->>DB: 5. updateUserProfile()
+    DB->>Firestore: Update:<br/>• reviewCount++<br/>• lastReviewed = now<br/>• nextReview = calculated
+    
+    Firestore->>Sync: 6. Trigger listeners
+    Sync-->>User: ✅ All devices updated
 ```
 
 ---
@@ -1005,83 +876,58 @@ service firebase.storage {
 
 ### Production Infrastructure
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                          PRODUCTION STACK                           │
-└────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────┐      ┌────────────────────────────────┐
-│    Vercel (Frontend)    │      │    Render (Backend)            │
-│  ┌───────────────────┐  │      │  ┌──────────────────────────┐ │
-│  │  React SPA        │  │      │  │  Express.js Server       │ │
-│  │  • SSG Build      │  │◄────►│  │  • Node.js 24.10.0       │ │
-│  │  • CDN Caching    │  │ REST │  │  • Binds to 0.0.0.0:3001 │ │
-│  │  • Edge Functions │  │      │  │  • Health check: /health │ │
-│  └───────────────────┘  │      │  └──────────────────────────┘ │
-│                         │      │                                │
-│  Build:                 │      │  Deploy:                       │
-│  • pnpm build           │      │  • npm install                 │
-│  • Output: dist/        │      │  • npm start                   │
-│  • Auto-deploy on push  │      │  • Auto-deploy on push         │
-│                         │      │                                │
-│  Environment:           │      │  Environment:                  │
-│  • VITE_API_URL         │      │  • FIREBASE_PROJECT_ID         │
-│  • VITE_FIREBASE_*      │      │  • FIREBASE_CLIENT_EMAIL       │
-│                         │      │  • FIREBASE_PRIVATE_KEY        │
-│  Region: Global CDN     │      │  • ALLOWED_ORIGINS             │
-└─────────────────────────┘      │  • GEMINI_API_KEY              │
-           │                     │  • NODE_ENV=production         │
-           │                     │                                │
-           │                     │  Region: Oregon (Free tier)    │
-           │                     └────────────────────────────────┘
-           │                                │
-           │                                │
-           └────────────┬───────────────────┘
-                        │
-                        ▼
-        ┌───────────────────────────────────┐
-        │       Firebase (Google Cloud)     │
-        │  ┌─────────────────────────────┐  │
-        │  │  Firestore Database         │  │
-        │  │  • us-central1              │  │
-        │  │  • Real-time sync           │  │
-        │  └─────────────────────────────┘  │
-        │  ┌─────────────────────────────┐  │
-        │  │  Authentication             │  │
-        │  │  • Email/Password           │  │
-        │  └─────────────────────────────┘  │
-        │  ┌─────────────────────────────┐  │
-        │  │  Storage                    │  │
-        │  │  • Cached Reddit posts      │  │
-        │  └─────────────────────────────┘  │
-        │                                   │
-        │  Region: Multi-region (us)        │
-        └───────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Vercel["☁️ Vercel (Frontend) - Global CDN"]
+        SPA["React SPA<br/>• SSG Build<br/>• CDN Caching<br/>• Edge Functions"]
+        VBuild["Build:<br/>• pnpm build<br/>• Output: dist/<br/>• Auto-deploy"]
+        VEnv["Environment:<br/>• VITE_API_URL<br/>• VITE_FIREBASE_*"]
+    end
+    
+    subgraph Render["🔧 Render (Backend) - Oregon"]
+        Express["Express.js Server<br/>• Node.js 24.10.0<br/>• Binds to 0.0.0.0:3001<br/>• Health: /health"]
+        RDeploy["Deploy:<br/>• npm install<br/>• npm start<br/>• Auto-deploy"]
+        REnv["Environment:<br/>• FIREBASE_PROJECT_ID<br/>• ALLOWED_ORIGINS<br/>• GEMINI_API_KEY"]
+    end
+    
+    subgraph Firebase["🔥 Firebase (Google Cloud) - Multi-region (us)"]
+        Firestore["Firestore Database<br/>• us-central1<br/>• Real-time sync"]
+        Auth["Authentication<br/>• Email/Password"]
+        Storage["Storage<br/>• Cached Reddit posts"]
+    end
+    
+    Vercel <-->|REST API| Render
+    Render -->|Firebase Admin SDK| Firebase
+    
+    style Vercel fill:#0070f3,color:#fff
+    style Render fill:#4c1d95,color:#fff
+    style Firebase fill:#ffa000,color:#fff
 ```
 
 ### Deployment Workflow
 
-```
-Developer pushes to GitHub
-       │
-       ├─────────────────────────────────┐
-       │                                 │
-       ▼                                 ▼
-┌─────────────────┐           ┌─────────────────┐
-│  Vercel         │           │  Render         │
-│  Auto-deploys   │           │  Auto-deploys   │
-└─────────────────┘           └─────────────────┘
-       │                                 │
-       │ 1. pnpm install                 │ 1. npm install
-       │ 2. pnpm build                   │ 2. npm start
-       │ 3. Deploy to CDN                │ 3. Health check
-       │ 4. Invalidate cache             │ 4. Route traffic
-       │                                 │
-       ▼                                 ▼
-┌─────────────────┐           ┌─────────────────┐
-│  Production URL │           │  Production URL │
-│  *.vercel.app   │           │  *.onrender.com │
-└─────────────────┘           └─────────────────┘
+```mermaid
+flowchart TB
+    Dev([👨‍💻 Developer pushes to GitHub])
+    
+    Dev --> Vercel[Vercel Auto-deploy]
+    Dev --> Render[Render Auto-deploy]
+    
+    Vercel --> V1[1. pnpm install]
+    V1 --> V2[2. pnpm build]
+    V2 --> V3[3. Deploy to CDN]
+    V3 --> V4[4. Invalidate cache]
+    V4 --> VProd([✅ Production URL<br/>*.vercel.app])
+    
+    Render --> R1[1. npm install]
+    R1 --> R2[2. npm start]
+    R2 --> R3[3. Health check]
+    R3 --> R4[4. Route traffic]
+    R4 --> RProd([✅ Production URL<br/>*.onrender.com])
+    
+    style Dev fill:#24292e,color:#fff
+    style VProd fill:#0070f3,color:#fff
+    style RProd fill:#4c1d95,color:#fff
 ```
 
 ### Environment Variables (Production)
