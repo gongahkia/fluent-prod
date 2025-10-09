@@ -113,7 +113,8 @@ const EnhancedCommentSystem = ({
       // Get Gemini API key from sessionStorage
       const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
 
-      const response = await fetch('http://localhost:3001/api/ai/comment-suggestions', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const response = await fetch(`${API_BASE_URL}/api/ai/comment-suggestions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
