@@ -87,13 +87,31 @@ const NewsFeed = ({
   }, [])
 
   // Process posts with mixed language content based on user level
-  // Now processes posts in parallel and updates state progressively
+  // OPTIMIZATION: Backend now pre-processes posts, so we just use them directly
   const processPostsWithMixedLanguage = useCallback(
     async (postsToProcess, isLoadMore = false) => {
-      if (!userProfile?.learningLevel || !postsToProcess.length) {
+      if (!postsToProcess.length) {
         return postsToProcess
       }
 
+      // Check if posts are already pre-processed by backend (have isMixedLanguage flag)
+      const alreadyProcessed = postsToProcess.some(post => post.isMixedLanguage === true)
+      
+      if (alreadyProcessed) {
+        console.log('✅ Using pre-processed posts from backend cache')
+        setProcessingPosts(false)
+        setMinPostsLoaded(true)
+        return postsToProcess
+      }
+
+      // Fallback: Process on frontend if backend didn't pre-process
+      // This maintains backward compatibility
+      if (!userProfile?.learningLevel) {
+        setMinPostsLoaded(true)
+        return postsToProcess
+      }
+
+      console.warn('⚠️ Posts not pre-processed by backend, processing on frontend (slower)')
       setProcessingPosts(true)
       const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
 
@@ -121,14 +139,6 @@ const NewsFeed = ({
                 )
               : post.content
 
-          console.log(`Mixed content created for post "${post.title}":`, {
-            originalTitle: post.title,
-            processedTitle: processedTitle,
-            originalContent: post.content?.substring(0, 100) + "...",
-            processedContent: processedContent?.substring(0, 100) + "...",
-            learningLevel: userProfile.learningLevel,
-          })
-
           const processedPost = {
             ...post,
             originalTitle: post.title,
@@ -141,7 +151,6 @@ const NewsFeed = ({
           return { post: processedPost, index }
         } catch (error) {
           console.warn("Failed to process post for mixed language:", error)
-          // Fallback to original post if processing fails
           const fallbackPost = {
             ...post,
             originalTitle: post.title,
@@ -152,40 +161,10 @@ const NewsFeed = ({
         }
       })
 
-      // For initial load: show first 3 ASAP, then add rest as they complete
-      if (!isLoadMore) {
-        const initialBatchSize = 3
-
-        // Wait only for first 3 posts
-        Promise.all(processPromises.slice(0, initialBatchSize)).then((firstResults) => {
-          const firstBatch = firstResults
-            .sort((a, b) => a.index - b.index)
-            .map(r => r.post)
-
-          setProcessedPosts(firstBatch)
-          setMinPostsLoaded(true)
-        })
-
-        // Process remaining posts and add them progressively
-        if (processPromises.length > initialBatchSize) {
-          processPromises.slice(initialBatchSize).forEach((promise) => {
-            promise.then((result) => {
-              setProcessedPosts((prev) => [...prev, result.post])
-            })
-          })
-        }
-      } else {
-        // For "load more": add posts one by one as they complete
-        processPromises.forEach((promise) => {
-          promise.then((result) => {
-            setProcessedPosts((prev) => [...prev, result.post])
-          })
-        })
-      }
-
-      // Wait for all to complete before returning
+      // Wait for all to complete
       const results = await Promise.all(processPromises)
       setProcessingPosts(false)
+      setMinPostsLoaded(true)
       return results.map(r => r.post)
     },
     [userProfile?.learningLevel, userProfile?.targetLanguage]
@@ -229,8 +208,9 @@ const NewsFeed = ({
             break;
         }
 
-        const initialPostLimit = 10;
-        const loadMorePostLimit = 5;
+        // Load all 25 posts immediately from cache
+        const initialPostLimit = 25;
+        const loadMorePostLimit = 0; // Disabled - show all posts at once
 
         const currentOffset = isLoadMore ? offset : 0;
 
@@ -1064,62 +1044,20 @@ const NewsFeed = ({
           </div>
         ))}
 
-      {/* See More Button - shows when user scrolls near bottom */}
-      {showSeeMoreButton && hasMorePosts && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
-          <button
-            onClick={handleLoadMore}
-            disabled={loadingMore}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 font-medium"
-          >
-            {loadingMore ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Loading...</span>
-              </>
-            ) : (
-              <>
-                <span>See More</span>
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Loading More indicator */}
-      {loadingMore && (
-        <div className="flex items-center justify-center py-8">
-          <LoadingSpinner size="lg" text="Loading more posts..." />
-        </div>
-      )}
+      {/* See More Button - DISABLED: All posts shown at once */}
+      {/* Loading More indicator - DISABLED: All posts shown at once */}
 
       {/* No more posts message */}
-      {!hasMorePosts &&
-        (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
+      {(processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
           <div className="text-center py-8">
             <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
               <span className="text-2xl">📚</span>
               <span className="font-medium">
-                All cached posts currently displayed
+                No more posts, all {(processedPosts.length > 0 ? processedPosts : posts).length} from cache
               </span>
-              {totalCachedPosts > 0 && (
-                <span className="text-sm text-gray-400">
-                  {(processedPosts.length > 0 ? processedPosts : posts).length} of {totalCachedPosts} posts shown
-                </span>
-              )}
+              <span className="text-sm text-gray-400">
+                Posts refresh daily at 3:00 AM
+              </span>
             </div>
           </div>
         )}
