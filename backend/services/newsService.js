@@ -11,7 +11,7 @@ const cache = new NodeCache({ stdTTL: 900 })
 const API_CONFIG = {
   reddit: {
     name: 'Reddit',
-    baseUrl: 'https://www.reddit.com',
+    baseUrl: 'https://old.reddit.com', // old.reddit.com is more permissive
     enabled: true
   },
   twitter: {
@@ -183,8 +183,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
 
     let url
     const params = {
-      limit: limit * 2, // Get more to filter
-      'User-Agent': 'Fluent/1.0'
+      limit: limit * 2 // Get more to filter
     }
 
     // If search query provided, use Reddit search endpoint
@@ -201,8 +200,15 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null)
     const { data } = await axios.get(url, {
       params,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0; +https://big-livepeek-backend.onrender.com)'
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+      },
+      timeout: 10000 // 10 second timeout
     })
 
     const posts = (data?.data?.children || [])
