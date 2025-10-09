@@ -146,7 +146,7 @@ const Auth = ({ onAuthComplete }) => {
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4">
             <img
-              src="/-logo.png"
+              src="/fluent-logo.png"
               alt="Fluent Logo"
               className="w-full h-full rounded-full object-cover"
             />
