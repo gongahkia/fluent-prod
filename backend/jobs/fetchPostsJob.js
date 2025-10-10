@@ -155,46 +155,100 @@ async function fetchRedditPostsForQuery(query, limit = 30) {
 }
 
 /**
- * Process a single post with mixed language content for all levels
- * @param {Object} post - The post to process
+ * NEW: Process a single post ONCE at its assigned difficulty level
+ * @param {Object} post - The post to process (already has difficulty assigned)
  * @param {string} targetLang - Target language code ('ja' or 'ko')
- * @returns {Promise<Object>} - Post with processed versions
+ * @returns {Promise<Object>} - Post with single translation at its difficulty
  */
 async function processPostWithMixedLanguage(post, targetLang) {
-  const processedVersions = {}
+  const assignedLevel = post.difficulty // Use the post's assigned difficulty
 
-  // Process for each learning level (1-5)
+  try {
+    console.log(`  🔄 Processing post at level ${assignedLevel}: ${post.title.substring(0, 50)}...`)
+
+    const titleResult = post.title
+      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
+      : null
+
+    const contentResult = post.content
+      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
+      : null
+
+    console.log(`  ✓ Completed level ${assignedLevel} for post`)
+
+    // NEW FLAT STRUCTURE: Store directly on post
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: titleResult,
+      translatedContent: contentResult,
+      // Keep original text for reference
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  } catch (error) {
+    console.warn(`  ⚠️  Failed to process post at level ${assignedLevel}:`, error.message)
+
+    // Return post without translation on failure
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: null,
+      translatedContent: null,
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  }
+}
+
+/**
+ * NEW: Balance post distribution across difficulty levels (aim for 6 per level)
+ * @param {Array} posts - Array of posts with difficulty levels
+ * @param {number} targetPerLevel - Target number of posts per level (default: 6)
+ * @returns {Array} - Balanced array of posts
+ */
+function balancePostDistribution(posts, targetPerLevel = 6) {
+  console.log(`\n⚖️  Balancing post distribution (target: ${targetPerLevel} per level)...`)
+
+  // Group posts by difficulty level
+  const postsByLevel = {
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: []
+  }
+
+  posts.forEach(post => {
+    const level = post.difficulty
+    if (level >= 1 && level <= 5) {
+      postsByLevel[level].push(post)
+    }
+  })
+
+  // Log current distribution
+  console.log('📊 Current distribution:')
   for (let level = 1; level <= 5; level++) {
-    try {
-      const titleResult = post.title
-        ? await createMixedLanguageContent(post.title, level, targetLang, 'en')
-        : null
-
-      const contentResult = post.content
-        ? await createMixedLanguageContent(post.content, level, targetLang, 'en')
-        : null
-
-      processedVersions[level] = {
-        title: titleResult,
-        content: contentResult
-      }
-
-      console.log(`  ✓ Processed level ${level} for post: ${post.title.substring(0, 50)}...`)
-    } catch (error) {
-      console.warn(`  ⚠️  Failed to process level ${level}:`, error.message)
-      processedVersions[level] = {
-        title: null,
-        content: null
-      }
-    }
+    console.log(`  Level ${level}: ${postsByLevel[level].length} posts`)
   }
 
-  return {
-    ...post,
-    processedVersions: {
-      [targetLang]: processedVersions
-    }
+  // Balance: Take up to targetPerLevel from each level
+  const balancedPosts = []
+  for (let level = 1; level <= 5; level++) {
+    const levelPosts = postsByLevel[level]
+
+    // Shuffle to get variety
+    const shuffled = levelPosts.sort(() => Math.random() - 0.5)
+
+    // Take up to targetPerLevel posts
+    const selected = shuffled.slice(0, targetPerLevel)
+    balancedPosts.push(...selected)
+
+    console.log(`  ✓ Selected ${selected.length} posts for level ${level}`)
   }
+
+  console.log(`✅ Balanced distribution: ${balancedPosts.length} total posts`)
+  return balancedPosts
 }
 
 /**
@@ -206,9 +260,12 @@ async function processPostWithMixedLanguage(post, targetLang) {
 async function processAllPostsWithMixedLanguage(posts, targetLang) {
   console.log(`\n🔄 Processing ${posts.length} posts with mixed language content for ${targetLang}...`)
 
+  // NEW: Balance distribution BEFORE processing
+  const balancedPosts = balancePostDistribution(posts, 6)
+
   const processedPosts = []
 
-  for (const post of posts) {
+  for (const post of balancedPosts) {
     try {
       const processedPost = await processPostWithMixedLanguage(post, targetLang)
       processedPosts.push(processedPost)

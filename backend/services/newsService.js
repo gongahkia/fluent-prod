@@ -146,48 +146,67 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
 
     const totalCount = posts.length
 
-    // If user level is provided, use pre-processed versions
+    // NEW: Filter posts by difficulty level (userLevel ± 1)
     if (userLevel && userLevel >= 1 && userLevel <= 5) {
-      posts = posts.map(post => {
-        const processedVersion = post.processedVersions?.[targetLang]?.[userLevel]
+      console.log(`🎯 Filtering posts for user level ${userLevel}...`)
 
-        if (processedVersion && processedVersion.title) {
-          // Stringify the processed content so frontend can parse it
-          let processedTitle = post.title
-          let processedContent = post.content
+      // Determine which levels to show
+      let allowedLevels = []
+      if (userLevel === 1) {
+        allowedLevels = [1, 2] // Level 1: show 1 and 2
+      } else if (userLevel === 5) {
+        allowedLevels = [4, 5] // Level 5: show 4 and 5
+      } else {
+        allowedLevels = [userLevel - 1, userLevel, userLevel + 1] // Middle: show ±1
+      }
+
+      console.log(`  📋 Showing levels: ${allowedLevels.join(', ')}`)
+
+      // Filter posts by allowed levels
+      posts = posts.filter(post => allowedLevels.includes(post.difficulty))
+
+      console.log(`  ✓ Filtered to ${posts.length} posts`)
+
+      // Process posts with flat structure
+      posts = posts.map(post => {
+        const translatedTitle = post.translatedTitle
+        const translatedContent = post.translatedContent
+
+        if (translatedTitle) {
+          // Stringify the translated content so frontend can parse it
+          let processedTitle = post.originalTitle || post.title
+          let processedContent = post.originalContent || post.content
 
           try {
-            processedTitle = typeof processedVersion.title === 'object'
-              ? JSON.stringify(processedVersion.title)
-              : String(processedVersion.title)
+            processedTitle = typeof translatedTitle === 'object'
+              ? JSON.stringify(translatedTitle)
+              : String(translatedTitle)
           } catch (e) {
             console.error('Failed to stringify title for post:', post.id, e)
-            processedTitle = post.title
+            processedTitle = post.originalTitle || post.title
           }
 
           try {
-            processedContent = processedVersion.content
-              ? (typeof processedVersion.content === 'object'
-                  ? JSON.stringify(processedVersion.content)
-                  : String(processedVersion.content))
-              : post.content
+            processedContent = translatedContent
+              ? (typeof translatedContent === 'object'
+                  ? JSON.stringify(translatedContent)
+                  : String(translatedContent))
+              : post.originalContent || post.content
           } catch (e) {
             console.error('Failed to stringify content for post:', post.id, e)
-            processedContent = post.content
+            processedContent = post.originalContent || post.content
           }
 
           return {
             ...post,
             title: processedTitle,
             content: processedContent,
-            originalTitle: post.title,
-            originalContent: post.content,
             isMixedLanguage: true,
-            userLevel
+            userLevel: post.difficulty // Use post's actual difficulty
           }
         }
 
-        // Fallback to original if no processed version
+        // Fallback to original if no translation
         return post
       })
     }

@@ -260,7 +260,69 @@ function stripMarkdownFormatting(text) {
   return cleaned
 }
 
-// Create mixed language content - now processes sentences in parallel
+/**
+ * NEW: Translate ALL words in text and return complete translation map
+ * @param {string} text - Text to translate
+ * @param {string} targetLang - Target language code
+ * @param {string} sourceLang - Source language code
+ * @returns {Promise<Object>} - Map of all word translations
+ */
+export async function translateAllWords(text, targetLang = 'ja', sourceLang = 'en') {
+  if (!text || typeof text !== 'string') {
+    return {}
+  }
+
+  // Validate translation pair
+  if (!isTranslationPairSupported(sourceLang, targetLang)) {
+    console.warn(`Translation pair ${sourceLang}-${targetLang} is not supported`)
+    return {}
+  }
+
+  // Strip markdown first
+  const cleanedText = stripMarkdownFormatting(text)
+
+  // Extract all words
+  const wordPattern = /\b\w+\b/g
+  const words = cleanedText.match(wordPattern) || []
+
+  // Never translate these common words
+  const neverTranslate = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be'
+  ])
+
+  // Get unique words to translate
+  const uniqueWords = [...new Set(words.map(w => w.toLowerCase()))]
+    .filter(w => !neverTranslate.has(w))
+
+  console.log(`  📝 Translating ${uniqueWords.length} unique words...`)
+
+  // Translate all words in parallel
+  const allWordTranslations = {}
+  const translationPromises = uniqueWords.map(async (word) => {
+    try {
+      const result = await translateText(word, sourceLang, targetLang)
+      allWordTranslations[word] = result.translation
+    } catch (error) {
+      console.warn(`Failed to translate word "${word}":`, error.message)
+      allWordTranslations[word] = word // Fallback to original
+    }
+  })
+
+  await Promise.all(translationPromises)
+
+  return allWordTranslations
+}
+
+/**
+ * Create mixed language content with partial translation
+ * Now also generates ALL word translations
+ * @param {string} text - Text to process
+ * @param {number} userLevel - User's learning level (1-5)
+ * @param {string} targetLang - Target language code
+ * @param {string} sourceLang - Source language code
+ * @returns {Promise<Object>} - { text, wordMetadata, allWordTranslations }
+ */
 export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
     throw new Error('Invalid text input')
@@ -273,6 +335,9 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
 
   // Strip all markdown formatting FIRST, before translation
   const cleanedText = stripMarkdownFormatting(text)
+
+  // NEW: Generate translations for ALL words first
+  const allWordTranslations = await translateAllWords(cleanedText, targetLang, sourceLang)
 
   const translationPercentage = getTranslationPercentage(userLevel)
 
@@ -293,7 +358,8 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
       translationPercentage,
       startIndex,
       sourceLang,
-      targetLang
+      targetLang,
+      allWordTranslations  // Pass the complete translation map
     )
 
     return {
@@ -307,7 +373,8 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
   // Reconstruct in original order
   const processedResult = {
     text: '',
-    wordMetadata: []
+    wordMetadata: [],
+    allWordTranslations  // NEW: Include all translations
   }
 
   for (const result of sentenceResults) {
@@ -324,28 +391,21 @@ function getTranslationPercentage(level) {
   return levelConfig ? levelConfig.translationPercentage : 0.15
 }
 
-async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0, sourceLang = 'en', targetLang = 'ja') {
+async function processSentenceForMixedContent(sentence, translationPercentage, startIndex = 0, sourceLang = 'en', targetLang = 'ja', allWordTranslations = {}) {
   const wordPattern = /(\b\w+\b|\s+|[^\w\s])/g
   const tokens = sentence.match(wordPattern) || []
 
   const wordTokens = tokens.filter(token => /^\w+$/.test(token))
   const wordsToTranslate = await selectWordsForTranslation(wordTokens, translationPercentage)
 
-  // Translate all words in parallel
+  // Use pre-generated translations instead of translating again
   const translationMap = new Map()
-  const translationPromises = []
-
   for (const token of tokens) {
     if (/^\w+$/.test(token) && wordsToTranslate.has(token.toLowerCase())) {
-      const promise = translateText(token, sourceLang, targetLang).then(result => {
-        translationMap.set(token, result.translation)
-      })
-      translationPromises.push(promise)
+      const translation = allWordTranslations[token.toLowerCase()] || token
+      translationMap.set(token, translation)
     }
   }
-
-  // Wait for all translations to complete
-  await Promise.all(translationPromises)
 
   // Build the result with translations
   const processedTokens = []

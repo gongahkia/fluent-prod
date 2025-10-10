@@ -44,10 +44,11 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
     if (Array.isArray(parsedData.wordMetadata) && parsedData.wordMetadata.length === 0) {
       // No word metadata, continue with normal processing below
     } else {
-      // Pass JSON to renderClickableText (text already cleaned by backend)
+      // NEW: Pass JSON with allWordTranslations to renderClickableText
       const cleanedJson = JSON.stringify({
         text: cleaned,
-        wordMetadata: parsedData.wordMetadata
+        wordMetadata: parsedData.wordMetadata,
+        allWordTranslations: parsedData.allWordTranslations || {}  // Include all translations
       })
       return renderClickableText(cleanedJson, postId)
     }
@@ -128,7 +129,7 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
 }
 
 // Create renderClickableText function factory
-export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese') => {
+export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese', allWordTranslations = {}) => {
   return (text, postId = null) => {
     if (!text) return ""
 
@@ -144,6 +145,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     }
 
     if (parsedData && parsedData.text && parsedData.wordMetadata !== undefined) {
+      // NEW: Extract allWordTranslations from parsed data
+      const allTranslations = parsedData.allWordTranslations || allWordTranslations || {}
       // Process text with word metadata
       let processedText = parsedData.text
 
