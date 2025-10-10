@@ -11,17 +11,37 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
 
   // Check if content is JSON from translation service - extract and render the text
   try {
-    if (cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
+    if (typeof cleaned === 'string' && cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
       const parsedData = JSON.parse(cleaned)
       if (parsedData.text && parsedData.wordMetadata !== undefined) {
-        // Pass the entire cleaned JSON string so renderClickableText can parse it properly
-        // This preserves the wordMetadata for proper marker replacement
-        return renderClickableText(cleaned, postId)
+        // If wordMetadata is empty, just return the text content directly (no clickable words needed)
+        if (Array.isArray(parsedData.wordMetadata) && parsedData.wordMetadata.length === 0) {
+          // Since we're in parseMarkdownContent, we need to process this text through normal markdown parsing
+          // But we'll use the text content instead of the JSON string
+          cleaned = parsedData.text
+          // Continue with normal markdown parsing below
+        } else {
+          // Pass the entire cleaned JSON string so renderClickableText can parse it properly
+          // This preserves the wordMetadata for proper marker replacement
+          return renderClickableText(cleaned, postId)
+        }
+      } else {
+        console.warn('⚠️ JSON structure invalid - missing text or wordMetadata')
       }
     }
   } catch (e) {
     // Not JSON or invalid JSON, continue with normal markdown parsing
-    console.warn('Failed to parse JSON content:', e)
+    console.warn('Failed to parse JSON content:', e, 'Text:', cleaned?.substring(0, 100))
+  }
+
+  // Check if text is an object (shouldn't happen but handle it)
+  if (typeof cleaned !== 'string') {
+    console.error('Content is not a string:', cleaned)
+    // Try to extract text if it's an object with text property
+    if (cleaned && typeof cleaned === 'object' && cleaned.text) {
+      return renderClickableText(JSON.stringify(cleaned), postId)
+    }
+    return String(cleaned || '')
   }
 
   // Split by lines to preserve paragraph structure
@@ -145,11 +165,18 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       // Process text with word metadata
       let processedText = parsedData.text
 
+      // Ensure processedText is a string
+      if (typeof processedText !== 'string') {
+        console.error('processedText is not a string:', processedText)
+        return String(processedText || '')
+      }
+
       // If wordMetadata is empty, just return the plain text (no markers should exist)
-      if (parsedData.wordMetadata.length === 0) {
+      if (!Array.isArray(parsedData.wordMetadata) || parsedData.wordMetadata.length === 0) {
         // Remove any orphaned markers that shouldn't be there
         const cleanedText = processedText.replace(/\{\{WORD:\d+\}\}/g, '[translation unavailable]')
-        return cleanedText
+        // Return as React element to maintain consistency with other returns
+        return [<span key="cleaned-text">{cleanedText}</span>]
       }
 
       // Build a map of all markers and their positions
@@ -159,6 +186,12 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       const sortedMetadata = [...parsedData.wordMetadata].sort((a, b) => a.index - b.index)
 
       for (const wordData of sortedMetadata) {
+        // Validate wordData structure
+        if (!wordData || typeof wordData.index !== 'number') {
+          console.warn('Invalid wordData:', wordData)
+          continue
+        }
+
         const marker = `{{WORD:${wordData.index}}}`
         const markerIndex = processedText.indexOf(marker)
 
@@ -173,12 +206,19 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         }
       }
 
+      // If no valid markers found, return cleaned text
+      if (markerPositions.length === 0) {
+        const cleanedText = processedText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+        return [<span key="cleaned-text-no-markers">{cleanedText}</span>]
+      }
+
       // Sort by position in text
       markerPositions.sort((a, b) => a.index - b.index)
 
       // Build the final output
       const parts = []
       let lastIndex = 0
+      let keyCounter = 0
 
       for (const { index: markerIndex, marker, wordData } of markerPositions) {
         // Add text before this marker (may contain orphaned markers - we'll clean them)
@@ -187,7 +227,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           // Remove any orphaned markers in this segment
           const cleanedSegment = textBeforeMarker.replace(/\{\{WORD:\d+\}\}/g, '[word]')
           if (cleanedSegment) {
-            parts.push(cleanedSegment)
+            parts.push(<span key={`text-${keyCounter++}`}>{cleanedSegment}</span>)
           }
         }
 
@@ -199,7 +239,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         // wordData.showJapanese/showKorean indicates this is an ENGLISH word that can be translated to Japanese/Korean
         const showTargetLang = wordData.showJapanese || wordData.showKorean
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
-        const displayText = isShowingTargetLang ? wordData.translation : wordData.original
+        const displayText = isShowingTargetLang ? (wordData.translation || wordData.original) : wordData.original
 
         // Determine language flag
         const targetLangFlag = wordData.showKorean ? '🇰🇷' : '🇯🇵'
@@ -207,7 +247,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
         parts.push(
           <span
-            key={`word-${wordData.index}`}
+            key={`word-${wordData.index}-${keyCounter++}`}
             className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
             onClick={() => {
               if (postId) toggleTranslation(postId, wordData.index)
@@ -219,7 +259,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             title={
               isShowingTargetLang
                 ? `${targetLangFlag} ${targetLangName}: Click to see English "${wordData.original}"`
-                : `📚 English: Click to see ${targetLangName} "${wordData.translation}"`
+                : `📚 English: Click to see ${targetLangName} "${wordData.translation || '...'}"`
             }
             style={{ textDecoration: "none" }}
           >
@@ -236,11 +276,12 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         // Clean any orphaned markers in the remaining text
         const cleanedRemaining = remainingText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
         if (cleanedRemaining) {
-          parts.push(cleanedRemaining)
+          parts.push(<span key={`text-${keyCounter++}`}>{cleanedRemaining}</span>)
         }
       }
 
-      return parts.length > 0 ? parts : parsedData.text
+      // Always return an array of React elements, never plain text strings mixed with elements
+      return parts.length > 0 ? parts : [<span key="fallback">{processedText}</span>]
     }
 
     // Split by spaces and punctuation, preserving them

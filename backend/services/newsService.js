@@ -153,16 +153,33 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
 
         if (processedVersion && processedVersion.title) {
           // Stringify the processed content so frontend can parse it
-          return {
-            ...post,
-            title: typeof processedVersion.title === 'object'
+          let processedTitle = post.title
+          let processedContent = post.content
+
+          try {
+            processedTitle = typeof processedVersion.title === 'object'
               ? JSON.stringify(processedVersion.title)
-              : processedVersion.title,
-            content: processedVersion.content
+              : String(processedVersion.title)
+          } catch (e) {
+            console.error('Failed to stringify title for post:', post.id, e)
+            processedTitle = post.title
+          }
+
+          try {
+            processedContent = processedVersion.content
               ? (typeof processedVersion.content === 'object'
                   ? JSON.stringify(processedVersion.content)
-                  : processedVersion.content)
-              : post.content,
+                  : String(processedVersion.content))
+              : post.content
+          } catch (e) {
+            console.error('Failed to stringify content for post:', post.id, e)
+            processedContent = post.content
+          }
+
+          return {
+            ...post,
+            title: processedTitle,
+            content: processedContent,
             originalTitle: post.title,
             originalContent: post.content,
             isMixedLanguage: true,
