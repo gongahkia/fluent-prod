@@ -558,42 +558,26 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                           </div>
                         </div>
                       )}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                            Source
-                          </h4>
-                          <p className="text-gray-600">{word.source || 'Unknown'}</p>
+                      {word.reviewData && (
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 mb-1">
+                              Review Interval
+                            </h4>
+                            <p className="text-gray-600">
+                              {Math.round(word.reviewData.interval)} days
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 mb-1">
+                              Next Review
+                            </h4>
+                            <p className="text-gray-600">
+                              {new Date(word.reviewData.nextReview).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                            Date Added
-                          </h4>
-                          <p className="text-gray-600">
-                            {new Date(word.dateAdded).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {word.reviewData && (
-                          <>
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                                Review Interval
-                              </h4>
-                              <p className="text-gray-600">
-                                {Math.round(word.reviewData.interval)} days
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                                Next Review
-                              </h4>
-                              <p className="text-gray-600">
-                                {new Date(word.reviewData.nextReview).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
