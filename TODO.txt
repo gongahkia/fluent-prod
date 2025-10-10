@@ -25,6 +25,8 @@ x Deploy backend and ensure everything works
 x Generate new architecture diagram that explains how current system works
 x Allow for photos/gifs to be posted within the comments, not just text
 x Debug why posts from reddit sometimes say invalid date
+x On the profile page add a connect your account page, actually connect it to the reddit api
+x On the profile page add a place to manage user tags with bubbles and "x"
 
 @ Gabriel
 
@@ -34,9 +36,9 @@ x Debug why posts from reddit sometimes say invalid date
 (A) Improve mobile UI/UX +Performance @Frontend
 (A) Add touch gestures for word interaction +Performance @Frontend
 (A) Add backend logic to tag each pulled post from reddit (Right now categorise based on subreddit, for now we just have a finite amount of predefined tags for tagging a given post)
-(A) On the profile page add a connect your account page, actually connect it to the reddit api
-(A) On the profile page add a place to manage user tags with bubbles and "x"
+(A) Tweak the backend so that if the user has actually specified their relevant Gemini/Twitter/Reddit API keys and its written to the firebase then call it and tweak the backend logic to use it accordingly to extract user's subreddits and have it then register and save their interests (do the same for twitter)
 (A) Make basic color for the entire app orange themed
+(A) Have font size and theme color actually change substantial parts of the app
 
 @ Astin 
 
