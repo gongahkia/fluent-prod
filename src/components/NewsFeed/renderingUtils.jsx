@@ -2,7 +2,7 @@ import React from "react"
 import vocabularyService from "../../services/vocabularyService"
 import { decodeHTMLEntities, segmentJapaneseText } from "./utils/textParsing"
 
-// Parse markdown-style links and format text
+// Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
   if (!text) return ""
 
@@ -10,28 +10,22 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
   let cleaned = decodeHTMLEntities(text)
 
   // Check if content is JSON from translation service - extract and render the text
+  let parsedData = null
   try {
     if (typeof cleaned === 'string' && cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
-      const parsedData = JSON.parse(cleaned)
+      parsedData = JSON.parse(cleaned)
       if (parsedData.text && parsedData.wordMetadata !== undefined) {
-        // If wordMetadata is empty, just return the text content directly (no clickable words needed)
-        if (Array.isArray(parsedData.wordMetadata) && parsedData.wordMetadata.length === 0) {
-          // Since we're in parseMarkdownContent, we need to process this text through normal markdown parsing
-          // But we'll use the text content instead of the JSON string
-          cleaned = parsedData.text
-          // Continue with normal markdown parsing below
-        } else {
-          // Pass the entire cleaned JSON string so renderClickableText can parse it properly
-          // This preserves the wordMetadata for proper marker replacement
-          return renderClickableText(cleaned, postId)
-        }
+        // Extract the text (markdown already stripped by backend)
+        cleaned = parsedData.text
       } else {
         console.warn('⚠️ JSON structure invalid - missing text or wordMetadata')
+        parsedData = null
       }
     }
   } catch (e) {
-    // Not JSON or invalid JSON, continue with normal markdown parsing
+    // Not JSON or invalid JSON, continue with normal parsing
     console.warn('Failed to parse JSON content:', e, 'Text:', cleaned?.substring(0, 100))
+    parsedData = null
   }
 
   // Check if text is an object (shouldn't happen but handle it)
@@ -39,9 +33,24 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
     console.error('Content is not a string:', cleaned)
     // Try to extract text if it's an object with text property
     if (cleaned && typeof cleaned === 'object' && cleaned.text) {
-      return renderClickableText(JSON.stringify(cleaned), postId)
+      cleaned = cleaned.text
+    } else {
+      return String(cleaned || '')
     }
-    return String(cleaned || '')
+  }
+
+  // If we had JSON with wordMetadata, pass it to renderClickableText
+  if (parsedData && parsedData.wordMetadata !== undefined) {
+    if (Array.isArray(parsedData.wordMetadata) && parsedData.wordMetadata.length === 0) {
+      // No word metadata, continue with normal processing below
+    } else {
+      // Pass JSON to renderClickableText (text already cleaned by backend)
+      const cleanedJson = JSON.stringify({
+        text: cleaned,
+        wordMetadata: parsedData.wordMetadata
+      })
+      return renderClickableText(cleanedJson, postId)
+    }
   }
 
   // Split by lines to preserve paragraph structure
@@ -55,18 +64,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
       return
     }
 
-    // Check for Reddit quote (starts with >)
-    if (line.trim().startsWith('&gt;') || line.trim().startsWith('>')) {
-      const quoteLine = line.replace(/^(&gt;|>)\s*/, '')
-      elements.push(
-        <div key={`quote-${lineIndex}`} className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">
-          {parseLineContent(quoteLine, postId, renderClickableText)}
-        </div>
-      )
-      return
-    }
-
-    // Regular line
+    // Regular line - process normally (markdown already stripped by backend)
     elements.push(
       <span key={`line-${lineIndex}`}>
         {parseLineContent(line, postId, renderClickableText)}
@@ -78,56 +76,40 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
   return elements
 }
 
-// Parse inline content (links, bold, etc.) within a line - WITH clickable words
+// Parse inline content - only handle plain URLs (markdown already stripped by backend)
 export const parseLineContent = (text, postId = null, renderClickableText) => {
   const parts = []
   let keyCounter = 0
 
-  // Match markdown links [text](url) and plain URLs
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s]+)/g
+  // Match only plain URLs (markdown links already removed by backend)
+  const urlRegex = /(https?:\/\/[^\s]+)/g
   let lastIndex = 0
   let match
 
-  while ((match = linkRegex.exec(text)) !== null) {
+  while ((match = urlRegex.exec(text)) !== null) {
     // Add text before match - make it clickable for translation
     if (match.index > lastIndex) {
-      const textBeforeLink = text.substring(lastIndex, match.index)
+      const textBeforeUrl = text.substring(lastIndex, match.index)
       parts.push(
         <span key={`text-${keyCounter++}`}>
-          {renderClickableText(textBeforeLink, postId)}
+          {renderClickableText(textBeforeUrl, postId)}
         </span>
       )
     }
 
-    if (match[1] && match[2]) {
-      // Markdown link [text](url)
-      parts.push(
-        <a
-          key={`link-${keyCounter++}`}
-          href={match[2]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline break-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {match[1]}
-        </a>
-      )
-    } else if (match[3]) {
-      // Plain URL
-      parts.push(
-        <a
-          key={`link-${keyCounter++}`}
-          href={match[3]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline break-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {match[3]}
-        </a>
-      )
-    }
+    // Plain URL - make it clickable for navigation
+    parts.push(
+      <a
+        key={`link-${keyCounter++}`}
+        href={match[1]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:text-blue-800 underline break-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {match[1]}
+      </a>
+    )
 
     lastIndex = match.index + match[0].length
   }

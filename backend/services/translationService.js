@@ -212,6 +212,54 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
   return { translations }
 }
 
+/**
+ * Strip all markdown formatting from text
+ * @param {string} text - Text with markdown formatting
+ * @returns {string} Plain text without markdown
+ */
+function stripMarkdownFormatting(text) {
+  if (!text) return ''
+
+  let cleaned = text
+
+  // Remove bold: **text** or __text__
+  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1')
+  cleaned = cleaned.replace(/__(.+?)__/g, '$1')
+
+  // Remove italic: *text* or _text_ (but not within words)
+  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1')
+  cleaned = cleaned.replace(/\b_(.+?)_\b/g, '$1')
+
+  // Remove strikethrough: ~~text~~
+  cleaned = cleaned.replace(/~~(.+?)~~/g, '$1')
+
+  // Remove inline code: `code`
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1')
+
+  // Remove code blocks: ```code```
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
+    return match.replace(/```\w*\n?/g, '').replace(/```/g, '')
+  })
+
+  // Remove headers: # Header
+  cleaned = cleaned.replace(/^#{1,6}\s+(.+)$/gm, '$1')
+
+  // Remove list markers: - item or * item or 1. item
+  cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, '')
+  cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, '')
+
+  // Remove horizontal rules: --- or ***
+  cleaned = cleaned.replace(/^[\s]*[-*_]{3,}[\s]*$/gm, '')
+
+  // Remove markdown links [text](url) - extract only the text
+  cleaned = cleaned.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+
+  // Remove Reddit quote markers: > or &gt;
+  cleaned = cleaned.replace(/^[\s]*(&gt;|>)\s*/gm, '')
+
+  return cleaned
+}
+
 // Create mixed language content - now processes sentences in parallel
 export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
@@ -223,10 +271,13 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
     throw new Error(`Translation pair ${sourceLang}-${targetLang} is not supported`)
   }
 
+  // Strip all markdown formatting FIRST, before translation
+  const cleanedText = stripMarkdownFormatting(text)
+
   const translationPercentage = getTranslationPercentage(userLevel)
 
-  // Split text into sentences
-  const sentences = text.split(/(?<=[.!?])\s+/)
+  // Split cleaned text into sentences
+  const sentences = cleanedText.split(/(?<=[.!?])\s+/)
 
   // Process sentences in parallel for better performance
   const sentencePromises = sentences.map(async (sentence, index) => {
