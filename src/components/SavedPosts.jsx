@@ -14,6 +14,25 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
   const [selectedPost, setSelectedPost] = useState(null)
   const [sharePopup, setSharePopup] = useState(null)
 
+  // Helper function to extract text from JSON or return plain text
+  const extractText = (text) => {
+    if (!text) return ''
+
+    // Check if it's a JSON string
+    try {
+      if (typeof text === 'string' && text.trim().startsWith('{') && text.includes('"text"')) {
+        const parsed = JSON.parse(text)
+        if (parsed.text) {
+          return parsed.text
+        }
+      }
+    } catch (e) {
+      // Not JSON, return as-is
+    }
+
+    return text
+  }
+
   // Load saved posts from Firestore
   useEffect(() => {
     const loadSavedPosts = async () => {
@@ -149,10 +168,10 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                        {post.title}
+                        {extractText(post.title)}
                       </h2>
                       <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                        {post.content}
+                        {extractText(post.content)}
                       </p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>by {post.author}</span>

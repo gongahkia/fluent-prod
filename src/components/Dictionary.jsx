@@ -21,6 +21,13 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
   const langLabels = languageConfig.uiLabels
   const langFields = languageConfig.dictionaryFields
   const [expandedWord, setExpandedWord] = useState(null)
+
+  // Helper function to clean {{WORD:X}} markers from example sentences
+  const cleanExampleText = (text) => {
+    if (!text) return ''
+    // Remove all {{WORD:X}} or {{word:X}} markers, leaving the surrounding text intact
+    return text.replace(/\{\{(WORD|word):\s*\d+\}\}\s*/g, '')
+  }
   const [sortBy, setSortBy] = useState("date") // 'level', 'date', 'alphabetical', 'mastery'
   const [searchQuery, setSearchQuery] = useState("")
   const [filterLevel, setFilterLevel] = useState("all")
@@ -534,9 +541,9 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                             Example Sentence
                           </h4>
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-gray-900 mb-1">{word.example}</p>
+                            <p className="text-gray-900 mb-1">{cleanExampleText(word.example)}</p>
                             {word.exampleEn && (
-                              <p className="text-gray-600 text-sm">{word.exampleEn}</p>
+                              <p className="text-gray-600 text-sm">{cleanExampleText(word.exampleEn)}</p>
                             )}
                           </div>
                         </div>
