@@ -15,6 +15,13 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
   const langLabels = languageConfig.uiLabels
   const langFields = languageConfig.dictionaryFields
   const { currentUser } = useAuth()
+
+  // Helper function to clean {{WORD:X}} markers from example sentences
+  const cleanExampleText = (text) => {
+    if (!text) return ''
+    // Remove all {{WORD:X}} or {{word:X}} markers, leaving the surrounding text intact
+    return text.replace(/\{\{(WORD|word):\s*\d+\}\}\s*/g, '')
+  }
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [cardData, setCardData] = useState({})
@@ -492,9 +499,9 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
                     </div>
                     {currentCard.example && (
                       <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                        <p className="text-gray-800 mb-2">{currentCard.example}</p>
+                        <p className="text-gray-800 mb-2">{cleanExampleText(currentCard.example)}</p>
                         {currentCard.exampleTranslation && (
-                          <p className="text-gray-600 text-sm">{currentCard.exampleTranslation}</p>
+                          <p className="text-gray-600 text-sm">{cleanExampleText(currentCard.exampleTranslation)}</p>
                         )}
                       </div>
                     )}

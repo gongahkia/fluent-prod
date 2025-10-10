@@ -170,13 +170,8 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
                       <h2 className="text-lg font-semibold text-gray-900 mb-2">
                         {extractText(post.title)}
                       </h2>
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                        {extractText(post.content)}
-                      </p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>by {post.author}</span>
-                        <span>•</span>
-                        <span>Saved {formatDate(post.savedAt)}</span>
                       </div>
                     </div>
                     {post.image && (
