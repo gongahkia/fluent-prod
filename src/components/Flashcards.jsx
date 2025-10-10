@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, RotateCcw, Settings, XCircle } from "lucide-react"
+import { CheckCircle, RotateCcw, Settings, XCircle } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import {
@@ -8,7 +8,7 @@ import {
 } from "@/services/databaseService"
 import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
 
-const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
+const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
   // Get language configuration
   const targetLanguage = userProfile?.targetLanguage || "Japanese"
   const languageConfig = getLanguageByName(targetLanguage)
@@ -277,41 +277,29 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
   const stats = getStats()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={onBack}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Feed</span>
-            </button>
-            <span className="text-lg font-bold text-gray-900">
-              Flashcards
-            </span>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button
-                onClick={resetProgress}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span className="text-sm">Reset</span>
-              </button>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Flashcards</h1>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button
+            onClick={resetProgress}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span className="text-sm">Reset</span>
+          </button>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {/* Settings Modal */}
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -592,15 +580,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                     ? "Great job! You're all caught up for today."
                     : "Add some words to your review queue to practice."}
             </p>
-            <button
-              onClick={onBack}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Go to Feed
-            </button>
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }

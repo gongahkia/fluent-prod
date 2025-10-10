@@ -1,4 +1,4 @@
-import { ArrowLeft, Bookmark, Trash2, ExternalLink } from "lucide-react"
+import { Bookmark, Trash2, ExternalLink } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { getSavedPosts, removeSavedPost } from "@/services/databaseService"
@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import SinglePostView from "./SinglePostView"
 
-const SavedPosts = ({ onBack, userProfile, onAddWordToDictionary, userDictionary }) => {
+const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
   const { currentUser } = useAuth()
   const [savedPosts, setSavedPosts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -104,61 +104,32 @@ const SavedPosts = ({ onBack, userProfile, onAddWordToDictionary, userDictionary
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-        </header>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <div className="text-red-500 text-lg mb-4">Error loading saved posts</div>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={onBack} className="bg-orange-500 hover:bg-orange-600">
-              Go Back
-            </Button>
-          </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center py-16">
+          <div className="text-red-500 text-lg mb-4">Error loading saved posts</div>
+          <p className="text-gray-600 mb-4">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Bookmark className="w-5 h-5 text-orange-500" />
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Saved Posts
-                </h1>
-              </div>
-            </div>
-            <span className="text-sm text-gray-600">
-              {savedPosts.length} {savedPosts.length === 1 ? 'post' : 'posts'} saved
-            </span>
-          </div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <Bookmark className="w-5 h-5 text-orange-500" />
+          <h1 className="text-2xl font-bold text-gray-900">
+            Saved Posts
+          </h1>
         </div>
-      </header>
+        <span className="text-sm text-gray-600">
+          {savedPosts.length} {savedPosts.length === 1 ? 'post' : 'posts'} saved
+        </span>
+      </div>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {savedPosts.length === 0 ? (
           <div className="text-center py-16">
             <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -166,12 +137,6 @@ const SavedPosts = ({ onBack, userProfile, onAddWordToDictionary, userDictionary
             <p className="text-gray-600">
               Posts you save will appear here for easy access later
             </p>
-            <Button
-              onClick={onBack}
-              className="mt-6 bg-orange-500 hover:bg-orange-600"
-            >
-              Browse Posts
-            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -225,7 +190,7 @@ const SavedPosts = ({ onBack, userProfile, onAddWordToDictionary, userDictionary
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Single Post View Modal */}
       {selectedPost && (

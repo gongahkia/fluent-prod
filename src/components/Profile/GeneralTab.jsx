@@ -1,6 +1,56 @@
-import React from "react"
+import React, { useState } from "react"
+import { X } from "lucide-react"
 
 const GeneralTab = ({ formData, handleInputChange }) => {
+  // All available subreddit tags based on target language
+  const allTags = {
+    Japanese: [
+      "lowlevelaware",
+      "newsokur",
+      "anime",
+      "BakaNewsJP",
+      "manga",
+      "jpop",
+      "japannews",
+      "japanmemes",
+      "shibuya",
+      "harajuku"
+    ],
+    Korean: [
+      "hanguk",
+      "kpop",
+      "korea",
+      "korean",
+      "southkorea",
+      "seoul",
+      "koreanews",
+      "koreamemes"
+    ]
+  }
+
+  // Get tags for current target language
+  const availableTags = allTags[formData.targetLanguage] || []
+
+  // Initialize selected tags from formData or default to empty array
+  const [selectedTags, setSelectedTags] = useState(formData.selectedTags || [])
+
+  const handleToggleTag = (tag) => {
+    let newTags
+    if (selectedTags.includes(tag)) {
+      newTags = selectedTags.filter(t => t !== tag)
+    } else {
+      newTags = [...selectedTags, tag]
+    }
+    setSelectedTags(newTags)
+    // Update formData
+    handleInputChange({
+      target: {
+        name: 'selectedTags',
+        value: newTags
+      }
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -75,6 +125,23 @@ const GeneralTab = ({ formData, handleInputChange }) => {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
+          Profile Picture URL
+        </label>
+        <input
+          type="url"
+          name="profilePictureUrl"
+          value={formData.profilePictureUrl}
+          onChange={handleInputChange}
+          placeholder="https://example.com/profile.jpg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Enter a URL for your profile picture
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Banner Image URL
         </label>
         <input
@@ -88,6 +155,67 @@ const GeneralTab = ({ formData, handleInputChange }) => {
         <p className="text-xs text-gray-500 mt-1">
           Enter a URL for your profile banner image
         </p>
+      </div>
+
+      {/* Interest Tags */}
+      <div className="pt-6 border-t border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Your Interests</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Select subreddits you're interested in to personalize your feed. Posts from these communities will appear in your learning feed.
+        </p>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>Currently showing:</strong> r/{formData.targetLanguage === 'Japanese' ? 'japan' : 'korea'} subreddits.
+            Change your learning language in the Learning tab to see different options.
+          </p>
+        </div>
+
+        {/* Selected Tags */}
+        {selectedTags.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Selected ({selectedTags.length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectedTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => handleToggleTag(tag)}
+                  className="inline-flex items-center px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-medium hover:bg-orange-200 transition-colors group"
+                >
+                  <span>r/{tag}</span>
+                  <X className="w-4 h-4 ml-2 group-hover:text-orange-900" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Available Tags */}
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            Available Subreddits
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {availableTags
+              .filter(tag => !selectedTags.includes(tag))
+              .map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => handleToggleTag(tag)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  r/{tag}
+                </button>
+              ))}
+          </div>
+          {availableTags.filter(tag => !selectedTags.includes(tag)).length === 0 && (
+            <p className="text-sm text-gray-500 italic">
+              All subreddits selected! You can remove some by clicking the X button above.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Appearance Settings */}
@@ -105,35 +233,9 @@ const GeneralTab = ({ formData, handleInputChange }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
               <option value="light">Light</option>
-              <option value="dark">Dark (Coming Soon)</option>
-              <option value="auto">Auto (Coming Soon)</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto</option>
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Accent Color
-            </label>
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { name: 'orange', color: 'bg-orange-500' },
-                { name: 'blue', color: 'bg-blue-500' },
-                { name: 'green', color: 'bg-green-500' },
-                { name: 'purple', color: 'bg-purple-500' },
-                { name: 'pink', color: 'bg-pink-500' },
-                { name: 'red', color: 'bg-red-500' },
-                { name: 'yellow', color: 'bg-yellow-500' },
-                { name: 'gray', color: 'bg-gray-600' }
-              ].map(({ name, color }) => (
-                <button
-                  key={name}
-                  onClick={() => handleInputChange({ target: { name: 'accentColor', value: name } })}
-                  className={`h-12 ${color} rounded-lg border-2 transition-all ${
-                    formData.accentColor === name ? 'border-gray-900 scale-105' : 'border-transparent'
-                  }`}
-                />
-              ))}
-            </div>
           </div>
 
           <div>
