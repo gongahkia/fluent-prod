@@ -9,17 +9,19 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
   // Decode HTML entities
   let cleaned = decodeHTMLEntities(text)
 
-  // Check if content is JSON from translation service - handle it directly without splitting
+  // Check if content is JSON from translation service - extract and render the text
   try {
     if (cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
       const parsedData = JSON.parse(cleaned)
-      if (parsedData.text && parsedData.wordMetadata) {
-        // This is translation service JSON - render it directly with renderClickableText
+      if (parsedData.text && parsedData.wordMetadata !== undefined) {
+        // Pass the entire cleaned JSON string so renderClickableText can parse it properly
+        // This preserves the wordMetadata for proper marker replacement
         return renderClickableText(cleaned, postId)
       }
     }
   } catch (e) {
     // Not JSON or invalid JSON, continue with normal markdown parsing
+    console.warn('Failed to parse JSON content:', e)
   }
 
   // Split by lines to preserve paragraph structure
@@ -131,16 +133,24 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     // Check if text is JSON from translation service
     let parsedData = null
     try {
-      if (text.startsWith("{") && text.includes('"wordMetadata"')) {
+      if (text.trim().startsWith("{") && text.includes('"wordMetadata"')) {
         parsedData = JSON.parse(text)
       }
     } catch (e) {
       // Not JSON, continue with normal processing
+      console.warn('Failed to parse JSON in renderClickableText:', e)
     }
 
-    if (parsedData && parsedData.text && parsedData.wordMetadata) {
+    if (parsedData && parsedData.text && parsedData.wordMetadata !== undefined) {
       // Process text with word metadata
       let processedText = parsedData.text
+
+      // If wordMetadata is empty, just return the plain text (no markers should exist)
+      if (parsedData.wordMetadata.length === 0) {
+        // Remove any orphaned markers that shouldn't be there
+        const cleanedText = processedText.replace(/\{\{WORD:\d+\}\}/g, '[translation unavailable]')
+        return cleanedText
+      }
 
       // Build a map of all markers and their positions
       const markerPositions = []
@@ -159,7 +169,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             wordData
           })
         } else {
-          console.warn(`Marker ${marker} not found in text`)
+          console.warn(`Marker ${marker} not found in text for word:`, wordData.original)
         }
       }
 
@@ -171,9 +181,14 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       let lastIndex = 0
 
       for (const { index: markerIndex, marker, wordData } of markerPositions) {
-        // Add text before this marker
+        // Add text before this marker (may contain orphaned markers - we'll clean them)
         if (markerIndex > lastIndex) {
-          parts.push(processedText.substring(lastIndex, markerIndex))
+          const textBeforeMarker = processedText.substring(lastIndex, markerIndex)
+          // Remove any orphaned markers in this segment
+          const cleanedSegment = textBeforeMarker.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+          if (cleanedSegment) {
+            parts.push(cleanedSegment)
+          }
         }
 
         // Check if this word has been toggled
@@ -217,7 +232,12 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
       // Add remaining text after last marker
       if (lastIndex < processedText.length) {
-        parts.push(processedText.substring(lastIndex))
+        const remainingText = processedText.substring(lastIndex)
+        // Clean any orphaned markers in the remaining text
+        const cleanedRemaining = remainingText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+        if (cleanedRemaining) {
+          parts.push(cleanedRemaining)
+        }
       }
 
       return parts.length > 0 ? parts : parsedData.text

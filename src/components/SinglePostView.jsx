@@ -258,18 +258,6 @@ const SinglePostView = ({
           </button>
         </div>
 
-        {/* Processing indicator */}
-        {isProcessing && (
-          <div className="bg-blue-50 border-b border-blue-200 px-6 py-4">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-              <span className="text-blue-700 text-sm font-medium">
-                Processing post with your learning level...
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Post content */}
         <div className="p-6">
           {/* Article Header */}
