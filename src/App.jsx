@@ -219,6 +219,9 @@ function App() {
     return (
       <SavedPosts
         onBack={() => handleNavigation("feed")}
+        userProfile={userProfile}
+        onAddWordToDictionary={addWordToDictionary}
+        userDictionary={userDictionary}
       />
     )
   }

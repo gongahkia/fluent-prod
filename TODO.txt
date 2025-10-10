@@ -23,12 +23,12 @@ x Remove redundant and repeated files that aren't being used by any other files
 x Examine codebase and ensure that all posts (that are called and saved to firestore are from reddit, no other sites allowed)
 x Deploy backend and ensure everything works
 x Generate new architecture diagram that explains how current system works
+x Allow for photos/gifs to be posted within the comments, not just text
 
 @ Gabriel
 
 (A) Make the main dashboard page look more similar to the paper prototype image keith drew, with posts distinguished with lines similar to the new york times, see reference images within ./reference
 (A) Debug why posts from reddit sometimes say invalid date
-(A) Allow for photos/gifs to be posted within the comments, not just text
 (A) Edit the frontend for each post's display to be similar to Keith's image
 (A) Work on mobile view and bottom navbar instead of top
 (A) Improve mobile UI/UX +Performance @Frontend
@@ -36,6 +36,7 @@ x Generate new architecture diagram that explains how current system works
 (A) Add backend logic to tag each pulled post from reddit (Right now categorise based on subreddit, for now we just have a finite amount of predefined tags for tagging a given post)
 (A) On the profile page add a connect your account page, actually connect it to the reddit api
 (A) On the profile page add a place to manage user tags with bubbles and "x"
+(A) Make basic color for the entire app orange themed
 
 @ Astin 
 

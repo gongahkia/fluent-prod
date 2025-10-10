@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button"
 import { getSavedPosts, removeSavedPost } from "@/services/databaseService"
 import { useAuth } from "@/contexts/AuthContext"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import SinglePostView from "./SinglePostView"
 
-const SavedPosts = ({ onBack }) => {
+const SavedPosts = ({ onBack, userProfile, onAddWordToDictionary, userDictionary }) => {
   const { currentUser } = useAuth()
   const [savedPosts, setSavedPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedPost, setSelectedPost] = useState(null)
+  const [sharePopup, setSharePopup] = useState(null)
 
   // Load saved posts from Firestore
   useEffect(() => {
@@ -63,6 +66,32 @@ const SavedPosts = ({ onBack }) => {
     if (diffDays < 7) return `${diffDays} days ago`
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
     return date.toLocaleDateString()
+  }
+
+  const handleViewPost = (post) => {
+    setSelectedPost(post)
+  }
+
+  const handleSharePost = (post) => {
+    const shareUrl = post.url
+    const shareTitle = post.title
+
+    setSharePopup({
+      url: shareUrl,
+      title: shareTitle,
+      id: post.id
+    })
+  }
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Link copied!')
+      setSharePopup(null)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+      alert('Failed to copy link')
+    }
   }
 
   if (loading) {
@@ -176,7 +205,10 @@ const SavedPosts = ({ onBack }) => {
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <button className="flex items-center space-x-2 text-sm text-gray-600 hover:text-orange-600 transition-colors">
+                    <button
+                      onClick={() => handleViewPost(post)}
+                      className="flex items-center space-x-2 text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                    >
                       <ExternalLink className="w-4 h-4" />
                       <span>View Post</span>
                     </button>
@@ -194,6 +226,63 @@ const SavedPosts = ({ onBack }) => {
           </div>
         )}
       </main>
+
+      {/* Single Post View Modal */}
+      {selectedPost && (
+        <SinglePostView
+          post={selectedPost}
+          userProfile={userProfile}
+          onAddWordToDictionary={onAddWordToDictionary}
+          userDictionary={userDictionary}
+          onClose={() => setSelectedPost(null)}
+          onShare={handleSharePost}
+          onRemove={handleRemove}
+        />
+      )}
+
+      {/* Share Popup */}
+      {sharePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Share Post</h3>
+            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{sharePopup.title}</p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => copyToClipboard(sharePopup.url)}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Copy Link</span>
+              </button>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(sharePopup.url)}&text=${encodeURIComponent(sharePopup.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Twitter</span>
+              </a>
+
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Facebook</span>
+              </a>
+
+              <button
+                onClick={() => setSharePopup(null)}
+                className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
