@@ -15,8 +15,59 @@ const subredditConfig = JSON.parse(
 )
 
 /**
+ * Strip markdown formatting and reduce text to plaintext
+ * This happens BEFORE difficulty classification
+ */
+function stripMarkdownToPlaintext(text) {
+  if (!text || text.trim().length === 0) {
+    return ''
+  }
+
+  let plaintext = text
+
+  // Remove code blocks (```code```)
+  plaintext = plaintext.replace(/```[\s\S]*?```/g, '')
+
+  // Remove inline code (`code`)
+  plaintext = plaintext.replace(/`([^`]+)`/g, '$1')
+
+  // Remove images ![alt](url)
+  plaintext = plaintext.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+
+  // Remove links but keep text [text](url) -> text
+  plaintext = plaintext.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+  // Remove headers (##, ###, etc.)
+  plaintext = plaintext.replace(/^#{1,6}\s+/gm, '')
+
+  // Remove bold/italic (**text**, *text*, __text__, _text_)
+  plaintext = plaintext.replace(/(\*\*|__)(.*?)\1/g, '$2')
+  plaintext = plaintext.replace(/(\*|_)(.*?)\1/g, '$2')
+
+  // Remove blockquotes (> text)
+  plaintext = plaintext.replace(/^>\s+/gm, '')
+
+  // Remove horizontal rules (---, ***, ___)
+  plaintext = plaintext.replace(/^[-*_]{3,}$/gm, '')
+
+  // Remove list markers (-, *, +, 1., 2., etc.)
+  plaintext = plaintext.replace(/^\s*[-*+]\s+/gm, '')
+  plaintext = plaintext.replace(/^\s*\d+\.\s+/gm, '')
+
+  // Remove HTML tags
+  plaintext = plaintext.replace(/<[^>]+>/g, '')
+
+  // Normalize whitespace
+  plaintext = plaintext.replace(/\n{3,}/g, '\n\n')
+  plaintext = plaintext.trim()
+
+  return plaintext
+}
+
+/**
  * Difficulty Calculation for English Text
  * (Copied from newsService.js for standalone use)
+ * NOTE: This now receives PLAINTEXT ONLY (no markdown, no images)
  */
 function calculateEnglishDifficulty(text) {
   if (!text || text.trim().length === 0) {
@@ -71,22 +122,39 @@ function calculateEnglishDifficulty(text) {
 
 /**
  * Normalize Reddit post to standard format
+ * IMPORTANT: Content is stripped to PLAINTEXT ONLY before difficulty calculation
+ * All images are removed, URLs always point to Reddit
  */
 function normalizeRedditPost(post) {
-  const redditContent = post.selftext || post.title || ''
+  // Step 1: Extract raw title and content
+  const rawTitle = post.title || 'No title'
+  const rawContent = post.selftext || ''
+
+  // Step 2: Strip markdown and reduce to plaintext BEFORE difficulty calculation
+  const plaintextTitle = stripMarkdownToPlaintext(rawTitle)
+  const plaintextContent = stripMarkdownToPlaintext(rawContent)
+
+  // Step 3: Combine for difficulty calculation (plaintext only)
+  const combinedPlaintext = `${plaintextTitle} ${plaintextContent}`.trim()
+
+  // Step 4: Calculate difficulty on PLAINTEXT (no markdown, no images)
+  const difficulty = calculateEnglishDifficulty(combinedPlaintext)
+
+  // Step 5: Generate unique Reddit ID
   const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
 
+  // Step 6: Return normalized post with Reddit-only URL and NO images
   return {
     id: uniqueRedditId,
-    title: post.title || 'No title',
-    content: post.selftext || '',
-    url: post.url || `https://reddit.com${post.permalink}`,
+    title: plaintextTitle,
+    content: plaintextContent,
+    url: `https://www.reddit.com${post.permalink}`, // ALWAYS Reddit URL, never external
     author: post.author || 'deleted',
     publishedAt: new Date(post.created_utc * 1000),
-    image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
+    image: null, // ALWAYS null - no images allowed
     tags: ['reddit', post.subreddit],
     source: 'reddit',
-    difficulty: calculateEnglishDifficulty(redditContent)
+    difficulty: difficulty
   }
 }
 
