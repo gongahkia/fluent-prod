@@ -88,13 +88,6 @@ const CollectionManager = ({
             Organize your words into custom study collections
           </p>
         </div>
-        <button
-          onClick={() => setIsCreating(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>New Collection</span>
-        </button>
       </div>
 
       {/* Create Collection Form */}
