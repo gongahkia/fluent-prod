@@ -1,4 +1,4 @@
-import { Album, BookOpen, Edit2, Plus, Sparkles, Trash2 } from "lucide-react"
+import { Album, BookOpen, Edit2, Plus, Trash2 } from "lucide-react"
 import React, { useState } from "react"
 import CollectionWordsModal from "./CollectionWordsModal"
 
@@ -219,12 +219,6 @@ const CollectionManager = ({
                       <h3 className="text-lg font-semibold text-gray-900">
                         {collection.name}
                       </h3>
-                      {collection.isDefault && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          Default
-                        </span>
-                      )}
                     </div>
                     {collection.description && (
                       <p className="text-sm text-gray-600">

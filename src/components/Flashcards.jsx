@@ -17,12 +17,10 @@ import {
   createCollection,
   deleteCollection,
   getFlashcardProgress,
-  getOrCreateLearningCollection,
   migrateFlashcardData,
   onCollectionsChange,
   removeWordFromCollection,
   saveFlashcardProgress,
-  syncLearningCollection,
   updateCollection,
 } from "@/services/databaseService"
 import CollectionManager from "./CollectionManager"
@@ -134,26 +132,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     const unsubscribe = onCollectionsChange(
       currentUser.uid,
       (collections) => {
-        // Deduplicate collections to prevent multiple "Learning" collections from showing
-        const deduplicatedCollections = []
-        const seenNames = new Set()
-
-        // For default collections, only keep the first instance
-        collections.forEach((collection) => {
-          if (collection.isDefault) {
-            // For default collections, use a special key to ensure only one exists
-            const key = `default_${collection.name}`
-            if (!seenNames.has(key)) {
-              seenNames.add(key)
-              deduplicatedCollections.push(collection)
-            }
-          } else {
-            // For non-default collections, each should be unique by ID
-            deduplicatedCollections.push(collection)
-          }
-        })
-
-        setCollections(deduplicatedCollections)
+        setCollections(collections)
       },
       (error) => {
         console.error("Collections listener error:", error)
@@ -162,28 +141,6 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
     return () => unsubscribe()
   }, [currentUser])
-
-  // Initialize Learning collection on mount
-  useEffect(() => {
-    if (!currentUser) return
-
-    const initLearningCollection = async () => {
-      await getOrCreateLearningCollection(currentUser.uid)
-    }
-
-    initLearningCollection()
-  }, [currentUser])
-
-  // Sync Learning collection when dictionary changes
-  useEffect(() => {
-    if (!currentUser || !userDictionary) return
-
-    const syncLearning = async () => {
-      await syncLearningCollection(currentUser.uid)
-    }
-
-    syncLearning()
-  }, [currentUser, userDictionary])
 
   // Save card data to Firestore
   const saveCardData = async (data) => {
