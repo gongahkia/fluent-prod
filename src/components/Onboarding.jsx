@@ -38,7 +38,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 2,
-      name: "Elementary",
+      name: "Intermediate",
       author: "Yuki Tanaka",
       location: "Tokyo, Japan",
       time: "2 hours ago",
@@ -49,7 +49,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 3,
-      name: "Intermediate",
+      name: "Advanced",
       author: "Yuki Tanaka",
       location: "Tokyo, Japan",
       time: "2 hours ago",
@@ -60,7 +60,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 4,
-      name: "Advanced",
+      name: "Expert",
       author: "Yuki Tanaka",
       location: "Tokyo, Japan",
       time: "2 hours ago",
@@ -71,7 +71,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 5,
-      name: "Expert",
+      name: "Native",
       author: "Yuki Tanaka",
       location: "Tokyo, Japan",
       time: "2 hours ago",
@@ -96,7 +96,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 2,
-      name: "Elementary",
+      name: "Intermediate",
       author: "Minji Kim",
       location: "Seoul, South Korea",
       time: "2 hours ago",
@@ -107,7 +107,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 3,
-      name: "Intermediate",
+      name: "Advanced",
       author: "Minji Kim",
       location: "Seoul, South Korea",
       time: "2 hours ago",
@@ -118,7 +118,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 4,
-      name: "Advanced",
+      name: "Expert",
       author: "Minji Kim",
       location: "Seoul, South Korea",
       time: "2 hours ago",
@@ -129,7 +129,7 @@ const Onboarding = ({ onComplete }) => {
     },
     {
       level: 5,
-      name: "Expert",
+      name: "Native",
       author: "Minji Kim",
       location: "Seoul, South Korea",
       time: "2 hours ago",
@@ -163,13 +163,12 @@ const Onboarding = ({ onComplete }) => {
     handleNext();
   };
 
-  // FIXED: Update level names to match the posts
   const levelNames = [
     "Beginner",
-    "Elementary", // Changed from "Intermediate"
-    "Intermediate", // Changed from "Advanced"
-    "Advanced", // Changed from "Expert"
-    "Expert", // Changed from "Native"
+    "Intermediate",
+    "Advanced",
+    "Expert",
+    "Native",
   ];
   const getLevelName = (level) => {
     return levelNames[level - 1] || "Beginner";
@@ -337,7 +336,7 @@ const Onboarding = ({ onComplete }) => {
           </div>
         )}
 
-        {/* Step 3: Interactive Translation Demo - FIXED */}
+        {/* Step 3: Interactive Translation Demo*/}
         {currentStep === 3 && (
           <div className="text-center">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -442,15 +441,6 @@ const Onboarding = ({ onComplete }) => {
                   }`}
                 />
               ))}
-            </div>
-
-            <div className="text-center">
-              <button
-                onClick={handleNext}
-                className="text-gray-500 hover:text-gray-700 text-sm underline"
-              >
-                I'll set this later
-              </button>
             </div>
           </div>
         )}
