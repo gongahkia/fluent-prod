@@ -15,7 +15,7 @@ const CollectionManager = ({
   const [isCreating, setIsCreating] = useState(false)
   const [editingCollection, setEditingCollection] = useState(null)
   const [formData, setFormData] = useState({ name: "", description: "" })
-  const [managingCollection, setManagingCollection] = useState(null)
+  const [managingCollectionId, setManagingCollectionId] = useState(null)
 
   const handleCreate = () => {
     if (!formData.name.trim()) return
@@ -241,7 +241,7 @@ const CollectionManager = ({
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setManagingCollection(collection)}
+                      onClick={() => setManagingCollectionId(collection.id)}
                       className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
                       title="Manage words"
                     >
@@ -304,13 +304,14 @@ const CollectionManager = ({
       )}
 
       {/* Collection Words Management Modal */}
-      {managingCollection && (
+      {managingCollectionId && (
         <CollectionWordsModal
-          collection={managingCollection}
+          collectionId={managingCollectionId}
+          collections={collections}
           userDictionary={userDictionary}
           onAddWord={onAddWordToCollection}
           onRemoveWord={onRemoveWordFromCollection}
-          onClose={() => setManagingCollection(null)}
+          onClose={() => setManagingCollectionId(null)}
         />
       )}
     </div>

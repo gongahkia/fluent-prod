@@ -2,13 +2,23 @@ import { Plus, Search, Trash2, X } from "lucide-react"
 import React, { useState } from "react"
 
 const CollectionWordsModal = ({
-  collection,
+  collectionId,
+  collections,
   userDictionary,
   onAddWord,
   onRemoveWord,
   onClose,
 }) => {
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Find the current collection from the live collections array
+  // This ensures we always have the latest data from Firestore's real-time listener
+  const collection = collections.find((c) => c.id === collectionId)
+
+  // If collection not found (shouldn't happen), return null
+  if (!collection) {
+    return null
+  }
 
   // Get words that are already in this collection
   const collectionWordIds = new Set(collection.wordIds || [])

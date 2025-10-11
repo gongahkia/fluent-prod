@@ -134,7 +134,26 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     const unsubscribe = onCollectionsChange(
       currentUser.uid,
       (collections) => {
-        setCollections(collections)
+        // Deduplicate collections to prevent multiple "Learning" collections from showing
+        const deduplicatedCollections = []
+        const seenNames = new Set()
+
+        // For default collections, only keep the first instance
+        collections.forEach((collection) => {
+          if (collection.isDefault) {
+            // For default collections, use a special key to ensure only one exists
+            const key = `default_${collection.name}`
+            if (!seenNames.has(key)) {
+              seenNames.add(key)
+              deduplicatedCollections.push(collection)
+            }
+          } else {
+            // For non-default collections, each should be unique by ID
+            deduplicatedCollections.push(collection)
+          }
+        })
+
+        setCollections(deduplicatedCollections)
       },
       (error) => {
         console.error("Collections listener error:", error)
