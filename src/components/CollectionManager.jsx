@@ -1,5 +1,6 @@
-import { BookOpen, Edit2, Plus, Sparkles, Trash2 } from "lucide-react"
+import { Album, BookOpen, Edit2, Plus, Sparkles, Trash2 } from "lucide-react"
 import React, { useState } from "react"
+import CollectionWordsModal from "./CollectionWordsModal"
 
 const CollectionManager = ({
   collections,
@@ -8,10 +9,13 @@ const CollectionManager = ({
   onDeleteCollection,
   onSelectCollection,
   userDictionary,
+  onAddWordToCollection,
+  onRemoveWordFromCollection,
 }) => {
   const [isCreating, setIsCreating] = useState(false)
   const [editingCollection, setEditingCollection] = useState(null)
   const [formData, setFormData] = useState({ name: "", description: "" })
+  const [managingCollection, setManagingCollection] = useState(null)
 
   const handleCreate = () => {
     if (!formData.name.trim()) return
@@ -237,6 +241,13 @@ const CollectionManager = ({
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
+                      onClick={() => setManagingCollection(collection)}
+                      className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                      title="Manage words"
+                    >
+                      <Album className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(collection)}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       title="Delete collection"
@@ -290,6 +301,17 @@ const CollectionManager = ({
             <span>Create Collection</span>
           </button>
         </div>
+      )}
+
+      {/* Collection Words Management Modal */}
+      {managingCollection && (
+        <CollectionWordsModal
+          collection={managingCollection}
+          userDictionary={userDictionary}
+          onAddWord={onAddWordToCollection}
+          onRemoveWord={onRemoveWordFromCollection}
+          onClose={() => setManagingCollection(null)}
+        />
       )}
     </div>
   )

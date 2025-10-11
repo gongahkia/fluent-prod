@@ -13,12 +13,14 @@ import {
 } from "@/config/languages"
 import { useAuth } from "@/contexts/AuthContext"
 import {
+  addWordToCollection,
   createCollection,
   deleteCollection,
   getFlashcardProgress,
   getOrCreateLearningCollection,
   migrateFlashcardData,
   onCollectionsChange,
+  removeWordFromCollection,
   saveFlashcardProgress,
   syncLearningCollection,
   updateCollection,
@@ -204,6 +206,16 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     setSelectedCollection(null)
     setCurrentCardIndex(0)
     setShowAnswer(false)
+  }
+
+  const handleAddWordToCollection = async (collectionId, wordId) => {
+    if (!currentUser) return
+    await addWordToCollection(currentUser.uid, collectionId, wordId)
+  }
+
+  const handleRemoveWordFromCollection = async (collectionId, wordId) => {
+    if (!currentUser) return
+    await removeWordFromCollection(currentUser.uid, collectionId, wordId)
   }
 
   // Convert user dictionary to flashcard format
@@ -400,6 +412,8 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
         onDeleteCollection={handleDeleteCollection}
         onSelectCollection={handleSelectCollection}
         userDictionary={userDictionary}
+        onAddWordToCollection={handleAddWordToCollection}
+        onRemoveWordFromCollection={handleRemoveWordFromCollection}
       />
     )
   }
