@@ -2,8 +2,8 @@ import {
   ArrowLeft,
   Bell,
   Camera,
-  Code,
   Globe,
+  Link2,
   Save,
   Shield,
   User,
@@ -24,7 +24,7 @@ import GeneralTab from "./Profile/GeneralTab"
 import LearningTab from "./Profile/LearningTab"
 import NotificationsTab from "./Profile/NotificationsTab"
 import PrivacyTab from "./Profile/PrivacyTab"
-import DeveloperTab from "./Profile/DeveloperTab"
+import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 
 const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const { currentUser } = useAuth()
@@ -44,29 +44,21 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     learningLevel: userProfile?.level || "3",
     location: userProfile?.location || "",
     website: userProfile?.website || "",
+    profilePictureUrl: userProfile?.profilePictureUrl || "",
     bannerImage: userProfile?.bannerImage || "",
+    selectedTags: userProfile?.selectedTags || [],
     // Privacy settings
-    profileVisibility: "public",
-    showEmail: false,
-    showLocation: true,
+    profileVisibility: userProfile?.settings?.privacy?.profileVisibility || "public",
     // Notification settings
-    emailNotifications: true,
-    pushNotifications: true,
-    commentNotifications: true,
-    followNotifications: true,
+    emailNotifications: userProfile?.settings?.notifications?.email ?? true,
+    pushNotifications: userProfile?.settings?.notifications?.push ?? true,
+    commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
-    theme: "light",
-    accentColor: "orange",
-    fontSize: "medium",
-    // Daily goals
-    dailyWordGoal: 10,
-    dailyReadingGoal: 5,
-    studyReminder: true,
-    reminderTime: "18:00",
-    // Developer mode API keys
+    theme: userProfile?.settings?.appearance?.theme || "light",
+    fontSize: userProfile?.settings?.appearance?.fontSize || "medium",
+    // API keys
+    redditApiKey: "",
     twitterBearerToken: "",
-    instagramUsername: "",
-    instagramPassword: "",
     geminiApiKey: "",
   })
 
@@ -74,6 +66,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false)
 
   // Load encrypted API credentials from Firebase on mount
   useEffect(() => {
@@ -93,17 +86,15 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
           setFormData(prev => ({
             ...prev,
+            redditApiKey: decrypted.redditApiKey || '',
             twitterBearerToken: decrypted.twitterBearerToken || '',
-            instagramUsername: decrypted.instagramUsername || '',
-            instagramPassword: decrypted.instagramPassword || '',
             geminiApiKey: decrypted.geminiApiKey || '',
           }))
 
-          // Also save to sessionStorage for immediate use by other components
-          sessionStorage.setItem('twitterBearerToken', decrypted.twitterBearerToken || '')
-          sessionStorage.setItem('instagramUsername', decrypted.instagramUsername || '')
-          sessionStorage.setItem('instagramPassword', decrypted.instagramPassword || '')
-          sessionStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
+          // Also save to localStorage for immediate use by other components
+          localStorage.setItem('redditApiKey', decrypted.redditApiKey || '')
+          localStorage.setItem('twitterBearerToken', decrypted.twitterBearerToken || '')
+          localStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
         }
       } catch (error) {
         console.error('Error loading credentials:', error)
@@ -132,9 +123,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       // Separate sensitive credentials from regular profile data
       const credentials = {
+        redditApiKey: formData.redditApiKey,
         twitterBearerToken: formData.twitterBearerToken,
-        instagramUsername: formData.instagramUsername,
-        instagramPassword: formData.instagramPassword,
         geminiApiKey: formData.geminiApiKey,
       }
 
@@ -144,11 +134,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       // Save encrypted credentials to Firebase
       await updateUserCredentials(currentUser.uid, encryptedCreds)
 
-      // Save to sessionStorage for immediate use
-      sessionStorage.setItem('twitterBearerToken', formData.twitterBearerToken)
-      sessionStorage.setItem('instagramUsername', formData.instagramUsername)
-      sessionStorage.setItem('instagramPassword', formData.instagramPassword)
-      sessionStorage.setItem('geminiApiKey', formData.geminiApiKey)
+      // Save to localStorage for immediate use
+      localStorage.setItem('redditApiKey', formData.redditApiKey)
+      localStorage.setItem('twitterBearerToken', formData.twitterBearerToken)
+      localStorage.setItem('geminiApiKey', formData.geminiApiKey)
 
       // Save regular profile settings to Firebase
       const profileUpdates = {
@@ -160,7 +149,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         level: parseInt(formData.learningLevel),
         location: formData.location,
         website: formData.website,
+        profilePictureUrl: formData.profilePictureUrl,
         bannerImage: formData.bannerImage,
+        selectedTags: formData.selectedTags,
         settings: {
           notifications: {
             email: formData.emailNotifications,
@@ -169,19 +160,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           },
           privacy: {
             profileVisibility: formData.profileVisibility,
-            showEmail: formData.showEmail,
-            showLocation: formData.showLocation,
           },
           appearance: {
             theme: formData.theme,
-            accentColor: formData.accentColor,
             fontSize: formData.fontSize,
-          },
-          goals: {
-            dailyWords: formData.dailyWordGoal,
-            dailyReading: formData.dailyReadingGoal,
-            studyReminder: formData.studyReminder,
-            reminderTime: formData.reminderTime,
           }
         }
       }
@@ -193,8 +175,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       setIsLoading(false)
 
-      // Show success message
-      alert('Settings saved successfully!')
+      // Show success popup
+      setShowSuccessPopup(true)
+      setTimeout(() => {
+        setShowSuccessPopup(false)
+      }, 2000)
     } catch (error) {
       console.error('Error saving profile:', error)
       setIsLoading(false)
@@ -202,23 +187,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     }
   }
 
-  // Generate mock activity data for consistency graph
-  const mockActivityData = {}
-  const today = new Date()
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
-    const dateStr = date.toISOString().split('T')[0]
-    // Random activity with some days having no activity
-    mockActivityData[dateStr] = Math.random() > 0.3 ? Math.floor(Math.random() * 15) : 0
-  }
-
   const tabs = [
     { id: "general", label: "General", icon: User },
     { id: "learning", label: "Learning", icon: Globe },
+    { id: "connections", label: "Connected Accounts", icon: Link2 },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy", icon: Shield },
-    { id: "developer", label: "Developer Mode", icon: Code },
   ]
 
   return (
@@ -276,14 +250,19 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           <div className="bg-gray-50 px-6 py-8 border-b border-gray-200 -mt-12">
             <div className="flex items-center space-x-6">
               <div className="relative">
-                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center border-4 border-white">
-                  <span className="text-3xl font-bold text-gray-700">
-                    {formData.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <button className="absolute bottom-0 right-0 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white hover:bg-gray-700 transition-colors">
-                  <Camera className="w-4 h-4" />
-                </button>
+                {formData.profilePictureUrl ? (
+                  <img
+                    src={formData.profilePictureUrl}
+                    alt={formData.name}
+                    className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                  />
+                ) : (
+                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center border-4 border-white">
+                    <span className="text-3xl font-bold text-gray-700">
+                      {formData.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="text-gray-900">
                 <h2 className="text-2xl font-bold">{formData.name}</h2>
@@ -327,14 +306,18 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
             {/* Learning Tab */}
             {activeTab === "learning" && (
-              <LearningTab formData={formData} handleInputChange={handleInputChange} mockActivityData={mockActivityData} />
+              <LearningTab formData={formData} handleInputChange={handleInputChange} />
+            )}
+
+            {/* Connected Accounts Tab */}
+            {activeTab === "connections" && (
+              <ConnectedAccountsTab formData={formData} handleInputChange={handleInputChange} />
             )}
 
             {/* Notifications Tab */}
             {activeTab === "notifications" && (
               <NotificationsTab formData={formData} handleInputChange={handleInputChange} />
             )}
-
 
             {/* Privacy Tab */}
             {activeTab === "privacy" && (
@@ -344,11 +327,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 setShowFollowers={setShowFollowers}
                 setShowFollowing={setShowFollowing}
               />
-            )}
-
-            {/* Developer Mode Tab */}
-            {activeTab === "developer" && (
-              <DeveloperTab formData={formData} handleInputChange={handleInputChange} />
             )}
           </div>
         </div>
@@ -421,6 +399,23 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">✓</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Settings Saved!
+            </h3>
+            <p className="text-gray-600">
+              Your profile has been updated successfully.
+            </p>
           </div>
         </div>
       )}

@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   BookOpen,
   ChevronDown,
   ChevronUp,
@@ -15,13 +14,20 @@ import {
 import React, { useState } from "react"
 import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
 
-const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
+const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
   // Get language configuration
   const targetLanguage = userProfile?.targetLanguage || "Japanese"
   const languageConfig = getLanguageByName(targetLanguage)
   const langLabels = languageConfig.uiLabels
   const langFields = languageConfig.dictionaryFields
   const [expandedWord, setExpandedWord] = useState(null)
+
+  // Helper function to clean {{WORD:X}} markers from example sentences
+  const cleanExampleText = (text) => {
+    if (!text) return ''
+    // Remove all {{WORD:X}} or {{word:X}} markers, leaving the surrounding text intact
+    return text.replace(/\{\{(WORD|word):\s*\d+\}\}\s*/g, '')
+  }
   const [sortBy, setSortBy] = useState("date") // 'level', 'date', 'alphabetical', 'mastery'
   const [searchQuery, setSearchQuery] = useState("")
   const [filterLevel, setFilterLevel] = useState("all")
@@ -202,26 +208,18 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
   const stats = getStats()
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Feed
-          </button>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {langLabels.dictionary}
-            </h1>
-            <p className="text-sm text-gray-600">
-              {stats.total} words • {stats.mature} mature
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-left">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {langLabels.dictionary}
+          </h1>
+          <p className="text-sm text-gray-600">
+            {stats.total} words • {stats.mature} mature
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
             <button
               onClick={exportCSV}
               className="flex items-center gap-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -543,9 +541,9 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
                             Example Sentence
                           </h4>
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-gray-900 mb-1">{word.example}</p>
+                            <p className="text-gray-900 mb-1">{cleanExampleText(word.example)}</p>
                             {word.exampleEn && (
-                              <p className="text-gray-600 text-sm">{word.exampleEn}</p>
+                              <p className="text-gray-600 text-sm">{cleanExampleText(word.exampleEn)}</p>
                             )}
                           </div>
                         </div>
@@ -560,42 +558,26 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
                           </div>
                         </div>
                       )}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                            Source
-                          </h4>
-                          <p className="text-gray-600">{word.source || 'Unknown'}</p>
+                      {word.reviewData && (
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 mb-1">
+                              Review Interval
+                            </h4>
+                            <p className="text-gray-600">
+                              {Math.round(word.reviewData.interval)} days
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-700 mb-1">
+                              Next Review
+                            </h4>
+                            <p className="text-gray-600">
+                              {new Date(word.reviewData.nextReview).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                            Date Added
-                          </h4>
-                          <p className="text-gray-600">
-                            {new Date(word.dateAdded).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {word.reviewData && (
-                          <>
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                                Review Interval
-                              </h4>
-                              <p className="text-gray-600">
-                                {Math.round(word.reviewData.interval)} days
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-700 mb-1">
-                                Next Review
-                              </h4>
-                              <p className="text-gray-600">
-                                {new Date(word.reviewData.nextReview).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -628,7 +610,6 @@ const Dictionary = ({ onBack, userDictionary, onRemoveWord, onUpdateWord, userPr
             )}
           </div>
         )}
-      </div>
     </div>
   )
 }

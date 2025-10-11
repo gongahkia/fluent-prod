@@ -113,10 +113,11 @@ app.use((err, req, res, next) => {
 })
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Fluent Backend running on port ${PORT}`)
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`)
+  console.log(`✅ Server is ready to accept connections`)
 
   // Initialize scheduled job for daily posts fetching
   try {
@@ -133,4 +134,23 @@ app.listen(PORT, '0.0.0.0', () => {
   } catch (error) {
     console.error('⚠️  Scheduled job initialization failed:', error.message)
   }
+})
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`)
+  } else {
+    console.error('❌ Server error:', error)
+  }
+  process.exit(1)
+})
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️  SIGTERM signal received: closing HTTP server')
+  server.close(() => {
+    console.log('✅ HTTP server closed')
+    process.exit(0)
+  })
 })

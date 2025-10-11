@@ -2,24 +2,56 @@ import React from "react"
 import vocabularyService from "../../services/vocabularyService"
 import { decodeHTMLEntities, segmentJapaneseText } from "./utils/textParsing"
 
-// Parse markdown-style links and format text
+// Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
   if (!text) return ""
 
   // Decode HTML entities
   let cleaned = decodeHTMLEntities(text)
 
-  // Check if content is JSON from translation service - handle it directly without splitting
+  // Check if content is JSON from translation service - extract and render the text
+  let parsedData = null
   try {
-    if (cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
-      const parsedData = JSON.parse(cleaned)
-      if (parsedData.text && parsedData.wordMetadata) {
-        // This is translation service JSON - render it directly with renderClickableText
-        return renderClickableText(cleaned, postId)
+    if (typeof cleaned === 'string' && cleaned.trim().startsWith("{") && cleaned.includes('"wordMetadata"')) {
+      parsedData = JSON.parse(cleaned)
+      if (parsedData.text && parsedData.wordMetadata !== undefined) {
+        // Extract the text (markdown already stripped by backend)
+        cleaned = parsedData.text
+      } else {
+        console.warn('⚠️ JSON structure invalid - missing text or wordMetadata')
+        parsedData = null
       }
     }
   } catch (e) {
-    // Not JSON or invalid JSON, continue with normal markdown parsing
+    // Not JSON or invalid JSON, continue with normal parsing
+    console.warn('Failed to parse JSON content:', e, 'Text:', cleaned?.substring(0, 100))
+    parsedData = null
+  }
+
+  // Check if text is an object (shouldn't happen but handle it)
+  if (typeof cleaned !== 'string') {
+    console.error('Content is not a string:', cleaned)
+    // Try to extract text if it's an object with text property
+    if (cleaned && typeof cleaned === 'object' && cleaned.text) {
+      cleaned = cleaned.text
+    } else {
+      return String(cleaned || '')
+    }
+  }
+
+  // If we had JSON with wordMetadata, pass it to renderClickableText
+  if (parsedData && parsedData.wordMetadata !== undefined) {
+    if (Array.isArray(parsedData.wordMetadata) && parsedData.wordMetadata.length === 0) {
+      // No word metadata, continue with normal processing below
+    } else {
+      // NEW: Pass JSON with allWordTranslations to renderClickableText
+      const cleanedJson = JSON.stringify({
+        text: cleaned,
+        wordMetadata: parsedData.wordMetadata,
+        allWordTranslations: parsedData.allWordTranslations || {}  // Include all translations
+      })
+      return renderClickableText(cleanedJson, postId)
+    }
   }
 
   // Split by lines to preserve paragraph structure
@@ -33,18 +65,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
       return
     }
 
-    // Check for Reddit quote (starts with >)
-    if (line.trim().startsWith('&gt;') || line.trim().startsWith('>')) {
-      const quoteLine = line.replace(/^(&gt;|>)\s*/, '')
-      elements.push(
-        <div key={`quote-${lineIndex}`} className="border-l-4 border-gray-300 pl-4 py-1 my-2 text-gray-600 italic">
-          {parseLineContent(quoteLine, postId, renderClickableText)}
-        </div>
-      )
-      return
-    }
-
-    // Regular line
+    // Regular line - process normally (markdown already stripped by backend)
     elements.push(
       <span key={`line-${lineIndex}`}>
         {parseLineContent(line, postId, renderClickableText)}
@@ -56,56 +77,40 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
   return elements
 }
 
-// Parse inline content (links, bold, etc.) within a line - WITH clickable words
+// Parse inline content - only handle plain URLs (markdown already stripped by backend)
 export const parseLineContent = (text, postId = null, renderClickableText) => {
   const parts = []
   let keyCounter = 0
 
-  // Match markdown links [text](url) and plain URLs
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(https?:\/\/[^\s]+)/g
+  // Match only plain URLs (markdown links already removed by backend)
+  const urlRegex = /(https?:\/\/[^\s]+)/g
   let lastIndex = 0
   let match
 
-  while ((match = linkRegex.exec(text)) !== null) {
+  while ((match = urlRegex.exec(text)) !== null) {
     // Add text before match - make it clickable for translation
     if (match.index > lastIndex) {
-      const textBeforeLink = text.substring(lastIndex, match.index)
+      const textBeforeUrl = text.substring(lastIndex, match.index)
       parts.push(
         <span key={`text-${keyCounter++}`}>
-          {renderClickableText(textBeforeLink, postId)}
+          {renderClickableText(textBeforeUrl, postId)}
         </span>
       )
     }
 
-    if (match[1] && match[2]) {
-      // Markdown link [text](url)
-      parts.push(
-        <a
-          key={`link-${keyCounter++}`}
-          href={match[2]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline break-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {match[1]}
-        </a>
-      )
-    } else if (match[3]) {
-      // Plain URL
-      parts.push(
-        <a
-          key={`link-${keyCounter++}`}
-          href={match[3]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline break-all"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {match[3]}
-        </a>
-      )
-    }
+    // Plain URL - make it clickable for navigation
+    parts.push(
+      <a
+        key={`link-${keyCounter++}`}
+        href={match[1]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:text-blue-800 underline break-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {match[1]}
+      </a>
+    )
 
     lastIndex = match.index + match[0].length
   }
@@ -124,23 +129,40 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
 }
 
 // Create renderClickableText function factory
-export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese') => {
+export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese', allWordTranslations = {}) => {
   return (text, postId = null) => {
     if (!text) return ""
 
     // Check if text is JSON from translation service
     let parsedData = null
     try {
-      if (text.startsWith("{") && text.includes('"wordMetadata"')) {
+      if (text.trim().startsWith("{") && text.includes('"wordMetadata"')) {
         parsedData = JSON.parse(text)
       }
     } catch (e) {
       // Not JSON, continue with normal processing
+      console.warn('Failed to parse JSON in renderClickableText:', e)
     }
 
-    if (parsedData && parsedData.text && parsedData.wordMetadata) {
+    if (parsedData && parsedData.text && parsedData.wordMetadata !== undefined) {
+      // NEW: Extract allWordTranslations from parsed data
+      const allTranslations = parsedData.allWordTranslations || allWordTranslations || {}
       // Process text with word metadata
       let processedText = parsedData.text
+
+      // Ensure processedText is a string
+      if (typeof processedText !== 'string') {
+        console.error('processedText is not a string:', processedText)
+        return String(processedText || '')
+      }
+
+      // If wordMetadata is empty, just return the plain text (no markers should exist)
+      if (!Array.isArray(parsedData.wordMetadata) || parsedData.wordMetadata.length === 0) {
+        // Remove any orphaned markers that shouldn't be there
+        const cleanedText = processedText.replace(/\{\{WORD:\d+\}\}/g, '[translation unavailable]')
+        // Return as React element to maintain consistency with other returns
+        return [<span key="cleaned-text">{cleanedText}</span>]
+      }
 
       // Build a map of all markers and their positions
       const markerPositions = []
@@ -149,6 +171,12 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       const sortedMetadata = [...parsedData.wordMetadata].sort((a, b) => a.index - b.index)
 
       for (const wordData of sortedMetadata) {
+        // Validate wordData structure
+        if (!wordData || typeof wordData.index !== 'number') {
+          console.warn('Invalid wordData:', wordData)
+          continue
+        }
+
         const marker = `{{WORD:${wordData.index}}}`
         const markerIndex = processedText.indexOf(marker)
 
@@ -159,8 +187,14 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             wordData
           })
         } else {
-          console.warn(`Marker ${marker} not found in text`)
+          console.warn(`Marker ${marker} not found in text for word:`, wordData.original)
         }
+      }
+
+      // If no valid markers found, return cleaned text
+      if (markerPositions.length === 0) {
+        const cleanedText = processedText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+        return [<span key="cleaned-text-no-markers">{cleanedText}</span>]
       }
 
       // Sort by position in text
@@ -169,11 +203,17 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       // Build the final output
       const parts = []
       let lastIndex = 0
+      let keyCounter = 0
 
       for (const { index: markerIndex, marker, wordData } of markerPositions) {
-        // Add text before this marker
+        // Add text before this marker (may contain orphaned markers - we'll clean them)
         if (markerIndex > lastIndex) {
-          parts.push(processedText.substring(lastIndex, markerIndex))
+          const textBeforeMarker = processedText.substring(lastIndex, markerIndex)
+          // Remove any orphaned markers in this segment
+          const cleanedSegment = textBeforeMarker.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+          if (cleanedSegment) {
+            parts.push(<span key={`text-${keyCounter++}`}>{cleanedSegment}</span>)
+          }
         }
 
         // Check if this word has been toggled
@@ -184,7 +224,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         // wordData.showJapanese/showKorean indicates this is an ENGLISH word that can be translated to Japanese/Korean
         const showTargetLang = wordData.showJapanese || wordData.showKorean
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
-        const displayText = isShowingTargetLang ? wordData.translation : wordData.original
+        const displayText = isShowingTargetLang ? (wordData.translation || wordData.original) : wordData.original
 
         // Determine language flag
         const targetLangFlag = wordData.showKorean ? '🇰🇷' : '🇯🇵'
@@ -192,7 +232,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
         parts.push(
           <span
-            key={`word-${wordData.index}`}
+            key={`word-${wordData.index}-${keyCounter++}`}
             className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
             onClick={() => {
               if (postId) toggleTranslation(postId, wordData.index)
@@ -204,7 +244,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             title={
               isShowingTargetLang
                 ? `${targetLangFlag} ${targetLangName}: Click to see English "${wordData.original}"`
-                : `📚 English: Click to see ${targetLangName} "${wordData.translation}"`
+                : `📚 English: Click to see ${targetLangName} "${wordData.translation || '...'}"`
             }
             style={{ textDecoration: "none" }}
           >
@@ -217,10 +257,16 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
       // Add remaining text after last marker
       if (lastIndex < processedText.length) {
-        parts.push(processedText.substring(lastIndex))
+        const remainingText = processedText.substring(lastIndex)
+        // Clean any orphaned markers in the remaining text
+        const cleanedRemaining = remainingText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+        if (cleanedRemaining) {
+          parts.push(<span key={`text-${keyCounter++}`}>{cleanedRemaining}</span>)
+        }
       }
 
-      return parts.length > 0 ? parts : parsedData.text
+      // Always return an array of React elements, never plain text strings mixed with elements
+      return parts.length > 0 ? parts : [<span key="fallback">{processedText}</span>]
     }
 
     // Split by spaces and punctuation, preserving them

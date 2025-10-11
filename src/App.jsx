@@ -191,46 +191,110 @@ function App() {
     return <Onboarding onComplete={handleOnboardingComplete} />
   }
 
-  // Show dictionary page
-  if (currentView === "dictionary") {
-    return (
-      <Dictionary
-        onBack={() => handleNavigation("feed")}
-        userDictionary={userDictionary}
-        onRemoveWord={removeWordFromDictionary}
-        userProfile={userProfile}
-      />
-    )
-  }
-
-  // Show flashcards page
-  if (currentView === "flashcards") {
-    return (
-      <Flashcards
-        onBack={() => handleNavigation("feed")}
-        userDictionary={userDictionary}
-        userProfile={userProfile}
-      />
-    )
-  }
-
-  // Show saved posts page
-  if (currentView === "savedposts") {
-    return (
-      <SavedPosts
-        onBack={() => handleNavigation("feed")}
-      />
-    )
-  }
-
-  // Show profile page
+  // Show profile page (full takeover with navbar but no tab bar)
   if (currentView === "profile") {
     return (
-      <Profile
-        userProfile={userProfile}
-        onProfileUpdate={handleProfileUpdate}
-        onBack={() => handleNavigation("feed")}
-      />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header - same as main layout */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <img
+                    src="/fluent-logo.png"
+                    alt="Fluent Logo"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl font-bold text-gray-900">
+                      Fluent
+                    </span>
+                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full border border-orange-300">
+                      BETA
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {/* Language Dropdown */}
+                <div className="relative language-dropdown">
+                  <button
+                    onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                    className="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700"
+                  >
+                    <span>
+                      {userProfile?.targetLanguage === 'Korean' ? '🇰🇷' : '🇯🇵'} {userProfile?.targetLanguage || 'Japanese'}
+                    </span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {showLanguageDropdown && (
+                    <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[150px]">
+                      <button
+                        onClick={() => handleLanguageChange('Japanese')}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
+                          userProfile?.targetLanguage === 'Japanese' ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <span>🇯🇵 Japanese</span>
+                      </button>
+                      <button
+                        onClick={() => handleLanguageChange('Korean')}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
+                          userProfile?.targetLanguage === 'Korean' ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <span>🇰🇷 Korean</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* User Profile */}
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-600">
+                    Welcome,{" "}
+                    <span className="font-medium text-gray-900">
+                      {userProfile?.name || "User"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleNavigation("profile")}
+                    className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-blue-700">
+                      {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Profile Content */}
+        <Profile
+          userProfile={userProfile}
+          onProfileUpdate={handleProfileUpdate}
+          onBack={() => handleNavigation("feed")}
+        />
+
+        {/* Firebase Blocked Warning */}
+        {firebaseError && (
+          <FirebaseBlockedWarning
+            errorInfo={firebaseError}
+            onDismiss={() => setFirebaseError(null)}
+          />
+        )}
+      </div>
     )
   }
 
@@ -434,12 +498,38 @@ function App() {
           </div>
         )}
 
-        <NewsFeed
-          selectedCountry="Japan"
-          userProfile={userProfile}
-          onAddWordToDictionary={addWordToDictionary}
-          userDictionary={userDictionary}
-        />
+        {/* Render different views based on currentView */}
+        {currentView === "feed" && (
+          <NewsFeed
+            selectedCountry="Japan"
+            userProfile={userProfile}
+            onAddWordToDictionary={addWordToDictionary}
+            userDictionary={userDictionary}
+          />
+        )}
+
+        {currentView === "dictionary" && (
+          <Dictionary
+            userDictionary={userDictionary}
+            onRemoveWord={removeWordFromDictionary}
+            userProfile={userProfile}
+          />
+        )}
+
+        {currentView === "flashcards" && (
+          <Flashcards
+            userDictionary={userDictionary}
+            userProfile={userProfile}
+          />
+        )}
+
+        {currentView === "savedposts" && (
+          <SavedPosts
+            userProfile={userProfile}
+            onAddWordToDictionary={addWordToDictionary}
+            userDictionary={userDictionary}
+          />
+        )}
       </main>
 
       {/* Firebase Blocked Warning */}

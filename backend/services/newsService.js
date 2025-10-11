@@ -20,7 +20,58 @@ const API_CONFIG = {
   // Twitter and Instagram removed - Reddit only policy
 }
 
+/**
+ * Strip markdown formatting and reduce text to plaintext
+ * This happens BEFORE difficulty classification
+ */
+function stripMarkdownToPlaintext(text) {
+  if (!text || text.trim().length === 0) {
+    return ''
+  }
+
+  let plaintext = text
+
+  // Remove code blocks (```code```)
+  plaintext = plaintext.replace(/```[\s\S]*?```/g, '')
+
+  // Remove inline code (`code`)
+  plaintext = plaintext.replace(/`([^`]+)`/g, '$1')
+
+  // Remove images ![alt](url)
+  plaintext = plaintext.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+
+  // Remove links but keep text [text](url) -> text
+  plaintext = plaintext.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+  // Remove headers (##, ###, etc.)
+  plaintext = plaintext.replace(/^#{1,6}\s+/gm, '')
+
+  // Remove bold/italic (**text**, *text*, __text__, _text_)
+  plaintext = plaintext.replace(/(\*\*|__)(.*?)\1/g, '$2')
+  plaintext = plaintext.replace(/(\*|_)(.*?)\1/g, '$2')
+
+  // Remove blockquotes (> text)
+  plaintext = plaintext.replace(/^>\s+/gm, '')
+
+  // Remove horizontal rules (---, ***, ___)
+  plaintext = plaintext.replace(/^[-*_]{3,}$/gm, '')
+
+  // Remove list markers (-, *, +, 1., 2., etc.)
+  plaintext = plaintext.replace(/^\s*[-*+]\s+/gm, '')
+  plaintext = plaintext.replace(/^\s*\d+\.\s+/gm, '')
+
+  // Remove HTML tags
+  plaintext = plaintext.replace(/<[^>]+>/g, '')
+
+  // Normalize whitespace
+  plaintext = plaintext.replace(/\n{3,}/g, '\n\n')
+  plaintext = plaintext.trim()
+
+  return plaintext
+}
+
 // Difficulty Calculation for English Text
+// NOTE: This now receives PLAINTEXT ONLY (no markdown, no images)
 function calculateEnglishDifficulty(text) {
   if (!text || text.trim().length === 0) {
     return 1 // Default to easiest for empty text
@@ -98,21 +149,35 @@ const normalizePost = (post, source) => {
     return null
   }
 
-  const redditContent = post.selftext || post.title || ''
-  // Use subreddit + post id for unique key
+  // Step 1: Extract raw title and content
+  const rawTitle = post.title || 'No title'
+  const rawContent = post.selftext || ''
+
+  // Step 2: Strip markdown and reduce to plaintext BEFORE difficulty calculation
+  const plaintextTitle = stripMarkdownToPlaintext(rawTitle)
+  const plaintextContent = stripMarkdownToPlaintext(rawContent)
+
+  // Step 3: Combine for difficulty calculation (plaintext only)
+  const combinedPlaintext = `${plaintextTitle} ${plaintextContent}`.trim()
+
+  // Step 4: Calculate difficulty on PLAINTEXT (no markdown, no images)
+  const difficulty = calculateEnglishDifficulty(combinedPlaintext)
+
+  // Step 5: Generate unique Reddit ID
   const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
-  
+
+  // Step 6: Return normalized post with Reddit-only URL and NO images
   return {
     id: uniqueRedditId,
-    title: post.title || 'No title',
-    content: post.selftext || '',
-    url: post.url || `https://reddit.com${post.permalink}`,
+    title: plaintextTitle,
+    content: plaintextContent,
+    url: `https://www.reddit.com${post.permalink}`, // ALWAYS Reddit URL, never external
     author: post.author || 'deleted',
     publishedAt: new Date(post.created_utc * 1000),
     source: 'reddit',
-    image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
+    image: null, // ALWAYS null - no images allowed
     tags: ['reddit', post.subreddit],
-    difficulty: calculateEnglishDifficulty(redditContent)
+    difficulty: difficulty
   }
 }
 
@@ -146,31 +211,67 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
 
     const totalCount = posts.length
 
-    // If user level is provided, use pre-processed versions
+    // NEW: Filter posts by difficulty level (userLevel ± 1)
     if (userLevel && userLevel >= 1 && userLevel <= 5) {
-      posts = posts.map(post => {
-        const processedVersion = post.processedVersions?.[targetLang]?.[userLevel]
+      console.log(`🎯 Filtering posts for user level ${userLevel}...`)
 
-        if (processedVersion && processedVersion.title) {
-          // Stringify the processed content so frontend can parse it
+      // Determine which levels to show
+      let allowedLevels = []
+      if (userLevel === 1) {
+        allowedLevels = [1, 2] // Level 1: show 1 and 2
+      } else if (userLevel === 5) {
+        allowedLevels = [4, 5] // Level 5: show 4 and 5
+      } else {
+        allowedLevels = [userLevel - 1, userLevel, userLevel + 1] // Middle: show ±1
+      }
+
+      console.log(`  📋 Showing levels: ${allowedLevels.join(', ')}`)
+
+      // Filter posts by allowed levels
+      posts = posts.filter(post => allowedLevels.includes(post.difficulty))
+
+      console.log(`  ✓ Filtered to ${posts.length} posts`)
+
+      // Process posts with flat structure
+      posts = posts.map(post => {
+        const translatedTitle = post.translatedTitle
+        const translatedContent = post.translatedContent
+
+        if (translatedTitle) {
+          // Stringify the translated content so frontend can parse it
+          let processedTitle = post.originalTitle || post.title
+          let processedContent = post.originalContent || post.content
+
+          try {
+            processedTitle = typeof translatedTitle === 'object'
+              ? JSON.stringify(translatedTitle)
+              : String(translatedTitle)
+          } catch (e) {
+            console.error('Failed to stringify title for post:', post.id, e)
+            processedTitle = post.originalTitle || post.title
+          }
+
+          try {
+            processedContent = translatedContent
+              ? (typeof translatedContent === 'object'
+                  ? JSON.stringify(translatedContent)
+                  : String(translatedContent))
+              : post.originalContent || post.content
+          } catch (e) {
+            console.error('Failed to stringify content for post:', post.id, e)
+            processedContent = post.originalContent || post.content
+          }
+
           return {
             ...post,
-            title: typeof processedVersion.title === 'object'
-              ? JSON.stringify(processedVersion.title)
-              : processedVersion.title,
-            content: processedVersion.content
-              ? (typeof processedVersion.content === 'object'
-                  ? JSON.stringify(processedVersion.content)
-                  : processedVersion.content)
-              : post.content,
-            originalTitle: post.title,
-            originalContent: post.content,
+            title: processedTitle,
+            content: processedContent,
             isMixedLanguage: true,
-            userLevel
+            userLevel: post.difficulty // Use post's actual difficulty
           }
         }
 
-        // Fallback to original if no processed version
+        // Fallback to original if no translation
         return post
       })
     }

@@ -1,31 +1,57 @@
-import { ArrowLeft, CheckCircle, RotateCcw, Settings, XCircle } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle,
+  RotateCcw,
+  Settings,
+  XCircle,
+} from "lucide-react"
 import React, { useEffect, useState } from "react"
+import {
+  getLanguageByName,
+  getLevelColor,
+  getLevelName,
+} from "@/config/languages"
 import { useAuth } from "@/contexts/AuthContext"
 import {
+  addWordToCollection,
+  createCollection,
+  deleteCollection,
   getFlashcardProgress,
+  migrateFlashcardData,
+  onCollectionsChange,
+  removeWordFromCollection,
   saveFlashcardProgress,
-  migrateFlashcardData
+  updateCollection,
 } from "@/services/databaseService"
-import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
+import CollectionManager from "./CollectionManager"
 
-const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
+const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
   // Get language configuration
   const targetLanguage = userProfile?.targetLanguage || "Japanese"
   const languageConfig = getLanguageByName(targetLanguage)
   const langLabels = languageConfig.uiLabels
   const langFields = languageConfig.dictionaryFields
   const { currentUser } = useAuth()
+
+  // Helper function to clean {{WORD:X}} markers from example sentences
+  const cleanExampleText = (text) => {
+    if (!text) return ""
+    // Remove all {{WORD:X}} or {{word:X}} markers, leaving the surrounding text intact
+    return text.replace(/\{\{(WORD|word):\s*\d+\}\}\s*/g, "")
+  }
+  const [collections, setCollections] = useState([])
+  const [selectedCollection, setSelectedCollection] = useState(null)
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [cardData, setCardData] = useState({})
   const [studyMode, setStudyMode] = useState("all") // 'all', 'new', 'review', 'due'
   const [showSettings, setShowSettings] = useState(false)
   const [keybinds, setKeybinds] = useState({
-    showAnswer: ' ',
-    again: '1',
-    hard: '2',
-    good: '3',
-    easy: '4'
+    showAnswer: " ",
+    again: "1",
+    hard: "2",
+    good: "3",
+    easy: "4",
   })
 
   // Spaced repetition algorithm (SM-2 simplified)
@@ -36,17 +62,17 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
     let repetitions = cardInfo?.repetitions || 0
 
     switch (rating) {
-      case 'again':
+      case "again":
         interval = 0
         repetitions = 0
         easeFactor = Math.max(1.3, easeFactor - 0.2)
         break
-      case 'hard':
+      case "hard":
         interval = interval === 0 ? 1 : Math.max(interval * 1.2, interval + 1)
         repetitions += 1
         easeFactor = Math.max(1.3, easeFactor - 0.15)
         break
-      case 'good':
+      case "good":
         if (repetitions === 0) {
           interval = 1
         } else if (repetitions === 1) {
@@ -56,7 +82,7 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
         }
         repetitions += 1
         break
-      case 'easy':
+      case "easy":
         if (repetitions === 0) {
           interval = 4
         } else {
@@ -77,7 +103,7 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
       easeFactor,
       repetitions,
       lastReviewed: now.toISOString(),
-      nextReview: nextReview.toISOString()
+      nextReview: nextReview.toISOString(),
     }
   }
 
@@ -99,6 +125,23 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
     loadFlashcardData()
   }, [currentUser])
 
+  // Listen to collections changes in real-time
+  useEffect(() => {
+    if (!currentUser) return
+
+    const unsubscribe = onCollectionsChange(
+      currentUser.uid,
+      (collections) => {
+        setCollections(collections)
+      },
+      (error) => {
+        console.error("Collections listener error:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [currentUser])
+
   // Save card data to Firestore
   const saveCardData = async (data) => {
     setCardData(data)
@@ -109,17 +152,69 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
     }
   }
 
+  // Collection handlers
+  const handleCreateCollection = async (collectionData) => {
+    if (!currentUser) return
+    await createCollection(currentUser.uid, collectionData)
+  }
+
+  const handleUpdateCollection = async (collectionId, updates) => {
+    if (!currentUser) return
+    await updateCollection(currentUser.uid, collectionId, updates)
+  }
+
+  const handleDeleteCollection = async (collectionId) => {
+    if (!currentUser) return
+    await deleteCollection(currentUser.uid, collectionId)
+    // If currently viewing this collection, go back to collection list
+    if (selectedCollection?.id === collectionId) {
+      setSelectedCollection(null)
+    }
+  }
+
+  const handleSelectCollection = (collection) => {
+    setSelectedCollection(collection)
+    setCurrentCardIndex(0)
+    setShowAnswer(false)
+  }
+
+  const handleBackToCollections = () => {
+    setSelectedCollection(null)
+    setCurrentCardIndex(0)
+    setShowAnswer(false)
+  }
+
+  const handleAddWordToCollection = async (collectionId, wordId) => {
+    if (!currentUser) return
+    await addWordToCollection(currentUser.uid, collectionId, wordId)
+  }
+
+  const handleRemoveWordFromCollection = async (collectionId, wordId) => {
+    if (!currentUser) return
+    await removeWordFromCollection(currentUser.uid, collectionId, wordId)
+  }
+
   // Convert user dictionary to flashcard format
   const createFlashcardsFromDictionary = () => {
     if (!userDictionary || userDictionary.length === 0) {
       return []
     }
 
-    return userDictionary.map((word) => ({
+    // Filter by selected collection if one is selected
+    let filteredWords = userDictionary
+    if (selectedCollection) {
+      const collectionWordIds = selectedCollection.wordIds || []
+      filteredWords = userDictionary.filter((word) =>
+        collectionWordIds.includes(word.id.toString())
+      )
+    }
+
+    return filteredWords.map((word) => ({
       id: word.id,
-      word: word[langFields.word] || word.japanese || word.korean || '',
-      reading: word[langFields.reading] || word.hiragana || word.romanization || '',
-      meaning: word[langFields.meaning] || word.english || '',
+      word: word[langFields.word] || word.japanese || word.korean || "",
+      reading:
+        word[langFields.reading] || word.hiragana || word.romanization || "",
+      meaning: word[langFields.meaning] || word.english || "",
       example: word.example,
       exampleTranslation: word.exampleEn,
       level: word.level,
@@ -130,8 +225,8 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
         easeFactor: 2.5,
         repetitions: 0,
         lastReviewed: null,
-        nextReview: new Date().toISOString()
-      }
+        nextReview: new Date().toISOString(),
+      },
     }))
   }
 
@@ -144,21 +239,22 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
     switch (studyMode) {
       case "new": {
         // Words never studied before
-        return allFlashcards.filter(card =>
-          !cardData[card.id] || cardData[card.id].repetitions === 0
+        return allFlashcards.filter(
+          (card) => !cardData[card.id] || cardData[card.id].repetitions === 0
         )
       }
       case "review": {
         // Words currently being reviewed (not mastered)
-        return allFlashcards.filter(card =>
-          cardData[card.id] &&
-          cardData[card.id].repetitions > 0 &&
-          cardData[card.id].interval < 21 // Not mastered (< 3 weeks)
+        return allFlashcards.filter(
+          (card) =>
+            cardData[card.id] &&
+            cardData[card.id].repetitions > 0 &&
+            cardData[card.id].interval < 21 // Not mastered (< 3 weeks)
         )
       }
       case "due": {
         // Words that are due for review
-        return allFlashcards.filter(card => {
+        return allFlashcards.filter((card) => {
           if (!cardData[card.id]) return true // New cards are always due
           const nextReview = new Date(cardData[card.id].nextReview)
           return nextReview <= now
@@ -178,7 +274,7 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
     const updatedInfo = calculateNextReview(currentCard.cardInfo, rating)
     const newCardData = {
       ...cardData,
-      [currentCard.id]: updatedInfo
+      [currentCard.id]: updatedInfo,
     }
 
     setCardData(newCardData)
@@ -215,7 +311,11 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
   }
 
   const resetProgress = async () => {
-    if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+    if (
+      confirm(
+        "Are you sure you want to reset all progress? This cannot be undone."
+      )
+    ) {
       setCardData({})
       setCurrentCardIndex(0)
       setShowAnswer(false)
@@ -230,45 +330,47 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
   useEffect(() => {
     const handleKeyPress = (e) => {
       // Don't trigger if user is typing in an input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+        return
 
       if (!showAnswer && e.key === keybinds.showAnswer) {
         setShowAnswer(true)
         e.preventDefault()
       } else if (showAnswer) {
         if (e.key === keybinds.again) {
-          handleRating('again')
+          handleRating("again")
           e.preventDefault()
         } else if (e.key === keybinds.hard) {
-          handleRating('hard')
+          handleRating("hard")
           e.preventDefault()
         } else if (e.key === keybinds.good) {
-          handleRating('good')
+          handleRating("good")
           e.preventDefault()
         } else if (e.key === keybinds.easy) {
-          handleRating('easy')
+          handleRating("easy")
           e.preventDefault()
         }
       }
     }
 
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
+    window.addEventListener("keydown", handleKeyPress)
+    return () => window.removeEventListener("keydown", handleKeyPress)
   }, [showAnswer, keybinds, currentCard])
 
   // Get statistics
   const getStats = () => {
     const total = allFlashcards.length
-    const newCards = allFlashcards.filter(card =>
-      !cardData[card.id] || cardData[card.id].repetitions === 0
+    const newCards = allFlashcards.filter(
+      (card) => !cardData[card.id] || cardData[card.id].repetitions === 0
     ).length
-    const learning = allFlashcards.filter(card =>
-      cardData[card.id] &&
-      cardData[card.id].repetitions > 0 &&
-      cardData[card.id].interval < 21
+    const learning = allFlashcards.filter(
+      (card) =>
+        cardData[card.id] &&
+        cardData[card.id].repetitions > 0 &&
+        cardData[card.id].interval < 21
     ).length
-    const mature = allFlashcards.filter(card =>
-      cardData[card.id] && cardData[card.id].interval >= 21
+    const mature = allFlashcards.filter(
+      (card) => cardData[card.id] && cardData[card.id].interval >= 21
     ).length
 
     return { total, newCards, learning, mature }
@@ -276,54 +378,81 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
 
   const stats = getStats()
 
+  // Show collection manager if no collection is selected
+  if (!selectedCollection) {
+    return (
+      <CollectionManager
+        collections={collections}
+        onCreateCollection={handleCreateCollection}
+        onUpdateCollection={handleUpdateCollection}
+        onDeleteCollection={handleDeleteCollection}
+        onSelectCollection={handleSelectCollection}
+        userDictionary={userDictionary}
+        onAddWordToCollection={handleAddWordToCollection}
+        onRemoveWordFromCollection={handleRemoveWordFromCollection}
+      />
+    )
+  }
+
+  // Show flashcard study UI when a collection is selected
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={onBack}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Feed</span>
-            </button>
-            <span className="text-lg font-bold text-gray-900">
-              Flashcards
-            </span>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button
-                onClick={resetProgress}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span className="text-sm">Reset</span>
-              </button>
-            </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-3 mb-2">
+          <button
+            onClick={handleBackToCollections}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+            title="Back to collections"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {selectedCollection.name}
+            </h1>
+            {selectedCollection.description && (
+              <p className="text-sm text-gray-600">
+                {selectedCollection.description}
+              </p>
+            )}
           </div>
         </div>
-      </header>
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button
+            onClick={resetProgress}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span className="text-sm">Reset</span>
+          </button>
+        </div>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {/* Settings Modal */}
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Keyboard Shortcuts</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Keyboard Shortcuts
+              </h2>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Show Answer</span>
                   <input
                     type="text"
                     value={keybinds.showAnswer}
-                    onChange={(e) => setKeybinds({...keybinds, showAnswer: e.target.value})}
+                    onChange={(e) =>
+                      setKeybinds({ ...keybinds, showAnswer: e.target.value })
+                    }
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
                     maxLength="1"
                   />
@@ -333,7 +462,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                   <input
                     type="text"
                     value={keybinds.again}
-                    onChange={(e) => setKeybinds({...keybinds, again: e.target.value})}
+                    onChange={(e) =>
+                      setKeybinds({ ...keybinds, again: e.target.value })
+                    }
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
                     maxLength="1"
                   />
@@ -343,7 +474,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                   <input
                     type="text"
                     value={keybinds.hard}
-                    onChange={(e) => setKeybinds({...keybinds, hard: e.target.value})}
+                    onChange={(e) =>
+                      setKeybinds({ ...keybinds, hard: e.target.value })
+                    }
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
                     maxLength="1"
                   />
@@ -353,7 +486,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                   <input
                     type="text"
                     value={keybinds.good}
-                    onChange={(e) => setKeybinds({...keybinds, good: e.target.value})}
+                    onChange={(e) =>
+                      setKeybinds({ ...keybinds, good: e.target.value })
+                    }
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
                     maxLength="1"
                   />
@@ -363,7 +498,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                   <input
                     type="text"
                     value={keybinds.easy}
-                    onChange={(e) => setKeybinds({...keybinds, easy: e.target.value})}
+                    onChange={(e) =>
+                      setKeybinds({ ...keybinds, easy: e.target.value })
+                    }
                     className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
                     maxLength="1"
                   />
@@ -383,19 +520,27 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
           <div className="grid grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {stats.total}
+              </div>
               <div className="text-xs text-gray-600">Total</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">{stats.newCards}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.newCards}
+              </div>
               <div className="text-xs text-gray-600">New</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-orange-600">{stats.learning}</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {stats.learning}
+              </div>
               <div className="text-xs text-gray-600">Learning</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">{stats.mature}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.mature}
+              </div>
               <div className="text-xs text-gray-600">Mature</div>
             </div>
           </div>
@@ -404,7 +549,9 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
         {/* Study Mode Controls */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">Study Mode:</span>
+            <span className="text-sm font-medium text-gray-700">
+              Study Mode:
+            </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <button
@@ -460,7 +607,10 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                 </span>
                 {currentCard.cardInfo.nextReview && (
                   <span className="text-sm text-gray-500">
-                    Next review: {new Date(currentCard.cardInfo.nextReview).toLocaleDateString()}
+                    Next review:{" "}
+                    {new Date(
+                      currentCard.cardInfo.nextReview
+                    ).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -504,9 +654,13 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
                     </div>
                     {currentCard.example && (
                       <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                        <p className="text-gray-800 mb-2">{currentCard.example}</p>
+                        <p className="text-gray-800 mb-2">
+                          {cleanExampleText(currentCard.example)}
+                        </p>
                         {currentCard.exampleTranslation && (
-                          <p className="text-gray-600 text-sm">{currentCard.exampleTranslation}</p>
+                          <p className="text-gray-600 text-sm">
+                            {cleanExampleText(currentCard.exampleTranslation)}
+                          </p>
                         )}
                       </div>
                     )}
@@ -527,43 +681,62 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
               {showAnswer ? (
                 <>
                   <button
-                    onClick={() => handleRating('again')}
+                    onClick={() => handleRating("again")}
                     className="flex-1 max-w-xs bg-red-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-red-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Again</div>
-                    <div className="text-xs opacity-90">&lt;10m ({keybinds.again})</div>
+                    <div className="text-xs opacity-90">
+                      &lt;10m ({keybinds.again})
+                    </div>
                   </button>
                   <button
-                    onClick={() => handleRating('hard')}
+                    onClick={() => handleRating("hard")}
                     className="flex-1 max-w-xs bg-orange-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-orange-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Hard</div>
                     <div className="text-xs opacity-90">
-                      {currentCard.cardInfo.interval === 0 ? '1d' : `${Math.round(currentCard.cardInfo.interval * 1.2)}d`} ({keybinds.hard})
+                      {currentCard.cardInfo.interval === 0
+                        ? "1d"
+                        : `${Math.round(currentCard.cardInfo.interval * 1.2)}d`}{" "}
+                      ({keybinds.hard})
                     </div>
                   </button>
                   <button
-                    onClick={() => handleRating('good')}
+                    onClick={() => handleRating("good")}
                     className="flex-1 max-w-xs bg-green-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-green-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Good</div>
                     <div className="text-xs opacity-90">
-                      {currentCard.cardInfo.repetitions === 0 ? '1d' : currentCard.cardInfo.repetitions === 1 ? '6d' : `${Math.round(currentCard.cardInfo.interval * currentCard.cardInfo.easeFactor)}d`} ({keybinds.good})
+                      {currentCard.cardInfo.repetitions === 0
+                        ? "1d"
+                        : currentCard.cardInfo.repetitions === 1
+                          ? "6d"
+                          : `${Math.round(currentCard.cardInfo.interval * currentCard.cardInfo.easeFactor)}d`}{" "}
+                      ({keybinds.good})
                     </div>
                   </button>
                   <button
-                    onClick={() => handleRating('easy')}
+                    onClick={() => handleRating("easy")}
                     className="flex-1 max-w-xs bg-blue-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Easy</div>
                     <div className="text-xs opacity-90">
-                      {currentCard.cardInfo.repetitions === 0 ? '4d' : `${Math.round(currentCard.cardInfo.interval * currentCard.cardInfo.easeFactor * 1.3)}d`} ({keybinds.easy})
+                      {currentCard.cardInfo.repetitions === 0
+                        ? "4d"
+                        : `${Math.round(currentCard.cardInfo.interval * currentCard.cardInfo.easeFactor * 1.3)}d`}{" "}
+                      ({keybinds.easy})
                     </div>
                   </button>
                 </>
               ) : (
                 <div className="text-center text-gray-500 text-sm">
-                  <p>Press <kbd className="px-2 py-1 bg-gray-200 rounded">{keybinds.showAnswer}</kbd> to reveal answer</p>
+                  <p>
+                    Press{" "}
+                    <kbd className="px-2 py-1 bg-gray-200 rounded">
+                      {keybinds.showAnswer}
+                    </kbd>{" "}
+                    to reveal answer
+                  </p>
                 </div>
               )}
             </div>
@@ -576,7 +749,7 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {studyMode === "all"
-                ? "No Words in Dictionary"
+                ? "No Words in This Collection"
                 : studyMode === "new"
                   ? "No New Words"
                   : studyMode === "due"
@@ -585,22 +758,22 @@ const Flashcards = ({ onBack, userDictionary, onUpdateWord, userProfile }) => {
             </h3>
             <p className="text-gray-600 mb-4">
               {studyMode === "all"
-                ? `Start adding ${targetLanguage} words from posts to create your flashcard deck!`
+                ? "This collection is empty. Add words from your dictionary to start studying!"
                 : studyMode === "new"
-                  ? "Add some new words from posts to practice with flashcards."
+                  ? "All words in this collection have been studied at least once."
                   : studyMode === "due"
                     ? "Great job! You're all caught up for today."
-                    : "Add some words to your review queue to practice."}
+                    : "No words are currently in review for this collection."}
             </p>
             <button
-              onClick={onBack}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={handleBackToCollections}
+              className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Go to Feed
+              ← Back to Collections
             </button>
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }

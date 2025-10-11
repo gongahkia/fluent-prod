@@ -2,6 +2,25 @@ import React from 'react'
 
 // Utility to decode HTML entities and clean text
 export const decodeHTMLEntities = (text) => {
+  // Handle non-string inputs
+  if (!text) return ''
+  
+  // If text is an object, try to stringify it first
+  if (typeof text === 'object') {
+    console.warn('decodeHTMLEntities received an object, stringifying:', text)
+    try {
+      text = JSON.stringify(text)
+    } catch (e) {
+      console.error('Failed to stringify object in decodeHTMLEntities:', e)
+      return String(text)
+    }
+  }
+  
+  // Ensure text is a string
+  if (typeof text !== 'string') {
+    return String(text)
+  }
+  
   const textarea = document.createElement('textarea')
   textarea.innerHTML = text
   return textarea.value
@@ -124,14 +143,21 @@ export const shouldTruncateContent = (content) => {
 export const truncateContent = (content, wordLimit = 100) => {
   if (!content) return ""
 
+  // Ensure content is a string
+  if (typeof content !== 'string') {
+    console.warn('truncateContent received non-string:', content)
+    content = String(content)
+  }
+
   // Check if content is JSON from translation service
   try {
-    if (content.startsWith("{") && content.includes('"wordMetadata"')) {
+    if (content.trim().startsWith("{") && content.includes('"wordMetadata"')) {
       const parsedData = JSON.parse(content)
 
-      if (parsedData.text && parsedData.wordMetadata) {
-        // Truncate the actual text content, not the JSON structure
-        const words = parsedData.text.split(/\s+/)
+      if (parsedData.text && parsedData.wordMetadata !== undefined) {
+        // Ensure text is a string
+        const text = String(parsedData.text)
+        const words = text.split(/\s+/)
 
         if (words.length <= wordLimit) {
           return content // Return original JSON if under limit
@@ -141,9 +167,11 @@ export const truncateContent = (content, wordLimit = 100) => {
         const truncatedText = words.slice(0, wordLimit).join(' ') + '...'
 
         // Filter metadata to only include words in the truncated text
-        const truncatedMetadata = parsedData.wordMetadata.filter(
-          wordData => truncatedText.includes(`{{WORD:${wordData.index}}}`)
-        )
+        const truncatedMetadata = Array.isArray(parsedData.wordMetadata)
+          ? parsedData.wordMetadata.filter(
+              wordData => wordData && truncatedText.includes(`{{WORD:${wordData.index}}}`)
+            )
+          : []
 
         // Return new JSON with truncated content
         return JSON.stringify({
@@ -154,6 +182,7 @@ export const truncateContent = (content, wordLimit = 100) => {
     }
   } catch (e) {
     // Not JSON, fall through to regular truncation
+    console.warn('Failed to parse JSON in truncateContent:', e)
   }
 
   // Regular text truncation

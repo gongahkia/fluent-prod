@@ -1,0 +1,299 @@
+import React, { useState } from "react"
+import { Link, Twitter, Bot, X } from "lucide-react"
+
+const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
+  const [showPopup, setShowPopup] = useState(null)
+  const [tempApiKey, setTempApiKey] = useState("")
+  const [showStorageWarning, setShowStorageWarning] = useState(false)
+
+  const connections = [
+    {
+      id: "reddit",
+      name: "Reddit API",
+      icon: Link,
+      connected: !!formData.redditApiKey,
+      color: "orange",
+      benefits: [
+        "Comment on posts directly from Fluent",
+        "Vote on Reddit posts",
+        "Save posts to your Reddit account",
+        "Access your Reddit saved posts",
+        "Submit new posts to subreddits"
+      ],
+      instructions: "Get your API credentials from Reddit Apps: https://www.reddit.com/prefs/apps",
+      apiKeyField: "redditApiKey",
+      placeholder: "Enter your Reddit API Key"
+    },
+    {
+      id: "twitter",
+      name: "Twitter/X API",
+      icon: Twitter,
+      connected: !!formData.twitterBearerToken,
+      color: "blue",
+      benefits: [
+        "Share posts to your Twitter feed",
+        "Cross-post your translations",
+        "Connect with other learners on Twitter",
+        "Import tweets for language practice",
+        "Auto-tweet your learning milestones"
+      ],
+      instructions: "Get your Bearer Token from Twitter Developer Portal: https://developer.twitter.com/",
+      apiKeyField: "twitterBearerToken",
+      placeholder: "Enter your Twitter Bearer Token"
+    },
+    {
+      id: "gemini",
+      name: "Gemini AI",
+      icon: Bot,
+      connected: !!formData.geminiApiKey,
+      color: "purple",
+      benefits: [
+        "AI-powered comment suggestions",
+        "Smart translation assistance",
+        "Personalized learning recommendations",
+        "Context-aware word explanations",
+        "Intelligent conversation practice"
+      ],
+      instructions: "Get your free API key from Google AI Studio: https://ai.google.dev/",
+      apiKeyField: "geminiApiKey",
+      placeholder: "Enter your Gemini API Key"
+    }
+  ]
+
+  const handleConnect = (connection) => {
+    setTempApiKey(formData[connection.apiKeyField] || "")
+    setShowPopup(connection)
+  }
+
+  const handleSaveApiKey = () => {
+    if (!tempApiKey.trim()) {
+      alert("Please enter a valid API key")
+      return
+    }
+
+    // Show storage warning if not already shown
+    const hasSeenWarning = localStorage.getItem("apiKeyStorageWarningShown")
+    if (!hasSeenWarning) {
+      setShowStorageWarning(true)
+      localStorage.setItem("apiKeyStorageWarningShown", "true")
+    }
+
+    // Save to formData (will be persisted to localStorage when user clicks Save Changes)
+    handleInputChange({
+      target: {
+        name: showPopup.apiKeyField,
+        value: tempApiKey
+      }
+    })
+
+    setShowPopup(null)
+    setTempApiKey("")
+  }
+
+  const handleDisconnect = (connection) => {
+    if (confirm(`Are you sure you want to disconnect ${connection.name}?`)) {
+      handleInputChange({
+        target: {
+          name: connection.apiKeyField,
+          value: ""
+        }
+      })
+    }
+  }
+
+  const getColorClasses = (color) => {
+    const colors = {
+      orange: {
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        text: "text-orange-700",
+        button: "bg-orange-600 hover:bg-orange-700"
+      },
+      blue: {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-700",
+        button: "bg-blue-600 hover:bg-blue-700"
+      },
+      purple: {
+        bg: "bg-purple-50",
+        border: "border-purple-200",
+        text: "text-purple-700",
+        button: "bg-purple-600 hover:bg-purple-700"
+      }
+    }
+    return colors[color] || colors.blue
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Connect your accounts</strong> to unlock additional features and enhance your learning experience.
+          All API keys are stored securely in your browser's local storage.
+        </p>
+      </div>
+
+      {/* Connection Cards */}
+      <div className="space-y-4">
+        {connections.map((connection) => {
+          const Icon = connection.icon
+          const colors = getColorClasses(connection.color)
+
+          return (
+            <div
+              key={connection.id}
+              className={`${colors.bg} border ${colors.border} rounded-lg p-6`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-12 h-12 ${colors.button} rounded-lg flex items-center justify-center`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {connection.name}
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className={`w-2 h-2 rounded-full ${connection.connected ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className="text-sm text-gray-600">
+                        {connection.connected ? 'Connected' : 'Not connected'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {connection.connected ? (
+                  <button
+                    onClick={() => handleDisconnect(connection)}
+                    className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleConnect(connection)}
+                    className={`px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-lg transition-colors`}
+                  >
+                    Connect
+                  </button>
+                )}
+              </div>
+
+              {/* Benefits Preview */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm font-medium text-gray-700 mb-2">What you can do:</p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {connection.benefits.slice(0, 3).map((benefit, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Connection Popup */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowPopup(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Connect {showPopup.name}</h3>
+              <button onClick={() => setShowPopup(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Benefits List */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">Connecting {showPopup.name} will enable:</p>
+              <ul className="space-y-2">
+                {showPopup.benefits.map((benefit, index) => (
+                  <li key={index} className="flex items-start text-sm text-gray-600">
+                    <span className="text-green-500 mr-2">✓</span>
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* API Key Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                API Key / Token
+              </label>
+              <input
+                type="password"
+                value={tempApiKey}
+                onChange={(e) => setTempApiKey(e.target.value)}
+                placeholder={showPopup.placeholder}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                {showPopup.instructions}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSaveApiKey}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Connect
+              </button>
+              <button
+                onClick={() => setShowPopup(null)}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Storage Warning Popup */}
+      {showStorageWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Storage Notice</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Your API keys will be stored in your browser's local storage. This means:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-2 mb-6">
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">•</span>
+                <span>Keys persist across browser sessions</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">•</span>
+                <span>They're encrypted and stored locally on your device</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">•</span>
+                <span>Clearing browser data will remove your keys</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">•</span>
+                <span>Keys are also saved to your Firebase profile</span>
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowStorageWarning(false)}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              I Understand
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ConnectedAccountsTab

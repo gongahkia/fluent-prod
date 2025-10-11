@@ -15,8 +15,59 @@ const subredditConfig = JSON.parse(
 )
 
 /**
+ * Strip markdown formatting and reduce text to plaintext
+ * This happens BEFORE difficulty classification
+ */
+function stripMarkdownToPlaintext(text) {
+  if (!text || text.trim().length === 0) {
+    return ''
+  }
+
+  let plaintext = text
+
+  // Remove code blocks (```code```)
+  plaintext = plaintext.replace(/```[\s\S]*?```/g, '')
+
+  // Remove inline code (`code`)
+  plaintext = plaintext.replace(/`([^`]+)`/g, '$1')
+
+  // Remove images ![alt](url)
+  plaintext = plaintext.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+
+  // Remove links but keep text [text](url) -> text
+  plaintext = plaintext.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+
+  // Remove headers (##, ###, etc.)
+  plaintext = plaintext.replace(/^#{1,6}\s+/gm, '')
+
+  // Remove bold/italic (**text**, *text*, __text__, _text_)
+  plaintext = plaintext.replace(/(\*\*|__)(.*?)\1/g, '$2')
+  plaintext = plaintext.replace(/(\*|_)(.*?)\1/g, '$2')
+
+  // Remove blockquotes (> text)
+  plaintext = plaintext.replace(/^>\s+/gm, '')
+
+  // Remove horizontal rules (---, ***, ___)
+  plaintext = plaintext.replace(/^[-*_]{3,}$/gm, '')
+
+  // Remove list markers (-, *, +, 1., 2., etc.)
+  plaintext = plaintext.replace(/^\s*[-*+]\s+/gm, '')
+  plaintext = plaintext.replace(/^\s*\d+\.\s+/gm, '')
+
+  // Remove HTML tags
+  plaintext = plaintext.replace(/<[^>]+>/g, '')
+
+  // Normalize whitespace
+  plaintext = plaintext.replace(/\n{3,}/g, '\n\n')
+  plaintext = plaintext.trim()
+
+  return plaintext
+}
+
+/**
  * Difficulty Calculation for English Text
  * (Copied from newsService.js for standalone use)
+ * NOTE: This now receives PLAINTEXT ONLY (no markdown, no images)
  */
 function calculateEnglishDifficulty(text) {
   if (!text || text.trim().length === 0) {
@@ -71,22 +122,39 @@ function calculateEnglishDifficulty(text) {
 
 /**
  * Normalize Reddit post to standard format
+ * IMPORTANT: Content is stripped to PLAINTEXT ONLY before difficulty calculation
+ * All images are removed, URLs always point to Reddit
  */
 function normalizeRedditPost(post) {
-  const redditContent = post.selftext || post.title || ''
+  // Step 1: Extract raw title and content
+  const rawTitle = post.title || 'No title'
+  const rawContent = post.selftext || ''
+
+  // Step 2: Strip markdown and reduce to plaintext BEFORE difficulty calculation
+  const plaintextTitle = stripMarkdownToPlaintext(rawTitle)
+  const plaintextContent = stripMarkdownToPlaintext(rawContent)
+
+  // Step 3: Combine for difficulty calculation (plaintext only)
+  const combinedPlaintext = `${plaintextTitle} ${plaintextContent}`.trim()
+
+  // Step 4: Calculate difficulty on PLAINTEXT (no markdown, no images)
+  const difficulty = calculateEnglishDifficulty(combinedPlaintext)
+
+  // Step 5: Generate unique Reddit ID
   const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
 
+  // Step 6: Return normalized post with Reddit-only URL and NO images
   return {
     id: uniqueRedditId,
-    title: post.title || 'No title',
-    content: post.selftext || '',
-    url: post.url || `https://reddit.com${post.permalink}`,
+    title: plaintextTitle,
+    content: plaintextContent,
+    url: `https://www.reddit.com${post.permalink}`, // ALWAYS Reddit URL, never external
     author: post.author || 'deleted',
     publishedAt: new Date(post.created_utc * 1000),
-    image: post.thumbnail && post.thumbnail.startsWith('http') ? post.thumbnail : null,
+    image: null, // ALWAYS null - no images allowed
     tags: ['reddit', post.subreddit],
     source: 'reddit',
-    difficulty: calculateEnglishDifficulty(redditContent)
+    difficulty: difficulty
   }
 }
 
@@ -155,46 +223,100 @@ async function fetchRedditPostsForQuery(query, limit = 30) {
 }
 
 /**
- * Process a single post with mixed language content for all levels
- * @param {Object} post - The post to process
+ * NEW: Process a single post ONCE at its assigned difficulty level
+ * @param {Object} post - The post to process (already has difficulty assigned)
  * @param {string} targetLang - Target language code ('ja' or 'ko')
- * @returns {Promise<Object>} - Post with processed versions
+ * @returns {Promise<Object>} - Post with single translation at its difficulty
  */
 async function processPostWithMixedLanguage(post, targetLang) {
-  const processedVersions = {}
+  const assignedLevel = post.difficulty // Use the post's assigned difficulty
 
-  // Process for each learning level (1-5)
+  try {
+    console.log(`  🔄 Processing post at level ${assignedLevel}: ${post.title.substring(0, 50)}...`)
+
+    const titleResult = post.title
+      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
+      : null
+
+    const contentResult = post.content
+      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
+      : null
+
+    console.log(`  ✓ Completed level ${assignedLevel} for post`)
+
+    // NEW FLAT STRUCTURE: Store directly on post
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: titleResult,
+      translatedContent: contentResult,
+      // Keep original text for reference
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  } catch (error) {
+    console.warn(`  ⚠️  Failed to process post at level ${assignedLevel}:`, error.message)
+
+    // Return post without translation on failure
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: null,
+      translatedContent: null,
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  }
+}
+
+/**
+ * NEW: Balance post distribution across difficulty levels (aim for 6 per level)
+ * @param {Array} posts - Array of posts with difficulty levels
+ * @param {number} targetPerLevel - Target number of posts per level (default: 6)
+ * @returns {Array} - Balanced array of posts
+ */
+function balancePostDistribution(posts, targetPerLevel = 6) {
+  console.log(`\n⚖️  Balancing post distribution (target: ${targetPerLevel} per level)...`)
+
+  // Group posts by difficulty level
+  const postsByLevel = {
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: []
+  }
+
+  posts.forEach(post => {
+    const level = post.difficulty
+    if (level >= 1 && level <= 5) {
+      postsByLevel[level].push(post)
+    }
+  })
+
+  // Log current distribution
+  console.log('📊 Current distribution:')
   for (let level = 1; level <= 5; level++) {
-    try {
-      const titleResult = post.title
-        ? await createMixedLanguageContent(post.title, level, targetLang, 'en')
-        : null
-
-      const contentResult = post.content
-        ? await createMixedLanguageContent(post.content, level, targetLang, 'en')
-        : null
-
-      processedVersions[level] = {
-        title: titleResult,
-        content: contentResult
-      }
-
-      console.log(`  ✓ Processed level ${level} for post: ${post.title.substring(0, 50)}...`)
-    } catch (error) {
-      console.warn(`  ⚠️  Failed to process level ${level}:`, error.message)
-      processedVersions[level] = {
-        title: null,
-        content: null
-      }
-    }
+    console.log(`  Level ${level}: ${postsByLevel[level].length} posts`)
   }
 
-  return {
-    ...post,
-    processedVersions: {
-      [targetLang]: processedVersions
-    }
+  // Balance: Take up to targetPerLevel from each level
+  const balancedPosts = []
+  for (let level = 1; level <= 5; level++) {
+    const levelPosts = postsByLevel[level]
+
+    // Shuffle to get variety
+    const shuffled = levelPosts.sort(() => Math.random() - 0.5)
+
+    // Take up to targetPerLevel posts
+    const selected = shuffled.slice(0, targetPerLevel)
+    balancedPosts.push(...selected)
+
+    console.log(`  ✓ Selected ${selected.length} posts for level ${level}`)
   }
+
+  console.log(`✅ Balanced distribution: ${balancedPosts.length} total posts`)
+  return balancedPosts
 }
 
 /**
@@ -206,9 +328,12 @@ async function processPostWithMixedLanguage(post, targetLang) {
 async function processAllPostsWithMixedLanguage(posts, targetLang) {
   console.log(`\n🔄 Processing ${posts.length} posts with mixed language content for ${targetLang}...`)
 
+  // NEW: Balance distribution BEFORE processing
+  const balancedPosts = balancePostDistribution(posts, 6)
+
   const processedPosts = []
 
-  for (const post of posts) {
+  for (const post of balancedPosts) {
     try {
       const processedPost = await processPostWithMixedLanguage(post, targetLang)
       processedPosts.push(processedPost)

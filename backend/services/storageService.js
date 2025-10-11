@@ -34,6 +34,30 @@ export async function uploadPostsToStorage(fileName, posts) {
 }
 
 /**
+ * Convert Firestore Timestamp to ISO string
+ * @param {Object} timestamp - Firestore Timestamp object
+ * @returns {string} - ISO date string
+ */
+function convertTimestampToISO(timestamp) {
+  if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+    return new Date(timestamp._seconds * 1000).toISOString()
+  }
+  return timestamp
+}
+
+/**
+ * Process posts to convert Firestore Timestamps to ISO strings
+ * @param {Array} posts - Array of post objects
+ * @returns {Array} - Array of posts with converted timestamps
+ */
+function convertPostTimestamps(posts) {
+  return posts.map(post => ({
+    ...post,
+    publishedAt: convertTimestampToISO(post.publishedAt)
+  }))
+}
+
+/**
  * Download posts from Firestore
  * @param {string} fileName - Name of the cache (e.g., 'posts-japan.json')
  * @returns {Promise<Array>} - Array of post objects
@@ -52,9 +76,14 @@ export async function downloadPostsFromStorage(fileName) {
     }
 
     const data = doc.data()
-    console.log(`✅ Downloaded ${data.posts?.length || 0} posts from Firestore (${cacheKey})`)
+    const posts = data.posts || []
 
-    return data.posts || []
+    // Convert Firestore Timestamps to ISO strings
+    const postsWithConvertedDates = convertPostTimestamps(posts)
+
+    console.log(`✅ Downloaded ${postsWithConvertedDates.length} posts from Firestore (${cacheKey})`)
+
+    return postsWithConvertedDates
   } catch (error) {
     console.error(`❌ Failed to download posts from Firestore (${fileName}):`, error.message)
     return []

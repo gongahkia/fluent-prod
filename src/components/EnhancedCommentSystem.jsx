@@ -8,6 +8,8 @@ import {
   Send,
   Sparkles,
   Loader2,
+  Image as ImageIcon,
+  X,
 } from "lucide-react"
 import React, { useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
@@ -36,6 +38,9 @@ const EnhancedCommentSystem = ({
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [aiModel, setAiModel] = useState('')
   const commentInputRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const [selectedMedia, setSelectedMedia] = useState(null)
+  const [mediaPreview, setMediaPreview] = useState(null)
 
   // Mock comments with nested structure
   const mockComments = {
@@ -363,15 +368,63 @@ const EnhancedCommentSystem = ({
     return "bg-red-500"
   }
 
+  // Handle file selection for media uploads
+  const handleFileSelect = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB')
+      return
+    }
+
+    // Convert to base64 for preview and storage
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result
+      setSelectedMedia({
+        file: file,
+        type: file.type,
+        name: file.name,
+        data: base64String
+      })
+      setMediaPreview(base64String)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Remove selected media
+  const handleRemoveMedia = () => {
+    setSelectedMedia(null)
+    setMediaPreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handlePostComment = () => {
-    if (commentText.trim()) {
+    if (commentText.trim() || selectedMedia) {
       const newComment = {
         id: Date.now(),
         user: userProfile?.name || "Anonymous",
         content: commentText,
         likes: 0,
         avatar: userProfile?.name?.charAt(0) || "A",
-        replies: []
+        replies: [],
+        media: selectedMedia ? {
+          type: selectedMedia.type,
+          data: selectedMedia.data,
+          name: selectedMedia.name
+        } : null
       }
 
       if (replyingTo) {
@@ -400,6 +453,7 @@ const EnhancedCommentSystem = ({
       }
 
       setCommentText("")
+      handleRemoveMedia()
       setShowSuccessMessage("Comment posted successfully!")
       setTimeout(() => setShowSuccessMessage(""), 2000)
     }
@@ -464,9 +518,23 @@ const EnhancedCommentSystem = ({
 
                 {!isCollapsed && (
                   <>
-                    <div className="text-gray-800 text-sm mb-2">
-                      {renderClickableText(comment.content)}
-                    </div>
+                    {comment.content && (
+                      <div className="text-gray-800 text-sm mb-2">
+                        {renderClickableText(comment.content)}
+                      </div>
+                    )}
+
+                    {/* Render media if present */}
+                    {comment.media && (
+                      <div className="mb-2">
+                        <img
+                          src={comment.media.data}
+                          alt={comment.media.name || "Comment attachment"}
+                          className="max-w-sm max-h-64 rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-center space-x-4">
                       <button
                         onClick={() => handleLikeComment(comment.id)}
@@ -552,18 +620,55 @@ const EnhancedCommentSystem = ({
               rows={3}
             />
 
+            {/* Media Preview */}
+            {mediaPreview && (
+              <div className="mt-3 relative inline-block">
+                <img
+                  src={mediaPreview}
+                  alt="Preview"
+                  className="max-w-xs max-h-48 rounded-lg border border-gray-300"
+                />
+                <button
+                  onClick={handleRemoveMedia}
+                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+                  title="Remove image"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mt-3">
-              <button
-                onClick={handleShowAIHelp}
-                className="flex items-center space-x-1 text-sm text-gray-600 hover:text-orange-600 transition-colors"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>AI Help</span>
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleShowAIHelp}
+                  className="flex items-center space-x-1 text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>AI Help</span>
+                </button>
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center space-x-1 text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                  title="Add photo or GIF"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Photo/GIF</span>
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
 
               <button
                 onClick={handlePostComment}
-                disabled={!commentText.trim()}
+                disabled={!commentText.trim() && !selectedMedia}
                 className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-1 transition-colors"
               >
                 <Send className="w-4 h-4" />

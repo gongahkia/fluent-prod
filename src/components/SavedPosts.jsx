@@ -1,15 +1,37 @@
-import { ArrowLeft, Bookmark, Trash2, ExternalLink } from "lucide-react"
+import { Bookmark, Trash2, ExternalLink } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { getSavedPosts, removeSavedPost } from "@/services/databaseService"
 import { useAuth } from "@/contexts/AuthContext"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import SinglePostView from "./SinglePostView"
 
-const SavedPosts = ({ onBack }) => {
+const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
   const { currentUser } = useAuth()
   const [savedPosts, setSavedPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedPost, setSelectedPost] = useState(null)
+  const [sharePopup, setSharePopup] = useState(null)
+
+  // Helper function to extract text from JSON or return plain text
+  const extractText = (text) => {
+    if (!text) return ''
+
+    // Check if it's a JSON string
+    try {
+      if (typeof text === 'string' && text.trim().startsWith('{') && text.includes('"text"')) {
+        const parsed = JSON.parse(text)
+        if (parsed.text) {
+          return parsed.text
+        }
+      }
+    } catch (e) {
+      // Not JSON, return as-is
+    }
+
+    return text
+  }
 
   // Load saved posts from Firestore
   useEffect(() => {
@@ -65,6 +87,32 @@ const SavedPosts = ({ onBack }) => {
     return date.toLocaleDateString()
   }
 
+  const handleViewPost = (post) => {
+    setSelectedPost(post)
+  }
+
+  const handleSharePost = (post) => {
+    const shareUrl = post.url
+    const shareTitle = post.title
+
+    setSharePopup({
+      url: shareUrl,
+      title: shareTitle,
+      id: post.id
+    })
+  }
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Link copied!')
+      setSharePopup(null)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+      alert('Failed to copy link')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -75,61 +123,32 @@ const SavedPosts = ({ onBack }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-        </header>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <div className="text-red-500 text-lg mb-4">Error loading saved posts</div>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={onBack} className="bg-orange-500 hover:bg-orange-600">
-              Go Back
-            </Button>
-          </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center py-16">
+          <div className="text-red-500 text-lg mb-4">Error loading saved posts</div>
+          <p className="text-gray-600 mb-4">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Bookmark className="w-5 h-5 text-orange-500" />
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Saved Posts
-                </h1>
-              </div>
-            </div>
-            <span className="text-sm text-gray-600">
-              {savedPosts.length} {savedPosts.length === 1 ? 'post' : 'posts'} saved
-            </span>
-          </div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <Bookmark className="w-5 h-5 text-orange-500" />
+          <h1 className="text-2xl font-bold text-gray-900">
+            Saved Posts
+          </h1>
         </div>
-      </header>
+        <span className="text-sm text-gray-600">
+          {savedPosts.length} {savedPosts.length === 1 ? 'post' : 'posts'} saved
+        </span>
+      </div>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {savedPosts.length === 0 ? (
           <div className="text-center py-16">
             <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -137,12 +156,6 @@ const SavedPosts = ({ onBack }) => {
             <p className="text-gray-600">
               Posts you save will appear here for easy access later
             </p>
-            <Button
-              onClick={onBack}
-              className="mt-6 bg-orange-500 hover:bg-orange-600"
-            >
-              Browse Posts
-            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -155,15 +168,10 @@ const SavedPosts = ({ onBack }) => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                        {post.title}
+                        {extractText(post.title)}
                       </h2>
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                        {post.content}
-                      </p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>by {post.author}</span>
-                        <span>•</span>
-                        <span>Saved {formatDate(post.savedAt)}</span>
                       </div>
                     </div>
                     {post.image && (
@@ -176,7 +184,10 @@ const SavedPosts = ({ onBack }) => {
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <button className="flex items-center space-x-2 text-sm text-gray-600 hover:text-orange-600 transition-colors">
+                    <button
+                      onClick={() => handleViewPost(post)}
+                      className="flex items-center space-x-2 text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                    >
                       <ExternalLink className="w-4 h-4" />
                       <span>View Post</span>
                     </button>
@@ -193,7 +204,64 @@ const SavedPosts = ({ onBack }) => {
             ))}
           </div>
         )}
-      </main>
+      </div>
+
+      {/* Single Post View Modal */}
+      {selectedPost && (
+        <SinglePostView
+          post={selectedPost}
+          userProfile={userProfile}
+          onAddWordToDictionary={onAddWordToDictionary}
+          userDictionary={userDictionary}
+          onClose={() => setSelectedPost(null)}
+          onShare={handleSharePost}
+          onRemove={handleRemove}
+        />
+      )}
+
+      {/* Share Popup */}
+      {sharePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Share Post</h3>
+            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{sharePopup.title}</p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => copyToClipboard(sharePopup.url)}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Copy Link</span>
+              </button>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(sharePopup.url)}&text=${encodeURIComponent(sharePopup.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Twitter</span>
+              </a>
+
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Share on Facebook</span>
+              </a>
+
+              <button
+                onClick={() => setSharePopup(null)}
+                className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
