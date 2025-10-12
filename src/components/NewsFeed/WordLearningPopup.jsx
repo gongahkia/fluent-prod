@@ -19,8 +19,8 @@ const WordLearningPopup = ({
   }
 
   const getLevelColor = (level) => {
-    if (level === 1) return "bg-green-500"  // Beginner
-    if (level === 2) return "bg-blue-500"   // Intermediate
+    if (level === 1) return "bg-amber-500"  // Beginner
+    if (level === 2) return "bg-orange-500"   // Intermediate
     if (level === 3) return "bg-yellow-500" // Advanced
     if (level === 4) return "bg-orange-500" // Expert
     return "bg-red-500"                      // Native
@@ -51,7 +51,7 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English word:
                     </div>
-                    <div className="text-2xl font-bold text-blue-600 mb-2">
+                    <div className="text-2xl font-bold text-orange-600 mb-2">
                       {selectedWord.english}
                     </div>
                     <div className="text-sm text-gray-500 mb-1">
@@ -83,7 +83,7 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English translation:
                     </div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-amber-600">
                       {selectedWord.english}
                     </div>
                   </>
@@ -96,7 +96,7 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English word:
                     </div>
-                    <div className="text-2xl font-bold text-blue-600 mb-2">
+                    <div className="text-2xl font-bold text-orange-600 mb-2">
                       {selectedWord.english}
                     </div>
                     <div className="text-sm text-gray-500 mb-1">
@@ -126,7 +126,7 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English translation:
                     </div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-amber-600">
                       {selectedWord.english}
                     </div>
                   </>
@@ -143,18 +143,18 @@ const WordLearningPopup = ({
                   {getLevelName(selectedWord.level)}
                 </span>
                 {selectedWord.isVocabulary && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                  <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
                     📚 Vocabulary Word
                   </span>
                 )}
                 {selectedWord.wordType && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                  <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
                     {selectedWord.wordType}
                   </span>
                 )}
                 {selectedWord.isApiTranslated &&
                   !selectedWord.isVocabulary && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
                       🌐 Live Translation
                     </span>
                   )}
@@ -171,13 +171,13 @@ const WordLearningPopup = ({
             {/* Action Buttons */}
             <div className="space-y-2">
               <button
-                className="w-full bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
+                className="w-full bg-amber-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-600 transition-colors"
                 onClick={onMastered}
               >
                 Mastered! ✨
               </button>
               <button
-                className="w-full bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
+                className="w-full bg-orange-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1"
                 onClick={onAddToDictionary}
               >
                 <BookOpen className="w-4 h-4" />
@@ -207,7 +207,7 @@ const WordLearningPopup = ({
 
               return (
                 isInDictionary && (
-                  <div className="mt-3 text-sm text-green-600 flex items-center justify-center space-x-1">
+                  <div className="mt-3 text-sm text-amber-600 flex items-center justify-center space-x-1">
                     <span>✓</span>
                     <span>Already in your dictionary</span>
                   </div>

@@ -29,10 +29,10 @@ const ConsistencyGraph = ({ activityData = {} }) => {
   // Get color intensity based on activity count
   const getColorIntensity = (count) => {
     if (count === 0) return 'bg-gray-100 border-gray-200'
-    if (count < 3) return 'bg-green-200 border-green-300'
-    if (count < 6) return 'bg-green-300 border-green-400'
-    if (count < 10) return 'bg-green-400 border-green-500'
-    return 'bg-green-500 border-green-600'
+    if (count < 3) return 'bg-amber-200 border-amber-300'
+    if (count < 6) return 'bg-amber-300 border-amber-400'
+    if (count < 10) return 'bg-amber-400 border-amber-500'
+    return 'bg-amber-500 border-amber-600'
   }
 
   // Group days by week
@@ -174,10 +174,10 @@ const ConsistencyGraph = ({ activityData = {} }) => {
           <div className="flex items-center justify-end space-x-2 mt-4 text-xs text-gray-600">
             <span>Less</span>
             <div className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200" />
-            <div className="w-3 h-3 rounded-sm bg-green-200 border border-green-300" />
-            <div className="w-3 h-3 rounded-sm bg-green-300 border border-green-400" />
-            <div className="w-3 h-3 rounded-sm bg-green-400 border border-green-500" />
-            <div className="w-3 h-3 rounded-sm bg-green-500 border border-green-600" />
+            <div className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-300" />
+            <div className="w-3 h-3 rounded-sm bg-amber-300 border border-amber-400" />
+            <div className="w-3 h-3 rounded-sm bg-amber-400 border border-amber-500" />
+            <div className="w-3 h-3 rounded-sm bg-amber-500 border border-amber-600" />
             <span>More</span>
           </div>
         </div>

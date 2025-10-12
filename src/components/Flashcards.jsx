@@ -508,7 +508,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               </div>
               <button
                 onClick={() => setShowSettings(false)}
-                className="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-6 w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors"
               >
                 Close
               </button>
@@ -526,7 +526,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               <div className="text-xs text-gray-600">Total</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-orange-600">
                 {stats.newCards}
               </div>
               <div className="text-xs text-gray-600">New</div>
@@ -538,7 +538,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               <div className="text-xs text-gray-600">Learning</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-amber-600">
                 {stats.mature}
               </div>
               <div className="text-xs text-gray-600">Mature</div>
@@ -558,7 +558,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               onClick={() => handleStudyModeChange("due")}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 studyMode === "due"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-orange-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -568,7 +568,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               onClick={() => handleStudyModeChange("new")}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 studyMode === "new"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-orange-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -578,7 +578,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               onClick={() => handleStudyModeChange("review")}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 studyMode === "review"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-orange-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -588,7 +588,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               onClick={() => handleStudyModeChange("all")}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 studyMode === "all"
-                  ? "bg-green-500 text-white"
+                  ? "bg-amber-500 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -616,7 +616,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                   style={{
                     width: `${((currentCardIndex + 1) / flashcards.length) * 100}%`,
                   }}
@@ -649,7 +649,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
                 {showAnswer ? (
                   <div className="space-y-4">
-                    <div className="text-3xl font-semibold text-blue-600 mb-4">
+                    <div className="text-3xl font-semibold text-orange-600 mb-4">
                       {currentCard.meaning}
                     </div>
                     {currentCard.example && (
@@ -668,7 +668,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
                 ) : (
                   <button
                     onClick={() => setShowAnswer(true)}
-                    className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg"
+                    className="bg-orange-600 text-white px-8 py-4 rounded-lg font-medium hover:bg-orange-700 transition-colors text-lg"
                   >
                     Show Answer ({keybinds.showAnswer})
                   </button>
@@ -703,7 +703,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
                   </button>
                   <button
                     onClick={() => handleRating("good")}
-                    className="flex-1 max-w-xs bg-green-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-green-600 transition-colors"
+                    className="flex-1 max-w-xs bg-amber-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-amber-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Good</div>
                     <div className="text-xs opacity-90">
@@ -717,7 +717,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
                   </button>
                   <button
                     onClick={() => handleRating("easy")}
-                    className="flex-1 max-w-xs bg-blue-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                    className="flex-1 max-w-xs bg-orange-500 text-white px-4 py-4 rounded-lg font-medium hover:bg-orange-600 transition-colors"
                   >
                     <div className="text-lg font-bold">Easy</div>
                     <div className="text-xs opacity-90">
@@ -744,7 +744,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
         ) : (
           /* Empty State */
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🃏</span>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -767,7 +767,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
             </p>
             <button
               onClick={handleBackToCollections}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-orange-600 hover:text-orange-700 font-medium"
             >
               ← Back to Collections
             </button>

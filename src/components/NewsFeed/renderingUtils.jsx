@@ -105,7 +105,7 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
         href={match[1]}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-600 hover:text-blue-800 underline break-all"
+        className="text-orange-600 hover:text-orange-800 underline break-all"
         onClick={(e) => e.stopPropagation()}
       >
         {match[1]}
@@ -233,7 +233,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         parts.push(
           <span
             key={`word-${wordData.index}-${keyCounter++}`}
-            className="cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
+            className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
             onClick={() => {
               if (postId) toggleTranslation(postId, wordData.index)
               // When clicking, pass the ACTUAL language of the currently displayed text
@@ -306,7 +306,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                   key={`${segmentIndex}-${wordIndex}`}
                   className={
                     isTranslatedWord
-                      ? "cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
+                      ? "cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
                       : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
                   onClick={() => handleWordClick(text, isTargetLanguage, text)}
@@ -331,7 +331,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-blue-200 border-b-2 border-blue-400 hover:border-blue-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-blue-50"
+              className="cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
               onClick={() => handleWordClick(segment, isTargetLanguage, segment)}
               title={`🇰🇷 Korean: Click to see English "${segment}"`}
               style={{ textDecoration: "none" }}
@@ -354,8 +354,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
         // Different styling for vocabulary vs regular words
         const vocabularyClasses = isVocabularyWord
-          ? "cursor-pointer hover:bg-green-200 border-b-2 border-green-400 hover:border-green-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-green-50"
-          : "cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
+          ? "cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
+          : "cursor-pointer hover:bg-orange-100 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-1 py-0.5 transition-all duration-200"
 
         const vocabularyTitle = isVocabularyWord
           ? `📚 Vocabulary: Click to learn "${cleanWord}"`

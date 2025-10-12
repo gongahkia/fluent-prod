@@ -346,7 +346,7 @@ const EnhancedCommentSystem = ({
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-blue-100 hover:shadow-sm border-b border-transparent hover:border-blue-300 rounded px-1 py-0.5 transition-all duration-200"
+              className="cursor-pointer hover:bg-orange-100 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-1 py-0.5 transition-all duration-200"
               onClick={() => handleWordClick(segment.trim(), false, text)}
               title={`Click to learn: ${segment.trim()}`}
               style={{ textDecoration: "none" }}
@@ -362,7 +362,7 @@ const EnhancedCommentSystem = ({
   }
 
   const getLevelColor = (level) => {
-    if (level <= 2) return "bg-green-500"
+    if (level <= 2) return "bg-amber-500"
     if (level <= 4) return "bg-yellow-500"
     if (level <= 6) return "bg-orange-500"
     return "bg-red-500"
@@ -677,7 +677,7 @@ const EnhancedCommentSystem = ({
             </div>
 
             {showSuccessMessage && (
-              <div className="mt-2 p-2 bg-green-100 text-green-800 rounded text-sm">
+              <div className="mt-2 p-2 bg-amber-100 text-amber-800 rounded text-sm">
                 {showSuccessMessage}
               </div>
             )}
@@ -686,26 +686,26 @@ const EnhancedCommentSystem = ({
 
         {/* AI Help Panel */}
         {showAIHelp && (
-          <div className="mt-4 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <div className="mt-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-200">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-purple-900 flex items-center space-x-2">
+              <h4 className="text-sm font-medium text-amber-900 flex items-center space-x-2">
                 <Sparkles className="w-4 h-4" />
                 <span>AI Suggestions</span>
               </h4>
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full border border-purple-300">
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full border border-amber-300">
                 {aiModel}
               </span>
             </div>
 
             {isLoadingAI ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin text-purple-600 mr-2" />
-                <span className="text-sm text-purple-700">Generating suggestions...</span>
+                <Loader2 className="w-5 h-5 animate-spin text-amber-600 mr-2" />
+                <span className="text-sm text-amber-700">Generating suggestions...</span>
               </div>
             ) : (
               <div className="space-y-2">
                 {aiSuggestions.map((suggestion, index) => (
-                  <div key={index} className="p-3 bg-white rounded border border-purple-200 hover:border-purple-300 transition-colors">
+                  <div key={index} className="p-3 bg-white rounded border border-amber-200 hover:border-amber-300 transition-colors">
                     <div className="text-sm text-gray-900 mb-1">
                       {suggestion.text}
                     </div>
@@ -719,7 +719,7 @@ const EnhancedCommentSystem = ({
                         setCommentText(suggestion.text)
                         setShowAIHelp(false)
                       }}
-                      className="mt-2 text-xs text-purple-600 hover:text-purple-800 font-medium"
+                      className="mt-2 text-xs text-amber-600 hover:text-amber-800 font-medium"
                     >
                       Use this suggestion
                     </button>
@@ -727,7 +727,7 @@ const EnhancedCommentSystem = ({
                 ))}
               </div>
             )}
-            <p className="text-xs text-purple-700 mt-3 text-center">
+            <p className="text-xs text-amber-700 mt-3 text-center">
               💡 AI-generated suggestions to help you practice mixed-language comments
             </p>
           </div>
@@ -766,7 +766,7 @@ const EnhancedCommentSystem = ({
                     {selectedWord.hiragana}
                   </div>
                   <div className="text-sm text-gray-500 mb-2">Meaning:</div>
-                  <div className="text-xl text-green-600 font-semibold">
+                  <div className="text-xl text-amber-600 font-semibold">
                     {selectedWord.english}
                   </div>
                 </div>
@@ -779,7 +779,7 @@ const EnhancedCommentSystem = ({
                       Level {selectedWord.level}
                     </span>
                     {selectedWord.isApiTranslated && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
                         🌐 Live Translation
                       </span>
                     )}
@@ -789,13 +789,13 @@ const EnhancedCommentSystem = ({
                 <div className="space-y-3">
                   <button
                     onClick={handleMastered}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
                   >
                     Mastered! ✨
                   </button>
                   <button
                     onClick={handleAddToDictionary}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Add to My Dictionary
@@ -803,7 +803,7 @@ const EnhancedCommentSystem = ({
                 </div>
 
                 {feedbackMessage && (
-                  <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-center">
+                  <div className="mt-4 p-3 bg-amber-100 text-amber-800 rounded-lg text-center">
                     <span className="text-lg mr-2">{feedbackMessage.icon}</span>
                     {feedbackMessage.message}
                   </div>

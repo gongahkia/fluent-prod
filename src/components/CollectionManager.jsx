@@ -108,7 +108,7 @@ const CollectionManager = ({
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="e.g., JLPT N3, Travel Words, Verbs"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -123,7 +123,7 @@ const CollectionManager = ({
                   setFormData({ ...formData, description: e.target.value })
                 }
                 placeholder="Brief description of this collection"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -136,7 +136,7 @@ const CollectionManager = ({
               <button
                 onClick={handleCreate}
                 disabled={!formData.name.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Create Collection
               </button>
@@ -166,7 +166,7 @@ const CollectionManager = ({
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       autoFocus
                     />
                   </div>
@@ -183,7 +183,7 @@ const CollectionManager = ({
                           description: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   <div className="flex justify-end space-x-2">
@@ -196,7 +196,7 @@ const CollectionManager = ({
                     <button
                       onClick={() => handleUpdate(collection.id)}
                       disabled={!formData.name.trim()}
-                      className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300"
+                      className="px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-300"
                     >
                       Save
                     </button>
@@ -222,14 +222,14 @@ const CollectionManager = ({
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => startEditing(collection)}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
                       title="Edit collection"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setManagingCollectionId(collection.id)}
-                      className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                      className="p-2 text-gray-400 hover:text-amber-600 transition-colors"
                       title="Manage words"
                     >
                       <Album className="w-4 h-4" />
@@ -256,7 +256,7 @@ const CollectionManager = ({
                 <button
                   onClick={() => onSelectCollection(collection)}
                   disabled={getCollectionWordCount(collection) === 0}
-                  className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="w-full py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {getCollectionWordCount(collection) === 0
                     ? "No words yet"
@@ -271,8 +271,8 @@ const CollectionManager = ({
       {/* Empty State */}
       {collections.length === 0 && !isCreating && (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-8 h-8 text-orange-600" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             No Collections Yet
@@ -282,7 +282,7 @@ const CollectionManager = ({
           </p>
           <button
             onClick={() => setIsCreating(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Create Collection</span>

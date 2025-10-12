@@ -164,8 +164,8 @@ const GeneralTab = ({ formData, handleInputChange }) => {
           Select subreddits you're interested in to personalize your feed. Posts from these communities will appear in your learning feed.
         </p>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <p className="text-sm text-blue-800">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-orange-800">
             <strong>Currently showing:</strong> r/{formData.targetLanguage === 'Japanese' ? 'japan' : 'korea'} subreddits.
             Change your learning language in the Learning tab to see different options.
           </p>

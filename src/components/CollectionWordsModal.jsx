@@ -166,7 +166,7 @@ const CollectionWordsModal = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by English, Japanese, reading..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -192,7 +192,7 @@ const CollectionWordsModal = ({
                     return (
                       <div
                         key={word.id}
-                        className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                        className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ const CollectionWordsModal = ({
                         </div>
                         <button
                           onClick={() => handleAddWord(word.id)}
-                          className="p-2 text-blue-600 hover:text-blue-800 transition-colors ml-2"
+                          className="p-2 text-orange-600 hover:text-orange-800 transition-colors ml-2"
                           title="Add to collection"
                         >
                           <Plus className="w-5 h-5" />
@@ -229,7 +229,7 @@ const CollectionWordsModal = ({
         <div className="flex justify-end p-6 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
             Done
           </button>

@@ -110,16 +110,16 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
         button: "bg-orange-600 hover:bg-orange-700"
       },
       blue: {
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-700",
-        button: "bg-blue-600 hover:bg-blue-700"
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        text: "text-orange-700",
+        button: "bg-orange-600 hover:bg-orange-700"
       },
       purple: {
-        bg: "bg-purple-50",
-        border: "border-purple-200",
-        text: "text-purple-700",
-        button: "bg-purple-600 hover:bg-purple-700"
+        bg: "bg-amber-50",
+        border: "border-amber-200",
+        text: "text-amber-700",
+        button: "bg-amber-600 hover:bg-amber-700"
       }
     }
     return colors[color] || colors.blue
@@ -127,8 +127,8 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <p className="text-sm text-orange-800">
           <strong>Connect your accounts</strong> to unlock additional features and enhance your learning experience.
           All API keys are stored securely in your browser's local storage.
         </p>
@@ -155,7 +155,7 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
                       {connection.name}
                     </h3>
                     <div className="flex items-center space-x-2 mt-1">
-                      <span className={`w-2 h-2 rounded-full ${connection.connected ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className={`w-2 h-2 rounded-full ${connection.connected ? 'bg-amber-500' : 'bg-gray-300'}`}></span>
                       <span className="text-sm text-gray-600">
                         {connection.connected ? 'Connected' : 'Not connected'}
                       </span>
@@ -214,7 +214,7 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
               <ul className="space-y-2">
                 {showPopup.benefits.map((benefit, index) => (
                   <li key={index} className="flex items-start text-sm text-gray-600">
-                    <span className="text-green-500 mr-2">✓</span>
+                    <span className="text-amber-500 mr-2">✓</span>
                     <span>{benefit}</span>
                   </li>
                 ))}
@@ -231,7 +231,7 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
                 value={tempApiKey}
                 onChange={(e) => setTempApiKey(e.target.value)}
                 placeholder={showPopup.placeholder}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono text-sm"
               />
               <p className="text-xs text-gray-500 mt-2">
                 {showPopup.instructions}
@@ -242,7 +242,7 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
             <div className="flex space-x-3">
               <button
                 onClick={handleSaveApiKey}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium"
               >
                 Connect
               </button>
@@ -267,25 +267,25 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
             </p>
             <ul className="text-sm text-gray-600 space-y-2 mb-6">
               <li className="flex items-start">
-                <span className="text-blue-500 mr-2">•</span>
+                <span className="text-orange-500 mr-2">•</span>
                 <span>Keys persist across browser sessions</span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-500 mr-2">•</span>
+                <span className="text-orange-500 mr-2">•</span>
                 <span>They're encrypted and stored locally on your device</span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-500 mr-2">•</span>
+                <span className="text-orange-500 mr-2">•</span>
                 <span>Clearing browser data will remove your keys</span>
               </li>
               <li className="flex items-start">
-                <span className="text-blue-500 mr-2">•</span>
+                <span className="text-orange-500 mr-2">•</span>
                 <span>Keys are also saved to your Firebase profile</span>
               </li>
             </ul>
             <button
               onClick={() => setShowStorageWarning(false)}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium"
             >
               I Understand
             </button>

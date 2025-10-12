@@ -228,8 +228,8 @@ const SinglePostView = ({
   }
 
   const getLevelColor = (level) => {
-    if (level === 1) return "bg-green-500"
-    if (level === 2) return "bg-blue-500"
+    if (level === 1) return "bg-amber-500"
+    if (level === 2) return "bg-orange-500"
     if (level === 3) return "bg-yellow-500"
     if (level === 4) return "bg-orange-500"
     return "bg-red-500"
@@ -238,8 +238,8 @@ const SinglePostView = ({
   const getSourceBadgeColor = (source) => {
     const colors = {
       reddit: "bg-red-500",
-      newsapi: "bg-blue-500",
-      guardian: "bg-blue-700",
+      newsapi: "bg-orange-500",
+      guardian: "bg-orange-700",
     }
     return colors[source] || "bg-gray-500"
   }
@@ -286,7 +286,7 @@ const SinglePostView = ({
                   onClick={handleFollowToggle}
                   className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                     isFollowing
-                      ? "bg-green-100 text-green-700 hover:bg-green-200"
+                      ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                       : "bg-orange-100 text-orange-700 hover:bg-orange-200"
                   }`}
                 >
@@ -356,7 +356,7 @@ const SinglePostView = ({
                     {shouldTruncateContent(displayPost.content) && (
                       <button
                         onClick={togglePostExpansion}
-                        className="text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block"
+                        className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
                       >
                         {expandedPost ? 'See Less' : 'See More'}
                       </button>
@@ -400,7 +400,7 @@ const SinglePostView = ({
                 </button>
                 <button
                   onClick={toggleComments}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
                 >
                   <MessageCircle className="w-5 h-5" />
                   <span className="text-sm font-medium">
@@ -409,7 +409,7 @@ const SinglePostView = ({
                 </button>
                 <button
                   onClick={() => onShare && onShare(displayPost)}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-amber-500 transition-colors"
                 >
                   <Share className="w-5 h-5" />
                   <span className="text-sm font-medium">Share</span>

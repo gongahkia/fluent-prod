@@ -248,11 +248,11 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
               <div className="text-xs text-gray-600">Total</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.byLevel[1]}</div>
+              <div className="text-2xl font-bold text-amber-600">{stats.byLevel[1]}</div>
               <div className="text-xs text-gray-600">Beginner</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.byLevel[2]}</div>
+              <div className="text-2xl font-bold text-orange-600">{stats.byLevel[2]}</div>
               <div className="text-xs text-gray-600">Intermediate</div>
             </div>
             <div className="text-center">
@@ -281,7 +281,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search words..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
 
@@ -304,7 +304,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                showFilters ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <Filter className="w-4 h-4" />
@@ -459,7 +459,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                     </button>
                     <button
                       onClick={saveEdit}
-                      className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                      className="px-4 py-2 text-sm text-white bg-orange-600 rounded-lg hover:bg-orange-700"
                     >
                       Save Changes
                     </button>
@@ -483,7 +483,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                           {getLevelName(languageConfig.id, word.level)}
                         </span>
                         {word.reviewData && word.reviewData.interval >= 21 && (
-                          <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                          <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                             ✓ Mature
                           </span>
                         )}
@@ -508,7 +508,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => startEditing(word)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
                         title="Edit"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -600,8 +600,8 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                 : `Start clicking on ${targetLanguage} words in posts to build your personal dictionary!`}
             </p>
             {!(searchQuery || filterLevel !== 'all' || filterTag !== 'all') && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                <div className="text-sm text-blue-800">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
+                <div className="text-sm text-orange-800">
                   <strong>💡 Tip:</strong> Click on any {targetLanguage} word in the news
                   feed to see its meaning, pronunciation, and add it to your
                   dictionary for later review.

@@ -229,7 +229,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
             <div className="space-y-3">
               <button
                 onClick={() => copyToClipboard(sharePopup.url)}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <span>Copy Link</span>
               </button>
@@ -247,7 +247,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-orange-800 text-white px-4 py-2 rounded-lg hover:bg-orange-900 transition-colors flex items-center justify-center space-x-2"
               >
                 <span>Share on Facebook</span>
               </a>

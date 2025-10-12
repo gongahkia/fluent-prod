@@ -466,9 +466,9 @@ const Onboarding = ({ onComplete }) => {
                 <div className="grid grid-cols-4 gap-3">
                   {[
                     { name: 'orange', color: 'bg-orange-500' },
-                    { name: 'blue', color: 'bg-blue-500' },
-                    { name: 'green', color: 'bg-green-500' },
-                    { name: 'purple', color: 'bg-purple-500' }
+                    { name: 'blue', color: 'bg-orange-500' },
+                    { name: 'green', color: 'bg-amber-500' },
+                    { name: 'purple', color: 'bg-amber-500' }
                   ].map(({ name, color }) => (
                     <button
                       key={name}
@@ -542,11 +542,11 @@ const Onboarding = ({ onComplete }) => {
               </ul>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-blue-900 mb-3">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-orange-900 mb-3">
                 Important Notice
               </h3>
-              <ul className="space-y-2 text-blue-800 text-sm">
+              <ul className="space-y-2 text-orange-800 text-sm">
                 <li>
                   • Fluent is designed for{" "}
                   <strong>intermediate to advanced</strong> language learners

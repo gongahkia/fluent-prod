@@ -12,21 +12,21 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'feed',
       label: 'Feed',
       icon: Home,
-      activeColor: 'text-blue-600',
+      activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     },
     {
       id: 'dictionary',
       label: 'Dictionary',
       icon: BookOpen,
-      activeColor: 'text-green-600',
+      activeColor: 'text-amber-600',
       inactiveColor: 'text-gray-500'
     },
     {
       id: 'flashcards',
       label: 'Cards',
       icon: CreditCard,
-      activeColor: 'text-purple-600',
+      activeColor: 'text-amber-600',
       inactiveColor: 'text-gray-500'
     },
     {

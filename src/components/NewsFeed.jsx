@@ -408,8 +408,8 @@ const NewsFeed = ({
   }
 
   const getLevelColor = (level) => {
-    if (level === 1) return "bg-green-500"  // Beginner
-    if (level === 2) return "bg-blue-500"   // Intermediate
+    if (level === 1) return "bg-amber-500"  // Beginner
+    if (level === 2) return "bg-orange-500"   // Intermediate
     if (level === 3) return "bg-yellow-500" // Advanced
     if (level === 4) return "bg-orange-500" // Expert
     return "bg-red-500"                      // Native
@@ -534,8 +534,8 @@ const NewsFeed = ({
   const getSourceBadgeColor = (source) => {
     const colors = {
       reddit: "bg-red-500",
-      newsapi: "bg-blue-500",
-      guardian: "bg-blue-700",
+      newsapi: "bg-orange-500",
+      guardian: "bg-orange-700",
     }
     return colors[source] || "bg-gray-500"
   }
@@ -707,7 +707,7 @@ const NewsFeed = ({
             <button
               onClick={loadPosts}
               disabled={loading}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
@@ -759,7 +759,7 @@ const NewsFeed = ({
                       checked={selectedSources.includes(sourceId)}
                       onChange={() => handleSourceToggle(sourceId)}
                       disabled={!config.enabled || !config.hasApiKey}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                     />
                     <span
                       className={`text-sm ${
@@ -810,7 +810,7 @@ const NewsFeed = ({
             <div className="space-y-3">
               <button
                 onClick={() => copyToClipboard(sharePopup.url)}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <span>Copy Link</span>
               </button>
@@ -828,7 +828,7 @@ const NewsFeed = ({
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors flex items-center justify-center space-x-2"
+                className="w-full bg-orange-800 text-white px-4 py-2 rounded-lg hover:bg-orange-900 transition-colors flex items-center justify-center space-x-2"
               >
                 <span>Share on Facebook</span>
               </a>
@@ -863,10 +863,10 @@ const NewsFeed = ({
 
       {/* Processing indicator */}
       {processingPosts && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
           <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            <span className="text-blue-700 text-sm font-medium">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+            <span className="text-orange-700 text-sm font-medium">
               Creating mixed language content based on your level{" "}
               {userProfile?.learningLevel}...
             </span>
@@ -897,7 +897,7 @@ const NewsFeed = ({
                         {article.author}
                       </span>
                       {article.verified && (
-                        <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                        <div className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
                           Verified
                         </div>
                       )}
@@ -912,7 +912,7 @@ const NewsFeed = ({
                     onClick={() => handleSourceSubscribeToggle(article.source)}
                     className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                       subscribedSources.has(article.source)
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                     title={`${subscribedSources.has(article.source) ? 'Unsubscribe from' : 'Subscribe to'} ${article.source} posts`}
@@ -983,7 +983,7 @@ const NewsFeed = ({
                       {shouldTruncateContent(article.content) && (
                         <button
                           onClick={() => togglePostExpansion(article.id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block"
+                          className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
                         >
                           {expandedPosts[article.id] ? 'See Less' : 'See More'}
                         </button>
@@ -1032,7 +1032,7 @@ const NewsFeed = ({
                   </button>
                   <button
                     onClick={() => toggleComments(article.id)}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span className="text-sm font-medium">
@@ -1042,7 +1042,7 @@ const NewsFeed = ({
                   </button>
                   <button
                     onClick={() => handleSharePost(article)}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-amber-500 transition-colors"
                   >
                     <Share className="w-5 h-5" />
                     <span className="text-sm font-medium">Share</span>

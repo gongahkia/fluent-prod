@@ -256,9 +256,9 @@ function App() {
                     </div>
                     <button
                       onClick={() => handleNavigation("profile")}
-                      className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
+                      className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                     >
-                      <span className="text-sm font-medium text-blue-700">
+                      <span className="text-sm font-medium text-orange-700">
                         {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
                       </span>
                     </button>
