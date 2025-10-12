@@ -14,7 +14,12 @@ import { useAuth } from "@/contexts/AuthContext"
 import {
   updateUserProfile,
   updateUserCredentials,
-  getUserCredentials
+  getUserCredentials,
+  getUserFollowers,
+  getUserFollowing,
+  removeFollower,
+  unfollowUser,
+  blockUser
 } from "@/services/databaseService"
 import {
   encryptCredentials,
@@ -67,6 +72,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+  const [followers, setFollowers] = useState([])
+  const [following, setFollowing] = useState([])
+  const [loadingFollowers, setLoadingFollowers] = useState(false)
+  const [loadingFollowing, setLoadingFollowing] = useState(false)
 
   // Load encrypted API credentials from Firebase on mount
   useEffect(() => {
@@ -103,6 +112,52 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
     loadCredentials()
   }, [currentUser])
+
+  // Load followers when modal is opened
+  useEffect(() => {
+    const loadFollowers = async () => {
+      if (!currentUser || !showFollowers) return
+
+      setLoadingFollowers(true)
+      try {
+        const result = await getUserFollowers(currentUser.uid)
+        if (result.success) {
+          setFollowers(result.data)
+        } else {
+          console.error('Error loading followers:', result.error)
+        }
+      } catch (error) {
+        console.error('Error loading followers:', error)
+      } finally {
+        setLoadingFollowers(false)
+      }
+    }
+
+    loadFollowers()
+  }, [currentUser, showFollowers])
+
+  // Load following when modal is opened
+  useEffect(() => {
+    const loadFollowing = async () => {
+      if (!currentUser || !showFollowing) return
+
+      setLoadingFollowing(true)
+      try {
+        const result = await getUserFollowing(currentUser.uid)
+        if (result.success) {
+          setFollowing(result.data)
+        } else {
+          console.error('Error loading following:', result.error)
+        }
+      } catch (error) {
+        console.error('Error loading following:', error)
+      } finally {
+        setLoadingFollowing(false)
+      }
+    }
+
+    loadFollowing()
+  }, [currentUser, showFollowing])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -184,6 +239,64 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       console.error('Error saving profile:', error)
       setIsLoading(false)
       alert('Error saving settings. Please try again.')
+    }
+  }
+
+  const handleRemoveFollower = async (followerUserId) => {
+    if (!currentUser) return
+
+    try {
+      const result = await removeFollower(currentUser.uid, followerUserId)
+      if (result.success) {
+        // Remove from local state
+        setFollowers(prev => prev.filter(f => f.userId !== followerUserId))
+        alert('Follower removed successfully')
+      } else {
+        alert('Failed to remove follower: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error removing follower:', error)
+      alert('Failed to remove follower')
+    }
+  }
+
+  const handleUnfollow = async (targetUserId) => {
+    if (!currentUser) return
+
+    try {
+      const result = await unfollowUser(currentUser.uid, targetUserId)
+      if (result.success) {
+        // Remove from local state
+        setFollowing(prev => prev.filter(f => f.userId !== targetUserId))
+        alert('Unfollowed successfully')
+      } else {
+        alert('Failed to unfollow: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error unfollowing:', error)
+      alert('Failed to unfollow')
+    }
+  }
+
+  const handleBlockUser = async (targetUserId) => {
+    if (!currentUser) return
+
+    const confirmed = window.confirm('Are you sure you want to block this user? This will remove all follow relationships.')
+    if (!confirmed) return
+
+    try {
+      const result = await blockUser(currentUser.uid, targetUserId)
+      if (result.success) {
+        // Remove from both lists
+        setFollowers(prev => prev.filter(f => f.userId !== targetUserId))
+        setFollowing(prev => prev.filter(f => f.userId !== targetUserId))
+        alert('User blocked successfully')
+      } else {
+        alert('Failed to block user: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error blocking user:', error)
+      alert('Failed to block user')
     }
   }
 
@@ -339,26 +452,63 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           onClick={() => setShowFollowers(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-bold mb-4">Manage Followers</h3>
-            <div className="space-y-3">
-              {["Yuki Tanaka", "Sarah Johnson", "Li Wei"].map(
-                (follower, index) => (
+            {loadingFollowers ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                <p className="text-gray-600 mt-2">Loading followers...</p>
+              </div>
+            ) : followers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No followers yet
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {followers.map((follower) => (
                   <div
-                    key={index}
+                    key={follower.userId}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
-                    <span>{follower}</span>
+                    <div className="flex items-center space-x-3">
+                      {follower.profilePictureUrl ? (
+                        <img
+                          src={follower.profilePictureUrl}
+                          alt={follower.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-bold text-gray-700">
+                            {follower.name?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">{follower.name}</div>
+                        <div className="text-xs text-gray-500">{follower.email}</div>
+                      </div>
+                    </div>
                     <div className="space-x-2">
-                      <button className="text-red-500 text-sm">Remove</button>
-                      <button className="text-gray-500 text-sm">Block</button>
+                      <button
+                        onClick={() => handleRemoveFollower(follower.userId)}
+                        className="text-red-500 text-sm hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                      <button
+                        onClick={() => handleBlockUser(follower.userId)}
+                        className="text-gray-500 text-sm hover:text-gray-700"
+                      >
+                        Block
+                      </button>
                     </div>
                   </div>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             <button
               onClick={() => setShowFollowers(false)}
               className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
@@ -376,23 +526,55 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           onClick={() => setShowFollowing(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-bold mb-4">Manage Following</h3>
-            <div className="space-y-3">
-              {["Hiroshi Sato", "Hanako Yamada", "Taro Suzuki"].map(
-                (following, index) => (
+            {loadingFollowing ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                <p className="text-gray-600 mt-2">Loading following...</p>
+              </div>
+            ) : following.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Not following anyone yet
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {following.map((user) => (
                   <div
-                    key={index}
+                    key={user.userId}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
-                    <span>{following}</span>
-                    <button className="text-red-500 text-sm">Unfollow</button>
+                    <div className="flex items-center space-x-3">
+                      {user.profilePictureUrl ? (
+                        <img
+                          src={user.profilePictureUrl}
+                          alt={user.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-bold text-gray-700">
+                            {user.name?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs text-gray-500">{user.email}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleUnfollow(user.userId)}
+                      className="text-red-500 text-sm hover:text-red-700"
+                    >
+                      Unfollow
+                    </button>
                   </div>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             <button
               onClick={() => setShowFollowing(false)}
               className="mt-4 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"

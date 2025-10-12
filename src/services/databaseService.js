@@ -623,6 +623,273 @@ export const syncLearningCollection = async (userId) => {
   }
 }
 
+// ================== FOLLOWERS/FOLLOWING OPERATIONS ==================
+
+/**
+ * Follow a user
+ */
+export const followUser = async (currentUserId, targetUserId) => {
+  try {
+    if (currentUserId === targetUserId) {
+      return { success: false, error: "Cannot follow yourself" }
+    }
+
+    const batch = writeBatch(db)
+
+    // Add to current user's following list
+    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
+    batch.set(followingRef, {
+      userId: targetUserId,
+      followedAt: serverTimestamp(),
+    })
+
+    // Add to target user's followers list
+    const followersRef = doc(db, "users", targetUserId, "followers", currentUserId)
+    batch.set(followersRef, {
+      userId: currentUserId,
+      followedAt: serverTimestamp(),
+    })
+
+    // Update counts
+    const currentUserRef = doc(db, "users", currentUserId)
+    const targetUserRef = doc(db, "users", targetUserId)
+
+    batch.update(currentUserRef, {
+      followingCount: (await getDoc(currentUserRef)).data()?.followingCount || 0 + 1,
+      updatedAt: serverTimestamp(),
+    })
+
+    batch.update(targetUserRef, {
+      followersCount: (await getDoc(targetUserRef)).data()?.followersCount || 0 + 1,
+      updatedAt: serverTimestamp(),
+    })
+
+    await batch.commit()
+    return { success: true }
+  } catch (error) {
+    console.error("Error following user:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Unfollow a user
+ */
+export const unfollowUser = async (currentUserId, targetUserId) => {
+  try {
+    const batch = writeBatch(db)
+
+    // Remove from current user's following list
+    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
+    batch.delete(followingRef)
+
+    // Remove from target user's followers list
+    const followersRef = doc(db, "users", targetUserId, "followers", currentUserId)
+    batch.delete(followersRef)
+
+    // Update counts
+    const currentUserRef = doc(db, "users", currentUserId)
+    const targetUserRef = doc(db, "users", targetUserId)
+
+    const currentUserDoc = await getDoc(currentUserRef)
+    const targetUserDoc = await getDoc(targetUserRef)
+
+    batch.update(currentUserRef, {
+      followingCount: Math.max(0, (currentUserDoc.data()?.followingCount || 0) - 1),
+      updatedAt: serverTimestamp(),
+    })
+
+    batch.update(targetUserRef, {
+      followersCount: Math.max(0, (targetUserDoc.data()?.followersCount || 0) - 1),
+      updatedAt: serverTimestamp(),
+    })
+
+    await batch.commit()
+    return { success: true }
+  } catch (error) {
+    console.error("Error unfollowing user:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Check if current user is following target user
+ */
+export const isFollowing = async (currentUserId, targetUserId) => {
+  try {
+    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
+    const followingSnap = await getDoc(followingRef)
+    return { success: true, isFollowing: followingSnap.exists() }
+  } catch (error) {
+    console.error("Error checking follow status:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get user's followers list with profile data
+ */
+export const getUserFollowers = async (userId) => {
+  try {
+    const followersRef = collection(db, "users", userId, "followers")
+    const querySnapshot = await getDocs(followersRef)
+
+    const followers = []
+    for (const docSnap of querySnapshot.docs) {
+      const followerUserId = docSnap.id
+      const userProfileResult = await getUserProfile(followerUserId)
+      if (userProfileResult.success) {
+        followers.push({
+          userId: followerUserId,
+          ...userProfileResult.data,
+          followedAt: docSnap.data().followedAt,
+        })
+      }
+    }
+
+    return { success: true, data: followers }
+  } catch (error) {
+    console.error("Error getting followers:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get user's following list with profile data
+ */
+export const getUserFollowing = async (userId) => {
+  try {
+    const followingRef = collection(db, "users", userId, "following")
+    const querySnapshot = await getDocs(followingRef)
+
+    const following = []
+    for (const docSnap of querySnapshot.docs) {
+      const followingUserId = docSnap.id
+      const userProfileResult = await getUserProfile(followingUserId)
+      if (userProfileResult.success) {
+        following.push({
+          userId: followingUserId,
+          ...userProfileResult.data,
+          followedAt: docSnap.data().followedAt,
+        })
+      }
+    }
+
+    return { success: true, data: following }
+  } catch (error) {
+    console.error("Error getting following:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Remove a follower
+ */
+export const removeFollower = async (currentUserId, followerUserId) => {
+  try {
+    const batch = writeBatch(db)
+
+    // Remove from current user's followers list
+    const followersRef = doc(db, "users", currentUserId, "followers", followerUserId)
+    batch.delete(followersRef)
+
+    // Remove from follower's following list
+    const followingRef = doc(db, "users", followerUserId, "following", currentUserId)
+    batch.delete(followingRef)
+
+    // Update counts
+    const currentUserRef = doc(db, "users", currentUserId)
+    const followerUserRef = doc(db, "users", followerUserId)
+
+    const currentUserDoc = await getDoc(currentUserRef)
+    const followerUserDoc = await getDoc(followerUserRef)
+
+    batch.update(currentUserRef, {
+      followersCount: Math.max(0, (currentUserDoc.data()?.followersCount || 0) - 1),
+      updatedAt: serverTimestamp(),
+    })
+
+    batch.update(followerUserRef, {
+      followingCount: Math.max(0, (followerUserDoc.data()?.followingCount || 0) - 1),
+      updatedAt: serverTimestamp(),
+    })
+
+    await batch.commit()
+    return { success: true }
+  } catch (error) {
+    console.error("Error removing follower:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Search users by name or email
+ */
+export const searchUsers = async (searchQuery, limit = 20) => {
+  try {
+    const usersRef = collection(db, "users")
+
+    // Get all users (Firestore doesn't support text search natively)
+    // In production, you'd want to use Algolia or similar for better search
+    const querySnapshot = await getDocs(usersRef)
+
+    const users = []
+    const lowerQuery = searchQuery.toLowerCase()
+
+    querySnapshot.forEach((doc) => {
+      const userData = doc.data()
+      const userName = (userData.name || '').toLowerCase()
+      const userEmail = (userData.email || '').toLowerCase()
+
+      if (userName.includes(lowerQuery) || userEmail.includes(lowerQuery)) {
+        users.push({
+          userId: doc.id,
+          ...userData,
+        })
+      }
+    })
+
+    // Limit results
+    return { success: true, data: users.slice(0, limit) }
+  } catch (error) {
+    console.error("Error searching users:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Block a user
+ */
+export const blockUser = async (currentUserId, targetUserId) => {
+  try {
+    const batch = writeBatch(db)
+
+    // Add to current user's blocked list
+    const blockedRef = doc(db, "users", currentUserId, "blocked", targetUserId)
+    batch.set(blockedRef, {
+      userId: targetUserId,
+      blockedAt: serverTimestamp(),
+    })
+
+    // Remove any existing follow relationships
+    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
+    const followersRef = doc(db, "users", currentUserId, "followers", targetUserId)
+    const targetFollowingRef = doc(db, "users", targetUserId, "following", currentUserId)
+    const targetFollowersRef = doc(db, "users", targetUserId, "followers", currentUserId)
+
+    batch.delete(followingRef)
+    batch.delete(followersRef)
+    batch.delete(targetFollowingRef)
+    batch.delete(targetFollowersRef)
+
+    await batch.commit()
+    return { success: true }
+  } catch (error) {
+    console.error("Error blocking user:", error)
+    return { success: false, error: error.message }
+  }
+}
+
 // ================== MIGRATION UTILITIES ==================
 
 /**

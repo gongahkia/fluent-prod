@@ -29,7 +29,7 @@ const NewsFeed = ({
   const [showComments, setShowComments] = useState({})
   const [selectedWord, setSelectedWord] = useState(null)
   const [feedbackMessage, setFeedbackMessage] = useState(null)
-  const [followingUsers, setFollowingUsers] = useState(new Set())
+  const [subscribedSources, setSubscribedSources] = useState(new Set())
   const [isTranslating, setIsTranslating] = useState(false)
   const [posts, setPosts] = useState([])
   const [processedPosts, setProcessedPosts] = useState([])
@@ -507,13 +507,17 @@ const NewsFeed = ({
     showFeedback("Sugoi!", "😊")
   }
 
-  const handleFollowToggle = (authorName) => {
-    setFollowingUsers((prev) => {
+  const handleSourceSubscribeToggle = (sourceName) => {
+    setSubscribedSources((prev) => {
       const newSet = new Set(prev)
-      if (newSet.has(authorName)) {
-        newSet.delete(authorName)
+      if (newSet.has(sourceName)) {
+        newSet.delete(sourceName)
+        // Optionally: Save to Firebase or localStorage
+        showFeedback(`Unsubscribed from ${sourceName}`, '🔕')
       } else {
-        newSet.add(authorName)
+        newSet.add(sourceName)
+        // Optionally: Save to Firebase or localStorage
+        showFeedback(`Subscribed to ${sourceName}`, '🔔')
       }
       return newSet
     })
@@ -905,22 +909,23 @@ const NewsFeed = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => handleFollowToggle(article.author)}
+                    onClick={() => handleSourceSubscribeToggle(article.source)}
                     className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                      followingUsers.has(article.author)
+                      subscribedSources.has(article.source)
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
+                    title={`${subscribedSources.has(article.source) ? 'Unsubscribe from' : 'Subscribe to'} ${article.source} posts`}
                   >
-                    {followingUsers.has(article.author) ? (
+                    {subscribedSources.has(article.source) ? (
                       <>
                         <UserCheck className="w-4 h-4" />
-                        <span>Following</span>
+                        <span>Subscribed</span>
                       </>
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4" />
-                        <span>Follow</span>
+                        <span>Subscribe</span>
                       </>
                     )}
                   </button>

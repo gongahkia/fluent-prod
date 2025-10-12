@@ -7,6 +7,7 @@ import NewsFeed from "./components/NewsFeed"
 import Onboarding from "./components/Onboarding"
 import Profile from "./components/Profile"
 import SavedPosts from "./components/SavedPosts"
+import UserSearch from "./components/UserSearch"
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning"
 import {
   Sheet,
@@ -29,7 +30,7 @@ import "./App.css"
 function App() {
   const { currentUser, userProfile, setUserProfile } = useAuth()
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', or 'savedposts'
+  const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'users'
   const [userDictionary, setUserDictionary] = useState([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
@@ -381,6 +382,17 @@ function App() {
                         <span className="text-lg">🔖</span>
                         <span className="font-medium">Saved Posts</span>
                       </button>
+                      <button
+                        onClick={() => handleNavigation("users")}
+                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
+                          currentView === "users"
+                            ? "bg-purple-100 text-purple-900"
+                            : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className="text-lg">👥</span>
+                        <span className="font-medium">Find Users</span>
+                      </button>
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -495,6 +507,16 @@ function App() {
             >
               Saved Posts
             </button>
+            <button
+              onClick={() => handleNavigation("users")}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                currentView === "users"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Find Users
+            </button>
           </div>
         )}
 
@@ -530,6 +552,8 @@ function App() {
             userDictionary={userDictionary}
           />
         )}
+
+        {currentView === "users" && <UserSearch />}
       </main>
 
       {/* Firebase Blocked Warning */}
