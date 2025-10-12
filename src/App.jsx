@@ -1,4 +1,4 @@
-import { Menu, ChevronDown } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import Auth from "./components/Auth"
 import Dictionary from "./components/Dictionary"
@@ -9,13 +9,7 @@ import Profile from "./components/Profile"
 import SavedPosts from "./components/SavedPosts"
 import UserSearch from "./components/UserSearch"
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "./components/ui/sheet"
+import MobileBottomBar from "./components/MobileBottomBar"
 import { useIsMobile } from "./hooks/use-mobile"
 import { useAuth } from "./contexts/AuthContext"
 import {
@@ -32,7 +26,6 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [currentView, setCurrentView] = useState("feed") // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'users'
   const [userDictionary, setUserDictionary] = useState([])
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
   const [firebaseError, setFirebaseError] = useState(null)
   const isMobile = useIsMobile()
@@ -167,7 +160,6 @@ function App() {
 
   const handleNavigation = (view) => {
     setCurrentView(view)
-    setIsMobileMenuOpen(false)
   }
 
   const handleLanguageChange = async (newLanguage) => {
@@ -282,11 +274,21 @@ function App() {
         </header>
 
         {/* Profile Content */}
-        <Profile
-          userProfile={userProfile}
-          onProfileUpdate={handleProfileUpdate}
-          onBack={() => handleNavigation("feed")}
-        />
+        <div className={isMobile ? 'pb-20' : ''}>
+          <Profile
+            userProfile={userProfile}
+            onProfileUpdate={handleProfileUpdate}
+            onBack={() => handleNavigation("feed")}
+          />
+        </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        {isMobile && (
+          <MobileBottomBar
+            currentView={currentView}
+            onNavigate={handleNavigation}
+          />
+        )}
 
         {/* Firebase Blocked Warning */}
         {firebaseError && (
@@ -321,82 +323,6 @@ function App() {
                   </span>
                 </div>
               </div>
-
-              {/* Mobile Menu Button */}
-              {isMobile && (
-                <Sheet
-                  open={isMobileMenuOpen}
-                  onOpenChange={setIsMobileMenuOpen}
-                >
-                  <SheetTrigger asChild>
-                    <button className="p-2 hover:bg-gray-100 rounded-md">
-                      <Menu className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-[280px]">
-                    <SheetHeader>
-                      <SheetTitle>Navigation</SheetTitle>
-                    </SheetHeader>
-                    <div className="flex flex-col space-y-4 mt-6">
-                      <button
-                        onClick={() => handleNavigation("feed")}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === "feed"
-                            ? "bg-blue-100 text-blue-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">📰</span>
-                        <span className="font-medium">Learning Feed</span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation("dictionary")}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === "dictionary"
-                            ? "bg-green-100 text-green-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">📚</span>
-                        <span className="font-medium">Dictionary</span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation("flashcards")}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === "flashcards"
-                            ? "bg-blue-100 text-blue-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">🃏</span>
-                        <span className="font-medium">Flashcards</span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation("savedposts")}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === "savedposts"
-                            ? "bg-orange-100 text-orange-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">🔖</span>
-                        <span className="font-medium">Saved Posts</span>
-                      </button>
-                      <button
-                        onClick={() => handleNavigation("users")}
-                        className={`flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          currentView === "users"
-                            ? "bg-purple-100 text-purple-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <span className="text-lg">👥</span>
-                        <span className="font-medium">Find Users</span>
-                      </button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              )}
             </div>
 
             <div className="flex items-center space-x-4">
@@ -463,7 +389,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? 'pb-20' : ''}`}>
         {/* Navigation Tabs - Hidden on mobile */}
         {!isMobile && (
           <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
@@ -555,6 +481,14 @@ function App() {
 
         {currentView === "users" && <UserSearch />}
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {isMobile && (
+        <MobileBottomBar
+          currentView={currentView}
+          onNavigate={handleNavigation}
+        />
+      )}
 
       {/* Firebase Blocked Warning */}
       {firebaseError && (
