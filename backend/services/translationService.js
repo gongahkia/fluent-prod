@@ -4,6 +4,8 @@ import { isValidVocabularyWord } from './vocabularyService.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { stripMarkdownFormatting } from '../utils/textUtils.js'
+import { CacheMetrics, RequestDeduplicator, startTimer } from '../utils/performanceMonitor.js'
 
 // Get current directory path
 const __filename = fileURLToPath(import.meta.url)
@@ -16,6 +18,15 @@ const translationMappings = JSON.parse(
 
 // Cache for 30 days (translations rarely change)
 const cache = new NodeCache({ stdTTL: 2592000 })
+
+// Performance monitoring
+const cacheMetrics = new CacheMetrics()
+const requestDeduplicator = new RequestDeduplicator()
+
+// Log cache stats every hour
+setInterval(() => {
+  cacheMetrics.logStats('Translation Cache')
+}, 3600000)
 
 // Helper function to check if a translation pair is supported
 function isTranslationPairSupported(fromLang, toLang) {
@@ -32,7 +43,7 @@ function getAPIProvidersForPair(fromLang, toLang) {
   return pair.apiProviders || ['lingva', 'mymemory', 'libretranslate']
 }
 
-// Main translation function
+// Main translation function with request deduplication
 export async function translateText(text, fromLang = 'en', toLang = 'ja') {
   // Validate language pair
   if (!isTranslationPairSupported(fromLang, toLang)) {
@@ -53,7 +64,7 @@ export async function translateText(text, fromLang = 'en', toLang = 'ja') {
   // Check cache first
   const cached = cache.get(cacheKey)
   if (cached) {
-    console.log(`Cache hit for: ${text} (${fromLang}->${toLang})`)
+    cacheMetrics.recordHit()
     return {
       original: text,
       translation: cached,
@@ -64,61 +75,73 @@ export async function translateText(text, fromLang = 'en', toLang = 'ja') {
     }
   }
 
-  let translation = null
-  let provider = null
+  cacheMetrics.recordMiss()
 
-  // Get API providers for this language pair
-  const providers = getAPIProvidersForPair(fromLang, toLang)
+  // Use request deduplication to prevent duplicate in-flight requests
+  return await requestDeduplicator.dedupe(cacheKey, async () => {
+    let translation = null
+    let provider = null
 
-  try {
-    // Try providers in order
-    for (const providerName of providers) {
-      if (providerName === 'lingva') {
-        translation = await tryLingvaTranslate(text, fromLang, toLang)
-        if (translation) {
-          provider = 'lingva'
-          break
+    // Get API providers for this language pair
+    const providers = getAPIProvidersForPair(fromLang, toLang)
+
+    try {
+      // OPTIMIZATION: Try all providers in parallel and use the first successful result
+      const providerPromises = providers.map(async (providerName) => {
+        try {
+          if (providerName === 'lingva') {
+            const result = await tryLingvaTranslate(text, fromLang, toLang)
+            if (result) return { translation: result, provider: 'lingva' }
+          } else if (providerName === 'mymemory') {
+            const result = await tryMyMemoryTranslation(text, fromLang, toLang)
+            if (result) return { translation: result, provider: 'mymemory' }
+          } else if (providerName === 'libretranslate') {
+            const result = await tryLibreTranslate(text, fromLang, toLang)
+            if (result) return { translation: result, provider: 'libretranslate' }
+          }
+        } catch (error) {
+          // Silently fail individual providers
+          return null
         }
-      } else if (providerName === 'mymemory') {
-        translation = await tryMyMemoryTranslation(text, fromLang, toLang)
-        if (translation) {
-          provider = 'mymemory'
-          break
-        }
-      } else if (providerName === 'libretranslate') {
-        translation = await tryLibreTranslate(text, fromLang, toLang)
-        if (translation) {
-          provider = 'libretranslate'
-          break
-        }
+        return null
+      })
+
+      // Race all providers and use first successful result
+      const results = await Promise.all(providerPromises)
+      const successfulResult = results.find(r => r !== null)
+
+      if (successfulResult) {
+        translation = successfulResult.translation
+        provider = successfulResult.provider
+      }
+
+      // Cache the result
+      if (translation) {
+        cache.set(cacheKey, translation)
+        cacheMetrics.recordSet()
+      }
+
+      return {
+        original: text,
+        translation: translation || text,
+        fromLang,
+        toLang,
+        cached: false,
+        provider: provider || 'fallback'
+      }
+    } catch (error) {
+      console.error('Translation error:', error.message)
+      return {
+        original: text,
+        translation: text,
+        fromLang,
+        toLang,
+        cached: false,
+        provider: 'fallback',
+        error: error.message
       }
     }
-
-    // Cache the result
-    if (translation) {
-      cache.set(cacheKey, translation)
-    }
-
-    return {
-      original: text,
-      translation: translation || text,
-      fromLang,
-      toLang,
-      cached: false,
-      provider: provider || 'fallback'
-    }
-  } catch (error) {
-    console.error('Translation error:', error.message)
-    return {
-      original: text,
-      translation: text,
-      fromLang,
-      toLang,
-      cached: false,
-      provider: 'fallback',
-      error: error.message
-    }
-  }
+  })
 }
 
 // Lingva Translate API
@@ -212,53 +235,7 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
   return { translations }
 }
 
-/**
- * Strip all markdown formatting from text
- * @param {string} text - Text with markdown formatting
- * @returns {string} Plain text without markdown
- */
-function stripMarkdownFormatting(text) {
-  if (!text) return ''
-
-  let cleaned = text
-
-  // Remove bold: **text** or __text__
-  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1')
-  cleaned = cleaned.replace(/__(.+?)__/g, '$1')
-
-  // Remove italic: *text* or _text_ (but not within words)
-  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1')
-  cleaned = cleaned.replace(/\b_(.+?)_\b/g, '$1')
-
-  // Remove strikethrough: ~~text~~
-  cleaned = cleaned.replace(/~~(.+?)~~/g, '$1')
-
-  // Remove inline code: `code`
-  cleaned = cleaned.replace(/`([^`]+)`/g, '$1')
-
-  // Remove code blocks: ```code```
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
-    return match.replace(/```\w*\n?/g, '').replace(/```/g, '')
-  })
-
-  // Remove headers: # Header
-  cleaned = cleaned.replace(/^#{1,6}\s+(.+)$/gm, '$1')
-
-  // Remove list markers: - item or * item or 1. item
-  cleaned = cleaned.replace(/^[\s]*[-*+]\s+/gm, '')
-  cleaned = cleaned.replace(/^[\s]*\d+\.\s+/gm, '')
-
-  // Remove horizontal rules: --- or ***
-  cleaned = cleaned.replace(/^[\s]*[-*_]{3,}[\s]*$/gm, '')
-
-  // Remove markdown links [text](url) - extract only the text
-  cleaned = cleaned.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
-
-  // Remove Reddit quote markers: > or &gt;
-  cleaned = cleaned.replace(/^[\s]*(&gt;|>)\s*/gm, '')
-
-  return cleaned
-}
+// Note: stripMarkdownFormatting is now imported from utils/textUtils.js
 
 /**
  * NEW: Translate ALL words in text and return complete translation map

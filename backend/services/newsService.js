@@ -3,11 +3,21 @@ import NodeCache from 'node-cache'
 // Twitter and Instagram imports removed - Reddit only policy
 // import { TwitterApi } from 'twitter-api-v2'
 // import { IgApiClient } from 'instagram-private-api'
-import { syllable } from 'syllable'
 import { downloadPostsFromStorage } from './storageService.js'
+import { stripMarkdownToPlaintext } from '../utils/textUtils.js'
+import { calculateEnglishDifficulty } from '../utils/difficultyUtils.js'
+import { CacheMetrics } from '../utils/performanceMonitor.js'
 
 // Cache for 15 minutes (now mainly used for search results)
 const cache = new NodeCache({ stdTTL: 900 })
+
+// Performance monitoring
+const cacheMetrics = new CacheMetrics()
+
+// Log cache stats every hour
+setInterval(() => {
+  cacheMetrics.logStats('News Cache')
+}, 3600000)
 
 // API Configuration - REDDIT ONLY
 // Twitter and Instagram are disabled to ensure only Reddit posts are cached
@@ -20,126 +30,7 @@ const API_CONFIG = {
   // Twitter and Instagram removed - Reddit only policy
 }
 
-/**
- * Strip markdown formatting and reduce text to plaintext
- * This happens BEFORE difficulty classification
- */
-function stripMarkdownToPlaintext(text) {
-  if (!text || text.trim().length === 0) {
-    return ''
-  }
-
-  let plaintext = text
-
-  // Remove code blocks (```code```)
-  plaintext = plaintext.replace(/```[\s\S]*?```/g, '')
-
-  // Remove inline code (`code`)
-  plaintext = plaintext.replace(/`([^`]+)`/g, '$1')
-
-  // Remove images ![alt](url)
-  plaintext = plaintext.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
-
-  // Remove links but keep text [text](url) -> text
-  plaintext = plaintext.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-
-  // Remove headers (##, ###, etc.)
-  plaintext = plaintext.replace(/^#{1,6}\s+/gm, '')
-
-  // Remove bold/italic (**text**, *text*, __text__, _text_)
-  plaintext = plaintext.replace(/(\*\*|__)(.*?)\1/g, '$2')
-  plaintext = plaintext.replace(/(\*|_)(.*?)\1/g, '$2')
-
-  // Remove blockquotes (> text)
-  plaintext = plaintext.replace(/^>\s+/gm, '')
-
-  // Remove horizontal rules (---, ***, ___)
-  plaintext = plaintext.replace(/^[-*_]{3,}$/gm, '')
-
-  // Remove list markers (-, *, +, 1., 2., etc.)
-  plaintext = plaintext.replace(/^\s*[-*+]\s+/gm, '')
-  plaintext = plaintext.replace(/^\s*\d+\.\s+/gm, '')
-
-  // Remove HTML tags
-  plaintext = plaintext.replace(/<[^>]+>/g, '')
-
-  // Normalize whitespace
-  plaintext = plaintext.replace(/\n{3,}/g, '\n\n')
-  plaintext = plaintext.trim()
-
-  return plaintext
-}
-
-// Difficulty Calculation for English Text
-// NOTE: This now receives PLAINTEXT ONLY (no markdown, no images)
-function calculateEnglishDifficulty(text) {
-  if (!text || text.trim().length === 0) {
-    return 1 // Default to easiest for empty text
-  }
-
-  // Basic text cleaning
-  const cleanText = text.replace(/[^\w\s.!?]/g, ' ').trim()
-
-  // Split into sentences (simple approach)
-  const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0)
-  const sentenceCount = sentences.length || 1
-
-  // Split into words
-  const words = cleanText.split(/\s+/).filter(w => w.length > 0)
-  const wordCount = words.length
-
-  if (wordCount === 0) {
-    return 1
-  }
-
-  // Calculate metrics
-  const avgSentenceLength = wordCount / sentenceCount
-
-  // Calculate syllable count
-  let totalSyllables = 0
-  try {
-    totalSyllables = syllable(cleanText)
-  } catch (error) {
-    // Fallback: estimate syllables as word count * 1.5
-    totalSyllables = Math.round(wordCount * 1.5)
-  }
-
-  const avgSyllablesPerWord = totalSyllables / wordCount
-
-  // Flesch Reading Ease Score
-  // Formula: 206.835 - 1.015 * (words/sentences) - 84.6 * (syllables/words)
-  const fleschScore = 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord)
-
-  // Additional metrics
-  const avgWordLength = cleanText.replace(/\s/g, '').length / wordCount
-
-  // Calculate difficulty level (1-5) based on Flesch score
-  // Flesch: 90-100 = Very Easy, 60-70 = Standard, 30-50 = Difficult, 0-30 = Very Difficult
-  let difficulty
-  if (fleschScore >= 80) {
-    difficulty = 1 // Beginner: Very easy to read
-  } else if (fleschScore >= 60) {
-    difficulty = 2 // Elementary: Easy to read
-  } else if (fleschScore >= 50) {
-    difficulty = 3 // Intermediate: Fairly easy to read
-  } else if (fleschScore >= 30) {
-    difficulty = 4 // Advanced: Difficult to read
-  } else {
-    difficulty = 5 // Expert: Very difficult to read
-  }
-
-  // Adjust for very short texts (less than 30 words)
-  if (wordCount < 30) {
-    difficulty = Math.max(1, difficulty - 1)
-  }
-
-  // Adjust for very long texts (more than 300 words)
-  if (wordCount > 300) {
-    difficulty = Math.min(5, difficulty + 1)
-  }
-
-  return difficulty
-}
+// Note: stripMarkdownToPlaintext and calculateEnglishDifficulty are now imported from utils
 
 // Utility functions - REDDIT ONLY
 const normalizePost = (post, source) => {
@@ -350,9 +241,12 @@ export async function fetchNews(options = {}) {
   const cacheKey = `news:${sources.join(',')}:${query}:${limit}:${offset}:${userLevel || 'none'}:${targetLang}:${searchQuery || 'default'}`
   const cached = cache.get(cacheKey)
   if (cached) {
-    console.log('Returning cached news')
+    cacheMetrics.recordHit()
+    console.log('📊 Returning cached news')
     return cached
   }
+
+  cacheMetrics.recordMiss()
 
   // REDDIT ONLY - Filter out any non-Reddit sources
   const availableSources = sources.filter((source) => {
@@ -408,6 +302,7 @@ export async function fetchNews(options = {}) {
   }
 
   cache.set(cacheKey, result)
+  cacheMetrics.recordSet()
   return result
 }
 

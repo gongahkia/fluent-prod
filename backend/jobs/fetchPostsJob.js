@@ -1,11 +1,13 @@
 import cron from 'node-cron'
 import axios from 'axios'
 import { uploadPostsToStorage } from '../services/storageService.js'
-import { syllable } from 'syllable'
 import { createMixedLanguageContent } from '../services/translationService.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { stripMarkdownToPlaintext, chunkArray } from '../utils/textUtils.js'
+import { calculateEnglishDifficulty } from '../utils/difficultyUtils.js'
+import { startTimer, startBatchTimer, logPerformance } from '../utils/performanceMonitor.js'
 
 // Load subreddit configuration
 const __filename = fileURLToPath(import.meta.url)
@@ -14,111 +16,10 @@ const subredditConfig = JSON.parse(
   readFileSync(join(__dirname, '../config/subreddits.json'), 'utf-8')
 )
 
-/**
- * Strip markdown formatting and reduce text to plaintext
- * This happens BEFORE difficulty classification
- */
-function stripMarkdownToPlaintext(text) {
-  if (!text || text.trim().length === 0) {
-    return ''
-  }
+// Configuration for parallel processing
+const CONCURRENCY_LIMIT = 5 // Process 5 posts in parallel
 
-  let plaintext = text
-
-  // Remove code blocks (```code```)
-  plaintext = plaintext.replace(/```[\s\S]*?```/g, '')
-
-  // Remove inline code (`code`)
-  plaintext = plaintext.replace(/`([^`]+)`/g, '$1')
-
-  // Remove images ![alt](url)
-  plaintext = plaintext.replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
-
-  // Remove links but keep text [text](url) -> text
-  plaintext = plaintext.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-
-  // Remove headers (##, ###, etc.)
-  plaintext = plaintext.replace(/^#{1,6}\s+/gm, '')
-
-  // Remove bold/italic (**text**, *text*, __text__, _text_)
-  plaintext = plaintext.replace(/(\*\*|__)(.*?)\1/g, '$2')
-  plaintext = plaintext.replace(/(\*|_)(.*?)\1/g, '$2')
-
-  // Remove blockquotes (> text)
-  plaintext = plaintext.replace(/^>\s+/gm, '')
-
-  // Remove horizontal rules (---, ***, ___)
-  plaintext = plaintext.replace(/^[-*_]{3,}$/gm, '')
-
-  // Remove list markers (-, *, +, 1., 2., etc.)
-  plaintext = plaintext.replace(/^\s*[-*+]\s+/gm, '')
-  plaintext = plaintext.replace(/^\s*\d+\.\s+/gm, '')
-
-  // Remove HTML tags
-  plaintext = plaintext.replace(/<[^>]+>/g, '')
-
-  // Normalize whitespace
-  plaintext = plaintext.replace(/\n{3,}/g, '\n\n')
-  plaintext = plaintext.trim()
-
-  return plaintext
-}
-
-/**
- * Difficulty Calculation for English Text
- * (Copied from newsService.js for standalone use)
- * NOTE: This now receives PLAINTEXT ONLY (no markdown, no images)
- */
-function calculateEnglishDifficulty(text) {
-  if (!text || text.trim().length === 0) {
-    return 1
-  }
-
-  const cleanText = text.replace(/[^\w\s.!?]/g, ' ').trim()
-  const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0)
-  const sentenceCount = sentences.length || 1
-  const words = cleanText.split(/\s+/).filter(w => w.length > 0)
-  const wordCount = words.length
-
-  if (wordCount === 0) {
-    return 1
-  }
-
-  const avgSentenceLength = wordCount / sentenceCount
-
-  let totalSyllables = 0
-  try {
-    totalSyllables = syllable(cleanText)
-  } catch (error) {
-    totalSyllables = Math.round(wordCount * 1.5)
-  }
-
-  const avgSyllablesPerWord = totalSyllables / wordCount
-  const fleschScore = 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord)
-
-  let difficulty
-  if (fleschScore >= 80) {
-    difficulty = 1
-  } else if (fleschScore >= 60) {
-    difficulty = 2
-  } else if (fleschScore >= 50) {
-    difficulty = 3
-  } else if (fleschScore >= 30) {
-    difficulty = 4
-  } else {
-    difficulty = 5
-  }
-
-  if (wordCount < 30) {
-    difficulty = Math.max(1, difficulty - 1)
-  }
-
-  if (wordCount > 300) {
-    difficulty = Math.min(5, difficulty + 1)
-  }
-
-  return difficulty
-}
+// Note: stripMarkdownToPlaintext and calculateEnglishDifficulty are now imported from utils
 
 /**
  * Normalize Reddit post to standard format
@@ -320,7 +221,7 @@ function balancePostDistribution(posts, targetPerLevel = 6) {
 }
 
 /**
- * Process all posts with mixed language content
+ * Process all posts with mixed language content (PARALLEL VERSION)
  * @param {Array} posts - Array of posts to process
  * @param {string} targetLang - Target language code ('ja' or 'ko')
  * @returns {Promise<Array>} - Array of processed posts
@@ -328,21 +229,51 @@ function balancePostDistribution(posts, targetPerLevel = 6) {
 async function processAllPostsWithMixedLanguage(posts, targetLang) {
   console.log(`\n🔄 Processing ${posts.length} posts with mixed language content for ${targetLang}...`)
 
+  // Start performance timer
+  const timer = startBatchTimer(`Process ${targetLang} posts`, posts.length)
+
   // NEW: Balance distribution BEFORE processing
   const balancedPosts = balancePostDistribution(posts, 6)
 
   const processedPosts = []
 
-  for (const post of balancedPosts) {
+  // OPTIMIZATION: Process posts in parallel with concurrency limit
+  console.log(`⚡ Using parallel processing (concurrency: ${CONCURRENCY_LIMIT})`)
+  const chunks = chunkArray(balancedPosts, CONCURRENCY_LIMIT)
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]
+    const chunkNum = i + 1
+    const totalChunks = chunks.length
+
+    console.log(`  📦 Processing chunk ${chunkNum}/${totalChunks} (${chunk.length} posts)...`)
+
     try {
-      const processedPost = await processPostWithMixedLanguage(post, targetLang)
-      processedPosts.push(processedPost)
+      // Process chunk in parallel
+      const chunkResults = await Promise.all(
+        chunk.map(async (post) => {
+          try {
+            return await processPostWithMixedLanguage(post, targetLang)
+          } catch (error) {
+            console.error(`  ⚠️  Failed to process post "${post.title.substring(0, 50)}...":`, error.message)
+            // Return original post without processed versions on failure
+            return post
+          }
+        })
+      )
+
+      processedPosts.push(...chunkResults)
+      console.log(`  ✓ Chunk ${chunkNum}/${totalChunks} completed`)
     } catch (error) {
-      console.error(`❌ Failed to process post "${post.title}":`, error.message)
-      // Keep original post without processed versions
-      processedPosts.push(post)
+      console.error(`  ❌ Chunk ${chunkNum}/${totalChunks} failed:`, error.message)
+      // Add original posts from failed chunk
+      processedPosts.push(...chunk)
     }
   }
+
+  // Log performance
+  const metrics = timer.stop()
+  logPerformance(metrics, 'success')
 
   console.log(`✅ Completed processing ${processedPosts.length} posts`)
   return processedPosts
@@ -353,6 +284,7 @@ async function processAllPostsWithMixedLanguage(posts, targetLang) {
  */
 export async function runPostsFetchJob() {
   console.log('🚀 Starting scheduled posts fetch job...')
+  const jobTimer = startTimer('Complete job execution')
 
   const queries = [
     { name: 'japan', fileName: 'posts-japan.json', targetLang: 'ja' },
@@ -360,6 +292,8 @@ export async function runPostsFetchJob() {
   ]
 
   for (const { name, fileName, targetLang } of queries) {
+    const queryTimer = startTimer(`Processing ${name}`)
+
     try {
       console.log(`\n📰 Fetching posts for: ${name}`)
 
@@ -379,12 +313,22 @@ export async function runPostsFetchJob() {
       } else {
         console.warn(`⚠️  No posts fetched for ${name}, skipping upload`)
       }
+
+      // Log query performance
+      const queryMetrics = queryTimer.stop()
+      logPerformance(queryMetrics, 'success')
     } catch (error) {
       console.error(`❌ Error processing ${name}:`, error.message)
+      const queryMetrics = queryTimer.stop()
+      logPerformance(queryMetrics, 'warning')
     }
   }
 
-  console.log('\n✅ Posts fetch job completed!\n')
+  // Log total job performance
+  const jobMetrics = jobTimer.stop()
+  console.log('\n✅ Posts fetch job completed!')
+  logPerformance(jobMetrics, 'success')
+  console.log('')
 }
 
 /**

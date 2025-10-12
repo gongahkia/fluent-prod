@@ -1,9 +1,18 @@
 import nlp from 'compromise'
 import NodeCache from 'node-cache'
 import { translateText } from './translationService.js'
+import { CacheMetrics, startBatchTimer, logPerformance } from '../utils/performanceMonitor.js'
 
 // Cache for 1 hour
 const cache = new NodeCache({ stdTTL: 3600 })
+
+// Performance monitoring
+const cacheMetrics = new CacheMetrics()
+
+// Log cache stats every hour
+setInterval(() => {
+  cacheMetrics.logStats('Vocabulary Cache')
+}, 3600000)
 
 // Word type classification levels (difficulty)
 const WORD_LEVELS = {
@@ -14,13 +23,19 @@ const WORD_LEVELS = {
   adverb: 6
 }
 
-// Detect vocabulary words in text using NLP
+// Detect vocabulary words in text using NLP (OPTIMIZED WITH PARALLEL PROCESSING)
 export async function detectVocabulary(text) {
   const cacheKey = `vocab:detect:${text.substring(0, 100)}`
   const cached = cache.get(cacheKey)
   if (cached) {
+    cacheMetrics.recordHit()
     return cached
   }
+
+  cacheMetrics.recordMiss()
+
+  // Start performance timer
+  const timer = startBatchTimer('Vocabulary detection', text.length)
 
   const doc = nlp(text)
 
@@ -31,41 +46,48 @@ export async function detectVocabulary(text) {
   const adverbs = doc.adverbs().out('array')
   const properNouns = doc.places().out('array').concat(doc.people().out('array'))
 
-  // Create vocabulary words
-  const vocabularyPromises = []
+  // OPTIMIZATION: Process all word types in parallel
+  const [properNounWords, nounWords, verbWords, adjectiveWords, adverbWords] = await Promise.all([
+    // Process proper nouns
+    Promise.all(
+      properNouns
+        .filter(word => isValidVocabularyWord(word))
+        .map(word => createVocabularyWord(word, 'properNoun'))
+    ),
+    // Process nouns
+    Promise.all(
+      nouns
+        .filter(word => isValidVocabularyWord(word))
+        .map(word => createVocabularyWord(word, 'noun'))
+    ),
+    // Process verbs
+    Promise.all(
+      verbs
+        .filter(word => isValidVocabularyWord(word))
+        .map(word => createVocabularyWord(word, 'verb'))
+    ),
+    // Process adjectives
+    Promise.all(
+      adjectives
+        .filter(word => isValidVocabularyWord(word))
+        .map(word => createVocabularyWord(word, 'adjective'))
+    ),
+    // Process adverbs
+    Promise.all(
+      adverbs
+        .filter(word => isValidVocabularyWord(word))
+        .map(word => createVocabularyWord(word, 'adverb'))
+    )
+  ])
 
-  // Process each word type
-  for (const word of properNouns) {
-    if (isValidVocabularyWord(word)) {
-      vocabularyPromises.push(createVocabularyWord(word, 'properNoun'))
-    }
-  }
-
-  for (const word of nouns) {
-    if (isValidVocabularyWord(word)) {
-      vocabularyPromises.push(createVocabularyWord(word, 'noun'))
-    }
-  }
-
-  for (const word of verbs) {
-    if (isValidVocabularyWord(word)) {
-      vocabularyPromises.push(createVocabularyWord(word, 'verb'))
-    }
-  }
-
-  for (const word of adjectives) {
-    if (isValidVocabularyWord(word)) {
-      vocabularyPromises.push(createVocabularyWord(word, 'adjective'))
-    }
-  }
-
-  for (const word of adverbs) {
-    if (isValidVocabularyWord(word)) {
-      vocabularyPromises.push(createVocabularyWord(word, 'adverb'))
-    }
-  }
-
-  const vocabulary = await Promise.all(vocabularyPromises)
+  // Combine all results
+  const vocabulary = [
+    ...properNounWords,
+    ...nounWords,
+    ...verbWords,
+    ...adjectiveWords,
+    ...adverbWords
+  ]
 
   // Filter out duplicates
   const uniqueVocabulary = vocabulary.filter(
@@ -74,6 +96,11 @@ export async function detectVocabulary(text) {
 
   const result = { vocabulary: uniqueVocabulary }
   cache.set(cacheKey, result)
+  cacheMetrics.recordSet()
+
+  // Log performance
+  const metrics = timer.stop()
+  logPerformance(metrics, 'success')
 
   return result
 }
@@ -85,8 +112,11 @@ export async function createVocabularyWord(word, type = 'unknown', context = '')
   const cacheKey = `vocab:word:${cleanWord}:${type}`
   const cached = cache.get(cacheKey)
   if (cached) {
+    cacheMetrics.recordHit()
     return cached
   }
+
+  cacheMetrics.recordMiss()
 
   // Get translation
   const translation = await translateText(cleanWord, 'en', 'ja')
@@ -102,6 +132,7 @@ export async function createVocabularyWord(word, type = 'unknown', context = '')
   }
 
   cache.set(cacheKey, vocabularyWord)
+  cacheMetrics.recordSet()
   return vocabularyWord
 }
 
