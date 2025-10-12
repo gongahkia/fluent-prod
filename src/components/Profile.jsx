@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  Bell,
   Camera,
   Globe,
   Link2,
@@ -27,7 +26,6 @@ import {
 } from "@/services/encryptionService"
 import GeneralTab from "./Profile/GeneralTab"
 import LearningTab from "./Profile/LearningTab"
-import NotificationsTab from "./Profile/NotificationsTab"
 import PrivacyTab from "./Profile/PrivacyTab"
 import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 
@@ -304,7 +302,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     { id: "general", label: "General", icon: User },
     { id: "learning", label: "Learning", icon: Globe },
     { id: "connections", label: "Connected Accounts", icon: Link2 },
-    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "privacy", label: "Privacy", icon: Shield },
   ]
 
@@ -425,11 +422,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
             {/* Connected Accounts Tab */}
             {activeTab === "connections" && (
               <ConnectedAccountsTab formData={formData} handleInputChange={handleInputChange} />
-            )}
-
-            {/* Notifications Tab */}
-            {activeTab === "notifications" && (
-              <NotificationsTab formData={formData} handleInputChange={handleInputChange} />
             )}
 
             {/* Privacy Tab */}
