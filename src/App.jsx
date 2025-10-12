@@ -245,29 +245,41 @@ function App() {
                   )}
                 </div>
 
-                {/* User Profile */}
-                <div className="flex items-center space-x-3">
-                  <div className="text-sm text-gray-600">
-                    Welcome,{" "}
-                    <span className="font-medium text-gray-900">
-                      {userProfile?.name || "User"}
-                    </span>
+                {/* User Profile - Hidden on mobile (Profile view) */}
+                {!isMobile && (
+                  <div className="flex items-center space-x-3">
+                    <div className="text-sm text-gray-600">
+                      Welcome,{" "}
+                      <span className="font-medium text-gray-900">
+                        {userProfile?.name || "User"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleNavigation("profile")}
+                      className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-blue-700">
+                        {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      Logout
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleNavigation("profile")}
-                    className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-blue-700">
-                      {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </span>
-                  </button>
+                )}
+
+                {/* Mobile logout button - Profile view */}
+                {isMobile && (
                   <button
                     onClick={handleLogout}
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors px-2 py-1"
                   >
                     Logout
                   </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -360,29 +372,41 @@ function App() {
                 )}
               </div>
 
-              {/* User Profile */}
-              <div className="flex items-center space-x-3">
-                <div className="text-sm text-gray-600">
-                  Welcome,{" "}
-                  <span className="font-medium text-gray-900">
-                    {userProfile?.name || "User"}
-                  </span>
+              {/* User Profile - Hidden on mobile (Main view) */}
+              {!isMobile && (
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-600">
+                    Welcome,{" "}
+                    <span className="font-medium text-gray-900">
+                      {userProfile?.name || "User"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleNavigation("profile")}
+                    className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-blue-700">
+                      {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    Logout
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleNavigation("profile")}
-                  className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
-                >
-                  <span className="text-sm font-medium text-blue-700">
-                    {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                </button>
+              )}
+
+              {/* Mobile logout button - Main view */}
+              {isMobile && (
                 <button
                   onClick={handleLogout}
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors px-2 py-1"
                 >
                   Logout
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
