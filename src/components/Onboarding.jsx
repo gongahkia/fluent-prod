@@ -258,7 +258,7 @@ const Onboarding = ({ onComplete }) => {
             <Button
               onClick={handleNext}
               disabled={nativeLanguages.length === 0}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-orange-600 hover:bg-orange-700"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -284,7 +284,7 @@ const Onboarding = ({ onComplete }) => {
                   onClick={() => setTargetLanguage("Japanese")}
                   className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
                     targetLanguage === "Japanese"
-                      ? "border-orange-500 bg-orange-50 text-orange-700"
+                      ? "border-orange-600 bg-orange-50 text-orange-700"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -296,7 +296,7 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === "Japanese" && (
-                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
                   )}
@@ -306,7 +306,7 @@ const Onboarding = ({ onComplete }) => {
                   onClick={() => setTargetLanguage("Korean")}
                   className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
                     targetLanguage === "Korean"
-                      ? "border-orange-500 bg-orange-50 text-orange-700"
+                      ? "border-orange-600 bg-orange-50 text-orange-700"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -318,7 +318,7 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === "Korean" && (
-                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
                   )}
@@ -329,7 +329,7 @@ const Onboarding = ({ onComplete }) => {
             <Button
               onClick={handleNext}
               disabled={!targetLanguage}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-orange-600 hover:bg-orange-700"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -378,7 +378,7 @@ const Onboarding = ({ onComplete }) => {
                       className="w-full flex-shrink-0 bg-yellow-50 rounded-lg p-6 border border-yellow-200"
                     >
                       <div className="flex items-center justify-between mb-4">
-                        <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                           Level {post.level}: {post.name}
                         </div>
                         <div className="text-sm text-gray-500">
@@ -417,7 +417,7 @@ const Onboarding = ({ onComplete }) => {
 
                         <Button
                           onClick={() => selectLevel(post.level)}
-                          className="w-full bg-orange-500 hover:bg-orange-600"
+                          className="w-full bg-orange-600 hover:bg-orange-700"
                         >
                           Select This Level ({post.name})
                         </Button>
@@ -436,7 +436,7 @@ const Onboarding = ({ onComplete }) => {
                   onClick={() => setCurrentCarouselIndex(index)}
                   className={`w-3 h-3 rounded-full transition-all ${
                     currentCarouselIndex === index
-                      ? "bg-orange-500"
+                      ? "bg-orange-600"
                       : "bg-gray-300 hover:bg-gray-400"
                   }`}
                 />
@@ -517,10 +517,10 @@ const Onboarding = ({ onComplete }) => {
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { name: "orange", color: "bg-orange-500" },
-                    { name: "blue", color: "bg-blue-500" },
-                    { name: "green", color: "bg-green-500" },
-                    { name: "purple", color: "bg-purple-500" },
+                    { name: "orange", color: "bg-orange-600" },
+                    { name: "blue", color: "bg-blue-600" },
+                    { name: "green", color: "bg-green-600" },
+                    { name: "purple", color: "bg-purple-600" },
                   ].map(({ name, color }) => (
                     <button
                       key={name}
@@ -552,14 +552,14 @@ const Onboarding = ({ onComplete }) => {
                     onChange={(e) => setStudyReminder(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
                 </label>
               </div>
             </div>
 
             <Button
               onClick={handleNext}
-              className="w-full mt-8 bg-orange-500 hover:bg-orange-600"
+              className="w-full mt-8 bg-orange-600 hover:bg-orange-700"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -627,7 +627,7 @@ const Onboarding = ({ onComplete }) => {
 
             <Button
               onClick={handleNext}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-orange-600 hover:bg-orange-700"
             >
               Start Learning! <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
