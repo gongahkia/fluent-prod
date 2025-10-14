@@ -5,7 +5,7 @@ actor User
 actor Cron as "Backend Cron (node-cron)"
 participant "Reddit API" as Reddit
 participant "Backend Processing" as Proc
-database "Firebase Firestore" as Firestore
+database "Firebase Firestor" as Firestore
 participant "Backend API (Express)" as API
 participant "Frontend (React)" as FE
 
