@@ -1,0 +1,61 @@
+{
+  "korean": [
+    {
+      "name": "r/korea",
+      "displayName": "Korea",
+      "subreddits": ["korea", "southkorea", "seoul", "hanguk"]
+    },
+    {
+      "name": "r/kpop",
+      "displayName": "K-Pop",
+      "subreddits": ["kpop"]
+    },
+    {
+      "name": "r/korean",
+      "displayName": "Korean Language",
+      "subreddits": ["korean"]
+    },
+    {
+      "name": "r/koreanews",
+      "displayName": "Korean News",
+      "subreddits": ["koreanews"]
+    },
+    {
+      "name": "r/koreamemes",
+      "displayName": "Korean Memes",
+      "subreddits": ["koreamemes"]
+    }
+  ],
+  "japanese": [
+    {
+      "name": "r/japan",
+      "displayName": "Japan",
+      "subreddits": ["lowlevelaware", "newsokur", "shibuya", "harajuku"]
+    },
+    {
+      "name": "r/anime",
+      "displayName": "Anime",
+      "subreddits": ["anime"]
+    },
+    {
+      "name": "r/manga",
+      "displayName": "Manga",
+      "subreddits": ["manga"]
+    },
+    {
+      "name": "r/jpop",
+      "displayName": "J-Pop",
+      "subreddits": ["jpop"]
+    },
+    {
+      "name": "r/japannews",
+      "displayName": "Japan News",
+      "subreddits": ["japannews", "BakaNewsJP"]
+    },
+    {
+      "name": "r/japanmemes",
+      "displayName": "Japan Memes",
+      "subreddits": ["japanmemes"]
+    }
+  ]
+}

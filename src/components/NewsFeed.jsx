@@ -934,7 +934,7 @@ const NewsFeed = ({
                 )}
               </div>
 
-              {/* Bottom Row: Reply & View Comments (left) and "Open in Reddit" (right) */}
+              {/* Bottom Row: View Comments (left) and "Open in Reddit" (right) */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-4">
                   <button
@@ -942,12 +942,6 @@ const NewsFeed = ({
                     className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>Reply</span>
-                  </button>
-                  <button
-                    onClick={() => toggleComments(article.id)}
-                    className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
-                  >
                     <span>View Comments ({article.comments || getCommentCount(article.id) || 0})</span>
                   </button>
                 </div>

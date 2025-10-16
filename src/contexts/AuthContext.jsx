@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           // Profile doesn't exist, create a minimal profile
           // DO NOT set level - this should only be set after onboarding
+          // Default customization values (previously from onboarding step 4)
           const defaultProfile = {
             name: user.displayName || user.email?.split('@')[0] || 'User',
             email: user.email,
