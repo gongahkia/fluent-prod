@@ -36,12 +36,7 @@
     "default": {
       "language": "English",
       "targetLang": "en",
-      "subreddits": [
-        "memes",
-        "trending",
-        "news",
-        "worldnews"
-      ],
+      "subreddits": ["memes", "trending", "news", "worldnews"],
       "description": "Default fallback subreddits"
     }
   },
@@ -112,4 +107,3 @@
     "shuffleResults": true
   }
 }
-

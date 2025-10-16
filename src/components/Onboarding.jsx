@@ -457,15 +457,42 @@ const Onboarding = ({ onComplete }) => {
                   const languageKey = targetLanguage === "Korean" ? "korean" : "japanese";
                   const categories = interestCategoriesData[languageKey] || [];
 
-                  return categories.map((category) => {
+                  // Flatten categories and their children into a single array for rendering
+                  const renderItems = [];
+                  categories.forEach((category) => {
                     const isExpanded = expandedCategories.includes(category.name);
                     const isSelected = selectedInterests.includes(category.name);
-                    const hasSubreddits = category.subreddits && category.subreddits.length > 0;
+                    const hasSubreddits = category.subreddits && category.subreddits.length > 1;
 
-                    return (
-                      <div key={category.name} className="w-full">
-                        {/* Top-level category button */}
+                    // Add parent category
+                    renderItems.push({
+                      type: 'parent',
+                      category,
+                      isExpanded,
+                      isSelected,
+                      hasSubreddits
+                    });
+
+                    // Add children immediately after parent if expanded
+                    if (isExpanded && hasSubreddits) {
+                      category.subreddits.forEach((subreddit) => {
+                        renderItems.push({
+                          type: 'child',
+                          parentName: category.name,
+                          subreddit,
+                          subredditKey: `${category.name}/${subreddit}`
+                        });
+                      });
+                    }
+                  });
+
+                  return renderItems.map((item, index) => {
+                    if (item.type === 'parent') {
+                      const { category, isExpanded, isSelected, hasSubreddits } = item;
+
+                      return (
                         <button
+                          key={category.name}
                           onClick={() => {
                             // Toggle selection
                             setSelectedInterests(prev =>
@@ -473,7 +500,7 @@ const Onboarding = ({ onComplete }) => {
                                 ? prev.filter(i => i !== category.name)
                                 : [...prev, category.name]
                             );
-                            // Toggle expansion if has subreddits
+                            // Toggle expansion if has multiple subreddits
                             if (hasSubreddits) {
                               setExpandedCategories(prev =>
                                 prev.includes(category.name)
@@ -482,54 +509,48 @@ const Onboarding = ({ onComplete }) => {
                               );
                             }
                           }}
-                          className={`w-full px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-between ${
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all inline-flex items-center gap-1.5 ${
                             isSelected
                               ? "bg-gray-900 text-white"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
                           <span>{category.name}</span>
-                          {hasSubreddits && category.subreddits.length > 1 && (
+                          {hasSubreddits && (
                             isExpanded ? (
-                              <ChevronUp className="w-4 h-4" />
+                              <ChevronUp className="w-3.5 h-3.5" />
                             ) : (
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronDown className="w-3.5 h-3.5" />
                             )
                           )}
                         </button>
+                      );
+                    } else {
+                      // Child subreddit
+                      const { subreddit, subredditKey } = item;
+                      const isSubSelected = selectedInterests.includes(subredditKey);
 
-                        {/* Sub-subreddits (if expanded and has multiple) */}
-                        {isExpanded && hasSubreddits && category.subreddits.length > 1 && (
-                          <div className="ml-6 mt-2 space-y-2 mb-2">
-                            {category.subreddits.map((subreddit) => {
-                              const subredditKey = `${category.name}/${subreddit}`;
-                              const isSubSelected = selectedInterests.includes(subredditKey);
-
-                              return (
-                                <button
-                                  key={subreddit}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedInterests(prev =>
-                                      prev.includes(subredditKey)
-                                        ? prev.filter(i => i !== subredditKey)
-                                        : [...prev, subredditKey]
-                                    );
-                                  }}
-                                  className={`w-full px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                    isSubSelected
-                                      ? "bg-gray-900 text-white"
-                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                  }`}
-                                >
-                                  r/{subreddit}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
+                      return (
+                        <button
+                          key={subredditKey}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedInterests(prev =>
+                              prev.includes(subredditKey)
+                                ? prev.filter(i => i !== subredditKey)
+                                : [...prev, subredditKey]
+                            );
+                          }}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            isSubSelected
+                              ? "bg-gray-900 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          r/{subreddit}
+                        </button>
+                      );
+                    }
                   });
                 })()}
               </div>
