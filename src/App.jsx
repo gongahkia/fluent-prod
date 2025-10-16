@@ -30,26 +30,20 @@ function App() {
   const [firebaseError, setFirebaseError] = useState(null)
   const isMobile = useIsMobile()
 
-  // Listen to dictionary changes in real-time
+  // Listen to dictionary changes in real-time (language-specific)
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser || !userProfile?.targetLanguage) return
 
     const unsubscribe = onDictionaryChange(
       currentUser.uid,
       (words) => {
         setUserDictionary(words)
       },
-      (error) => {
-        // Handle Firebase errors in real-time listener
-        console.error('Dictionary listener error:', error)
-        if (error.blocked) {
-          setFirebaseError(error.errorInfo)
-        }
-      }
+      userProfile.targetLanguage // Pass target language for correct collection
     )
 
     return () => unsubscribe()
-  }, [currentUser])
+  }, [currentUser, userProfile?.targetLanguage])
 
   // Close language dropdown when clicking outside
   useEffect(() => {
@@ -119,6 +113,7 @@ function App() {
       example: wordData.example,
       exampleEn: wordData.exampleEn || `Example sentence with ${wordData.english}.`,
       source: wordData.source || "Fluent Post",
+      targetLanguage: targetLang, // Add target language to word data
     }
 
     // Add language-specific fields
@@ -143,6 +138,7 @@ function App() {
     }
 
     // Add to Firestore (will trigger real-time update)
+    // The targetLanguage in newWord will be used to determine the correct collection
     const result = await addWordToDb(currentUser.uid, newWord)
 
     // Check for Firebase errors
@@ -155,7 +151,9 @@ function App() {
     if (!currentUser) return
 
     // Remove from Firestore (will trigger real-time update)
-    await removeWordFromDb(currentUser.uid, wordId)
+    // Pass target language to remove from correct collection
+    const targetLang = userProfile?.targetLanguage || 'Japanese'
+    await removeWordFromDb(currentUser.uid, wordId, targetLang)
   }
 
   const handleNavigation = (view) => {

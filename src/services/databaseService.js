@@ -125,19 +125,36 @@ export const getUserCredentials = async (userId) => {
 // ================== DICTIONARY OPERATIONS ==================
 
 /**
- * Add word to user's dictionary
+ * Helper function to get the correct dictionary collection name based on language
+ * @param {string} targetLanguage - 'Japanese' or 'Korean'
+ * @returns {string} Collection name (e.g., 'dictionary_ja' or 'dictionary_ko')
+ */
+const getDictionaryCollectionName = (targetLanguage) => {
+  const languageCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
+  return `dictionary_${languageCode}`
+}
+
+/**
+ * Add word to user's language-specific dictionary
+ * @param {string} userId - User ID
+ * @param {object} wordData - Word data including targetLanguage
  */
 export const addWordToDictionary = async (userId, wordData) => {
   try {
+    // Determine target language from wordData or default to Japanese
+    const targetLanguage = wordData.targetLanguage || 'Japanese'
+    const collectionName = getDictionaryCollectionName(targetLanguage)
+
     const wordRef = doc(
       db,
       "users",
       userId,
-      "dictionary",
+      collectionName,
       wordData.id.toString()
     )
     await setDoc(wordRef, {
       ...wordData,
+      targetLanguage, // Store the language with the word
       dateAdded: serverTimestamp(),
     })
     return { success: true }
@@ -148,11 +165,14 @@ export const addWordToDictionary = async (userId, wordData) => {
 }
 
 /**
- * Get all words from user's dictionary
+ * Get all words from user's language-specific dictionary
+ * @param {string} userId - User ID
+ * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
  */
-export const getUserDictionary = async (userId) => {
+export const getUserDictionary = async (userId, targetLanguage = 'Japanese') => {
   try {
-    const dictionaryRef = collection(db, "users", userId, "dictionary")
+    const collectionName = getDictionaryCollectionName(targetLanguage)
+    const dictionaryRef = collection(db, "users", userId, collectionName)
     const querySnapshot = await retryFirebaseOperation(() =>
       getDocs(dictionaryRef)
     )
@@ -182,11 +202,15 @@ export const getUserDictionary = async (userId) => {
 }
 
 /**
- * Remove word from user's dictionary
+ * Remove word from user's language-specific dictionary
+ * @param {string} userId - User ID
+ * @param {string} wordId - Word ID
+ * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
  */
-export const removeWordFromDictionary = async (userId, wordId) => {
+export const removeWordFromDictionary = async (userId, wordId, targetLanguage = 'Japanese') => {
   try {
-    const wordRef = doc(db, "users", userId, "dictionary", wordId.toString())
+    const collectionName = getDictionaryCollectionName(targetLanguage)
+    const wordRef = doc(db, "users", userId, collectionName, wordId.toString())
     await deleteDoc(wordRef)
     return { success: true }
   } catch (error) {
@@ -196,10 +220,14 @@ export const removeWordFromDictionary = async (userId, wordId) => {
 }
 
 /**
- * Listen to dictionary changes in real-time
+ * Listen to language-specific dictionary changes in real-time
+ * @param {string} userId - User ID
+ * @param {function} callback - Callback function
+ * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
  */
-export const onDictionaryChange = (userId, callback) => {
-  const dictionaryRef = collection(db, "users", userId, "dictionary")
+export const onDictionaryChange = (userId, callback, targetLanguage = 'Japanese') => {
+  const collectionName = getDictionaryCollectionName(targetLanguage)
+  const dictionaryRef = collection(db, "users", userId, collectionName)
   return onSnapshot(dictionaryRef, (snapshot) => {
     const words = []
     snapshot.forEach((doc) => {
@@ -207,6 +235,28 @@ export const onDictionaryChange = (userId, callback) => {
     })
     callback(words)
   })
+}
+
+/**
+ * Get all dictionaries for a user (both Japanese and Korean)
+ * Useful for migration and admin purposes
+ */
+export const getAllUserDictionaries = async (userId) => {
+  try {
+    const jaResult = await getUserDictionary(userId, 'Japanese')
+    const koResult = await getUserDictionary(userId, 'Korean')
+
+    return {
+      success: true,
+      data: {
+        japanese: jaResult.success ? jaResult.data : [],
+        korean: koResult.success ? koResult.data : []
+      }
+    }
+  } catch (error) {
+    console.error("Error getting all user dictionaries:", error)
+    return { success: false, error: error.message }
+  }
 }
 
 // ================== FLASHCARD OPERATIONS ==================
