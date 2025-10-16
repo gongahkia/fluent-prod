@@ -18,7 +18,6 @@ router.post('/', async (req, res, next) => {
       userLevel = null,
       targetLang = 'ja',
       // API credentials from frontend
-      twitterBearerToken = null,
       instagramUsername = null,
       instagramPassword = null
     } = req.body
@@ -32,7 +31,6 @@ router.post('/', async (req, res, next) => {
       offset,
       userLevel,
       targetLang,
-      twitterBearerToken,
       instagramUsername,
       instagramPassword
     })
@@ -76,13 +74,11 @@ router.get('/', async (req, res, next) => {
 router.post('/sources', async (req, res, next) => {
   try {
     const {
-      twitterBearerToken = null,
       instagramUsername = null,
       instagramPassword = null
     } = req.body
 
     const sources = getAvailableSources({
-      twitterBearerToken,
       instagramUsername,
       instagramPassword
     })

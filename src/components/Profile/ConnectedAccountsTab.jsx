@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { Link, Twitter, Bot, X } from "lucide-react"
+import { Link, Bot, X } from "lucide-react"
 
 const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
   const [showPopup, setShowPopup] = useState(null)
@@ -23,23 +23,6 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
       instructions: "Get your API credentials from Reddit Apps: https://www.reddit.com/prefs/apps",
       apiKeyField: "redditApiKey",
       placeholder: "Enter your Reddit API Key"
-    },
-    {
-      id: "twitter",
-      name: "Twitter/X API",
-      icon: Twitter,
-      connected: !!formData.twitterBearerToken,
-      color: "blue",
-      benefits: [
-        "Share posts to your Twitter feed",
-        "Cross-post your translations",
-        "Connect with other learners on Twitter",
-        "Import tweets for language practice",
-        "Auto-tweet your learning milestones"
-      ],
-      instructions: "Get your Bearer Token from Twitter Developer Portal: https://developer.twitter.com/",
-      apiKeyField: "twitterBearerToken",
-      placeholder: "Enter your Twitter Bearer Token"
     },
     {
       id: "gemini",

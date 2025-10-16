@@ -10,7 +10,6 @@ const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
  */
 function getApiCredentials() {
   return {
-    twitterBearerToken: sessionStorage.getItem('twitterBearerToken') || null,
     instagramUsername: sessionStorage.getItem('instagramUsername') || null,
     instagramPassword: sessionStorage.getItem('instagramPassword') || null
   }

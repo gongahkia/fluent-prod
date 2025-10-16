@@ -37,8 +37,7 @@
     "morgan": "^1.10.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
-    "syllable": "^5.0.1",
-    "twitter-api-v2": "^1.27.0"
+    "syllable": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

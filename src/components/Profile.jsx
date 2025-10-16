@@ -61,7 +61,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     fontSize: userProfile?.settings?.appearance?.fontSize || "medium",
     // API keys
     redditApiKey: "",
-    twitterBearerToken: "",
     geminiApiKey: "",
   })
 
@@ -94,13 +93,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           setFormData(prev => ({
             ...prev,
             redditApiKey: decrypted.redditApiKey || '',
-            twitterBearerToken: decrypted.twitterBearerToken || '',
             geminiApiKey: decrypted.geminiApiKey || '',
           }))
 
           // Also save to localStorage for immediate use by other components
           localStorage.setItem('redditApiKey', decrypted.redditApiKey || '')
-          localStorage.setItem('twitterBearerToken', decrypted.twitterBearerToken || '')
           localStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
         }
       } catch (error) {
@@ -177,7 +174,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       // Separate sensitive credentials from regular profile data
       const credentials = {
         redditApiKey: formData.redditApiKey,
-        twitterBearerToken: formData.twitterBearerToken,
         geminiApiKey: formData.geminiApiKey,
       }
 
@@ -189,7 +185,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       // Save to localStorage for immediate use
       localStorage.setItem('redditApiKey', formData.redditApiKey)
-      localStorage.setItem('twitterBearerToken', formData.twitterBearerToken)
       localStorage.setItem('geminiApiKey', formData.geminiApiKey)
 
       // Save regular profile settings to Firebase

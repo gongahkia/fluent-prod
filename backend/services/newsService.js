@@ -1,7 +1,6 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
-// Twitter and Instagram imports removed - Reddit only policy
-// import { TwitterApi } from 'twitter-api-v2'
+// Instagram imports removed - Reddit only policy
 // import { IgApiClient } from 'instagram-private-api'
 import { downloadPostsFromStorage } from './storageService.js'
 import { stripMarkdownToPlaintext } from '../utils/textUtils.js'
@@ -20,14 +19,14 @@ setInterval(() => {
 }, 3600000)
 
 // API Configuration - REDDIT ONLY
-// Twitter and Instagram are disabled to ensure only Reddit posts are cached
+// Instagram is disabled to ensure only Reddit posts are cached
 const API_CONFIG = {
   reddit: {
     name: 'Reddit',
     baseUrl: 'https://www.reddit.com',
     enabled: true
   }
-  // Twitter and Instagram removed - Reddit only policy
+  // Instagram removed - Reddit only policy
 }
 
 // Note: stripMarkdownToPlaintext and calculateEnglishDifficulty are now imported from utils
@@ -203,17 +202,11 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
   }
 }
 
-// TWITTER AND INSTAGRAM DISABLED - REDDIT ONLY POLICY
+// INSTAGRAM DISABLED - REDDIT ONLY POLICY
 // These functions are kept for reference but are not used
 // The codebase only supports Reddit to ensure consistent post quality and caching
 
 /*
-async function fetchTwitterPosts(query = 'japan', limit = 10, searchQuery = null, bearerToken = null) {
-  // DISABLED - Reddit only
-  console.warn('Twitter posts are disabled. Only Reddit is supported.')
-  return []
-}
-
 async function fetchInstagramPosts(query = 'japan', limit = 10, searchQuery = null, username = null, password = null) {
   // DISABLED - Reddit only
   console.warn('Instagram posts are disabled. Only Reddit is supported.')
@@ -233,7 +226,6 @@ export async function fetchNews(options = {}) {
     userLevel = null,
     targetLang = 'ja',
     // API credentials from sessionStorage
-    twitterBearerToken = null,
     instagramUsername = null,
     instagramPassword = null
   } = options
@@ -274,7 +266,7 @@ export async function fetchNews(options = {}) {
   // For Reddit (main source), use the pagination data
   const redditResult = results.find(r => r.posts !== undefined) || { posts: [], totalCount: 0, hasMore: false }
 
-  // For other sources (Twitter, Instagram), get just the posts
+  // For other sources (Instagram), get just the posts
   const otherPosts = results
     .filter(r => Array.isArray(r))
     .flat()
