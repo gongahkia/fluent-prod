@@ -371,3 +371,50 @@ export const searchUsers = async (query) => {
     throw error
   }
 }
+
+/**
+ * Get all dictionary entries from all users
+ */
+export const getAllDictionaryEntries = async () => {
+  try {
+    const db = getDb()
+    const usersSnapshot = await db.collection('users').get()
+    const allEntries = []
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id
+      const userData = userDoc.data()
+
+      // Get Japanese entries
+      const jaSnapshot = await db.collection('users').doc(userId).collection('dictionary_ja').get()
+      jaSnapshot.forEach(entryDoc => {
+        allEntries.push({
+          id: entryDoc.id,
+          userId: userId,
+          userName: userData.name || 'Unknown',
+          userEmail: userData.email || 'N/A',
+          language: 'Japanese',
+          ...entryDoc.data()
+        })
+      })
+
+      // Get Korean entries
+      const koSnapshot = await db.collection('users').doc(userId).collection('dictionary_ko').get()
+      koSnapshot.forEach(entryDoc => {
+        allEntries.push({
+          id: entryDoc.id,
+          userId: userId,
+          userName: userData.name || 'Unknown',
+          userEmail: userData.email || 'N/A',
+          language: 'Korean',
+          ...entryDoc.data()
+        })
+      })
+    }
+
+    return allEntries
+  } catch (error) {
+    console.error('Error getting all dictionary entries:', error)
+    throw error
+  }
+}

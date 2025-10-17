@@ -229,4 +229,18 @@ router.get('/users/:userId/social', async (req, res) => {
   }
 })
 
+/**
+ * ALL POSTS ENDPOINT
+ */
+
+// Get all dictionary entries (Japanese and Korean posts) from all users
+router.get('/all-posts', async (req, res) => {
+  try {
+    const entries = await adminService.getAllDictionaryEntries()
+    res.json({ success: true, data: entries })
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 export default router

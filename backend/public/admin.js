@@ -397,57 +397,79 @@ function attachAllEventHandlers(userId) {
 }
 
 async function loadAllPosts() {
-  document.getElementById('contentSection').innerHTML = '<p>Loading all posts from all users...</p>';
+  document.getElementById('contentSection').innerHTML = '<p>Loading all Japanese and Korean dictionary entries from all users...</p>';
 
-  const usersRes = await apiRequest(API_BASE + '/users');
-  if (!usersRes || !usersRes.success) {
-    document.getElementById('contentSection').innerHTML = '<p>Error loading users</p>';
+  const response = await apiRequest(API_BASE + '/all-posts');
+  if (!response || !response.success) {
+    document.getElementById('contentSection').innerHTML = '<p>Error loading dictionary entries</p>';
     return;
   }
 
-  const users = usersRes.data;
-  const allPostsPromises = users.map(user =>
-    apiRequest(API_BASE + '/users/' + user.id + '/saved-posts')
-  );
-
-  const allPostsResponses = await Promise.all(allPostsPromises);
-
-  let allPosts = [];
-  allPostsResponses.forEach((res, idx) => {
-    if (res && res.success) {
-      res.data.forEach(post => {
-        allPosts.push({
-          ...post,
-          userId: users[idx].id,
-          userName: users[idx].name || 'Unknown'
-        });
-      });
-    }
-  });
-
-  displayAllPosts(allPosts);
+  displayAllPosts(response.data);
 }
 
 function displayAllPosts(posts) {
   if (posts.length === 0) {
-    document.getElementById('contentSection').innerHTML = '<p>No posts found</p>';
+    document.getElementById('contentSection').innerHTML = '<p>No dictionary entries found</p>';
     return;
   }
 
-  let html = '<h2>All Posts (' + posts.length + ')</h2>';
+  // Count by language
+  const japaneseCount = posts.filter(p => p.language === 'Japanese').length;
+  const koreanCount = posts.filter(p => p.language === 'Korean').length;
+
+  let html = '<h2>All Dictionary Entries (' + posts.length + ')</h2>';
+  html += '<p>Japanese: ' + japaneseCount + ' | Korean: ' + koreanCount + '</p>';
   html += '<div>';
 
   posts.forEach(function(post) {
+    const isJapanese = post.language === 'Japanese';
+
     html += '<div style="border: 1px solid black; padding: 15px; margin: 10px 0;">';
     html += '<div style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">';
-    html += '<strong>User:</strong> ' + escapeHtml(post.userName) + ' (ID: ' + escapeHtml(post.userId) + ')';
+    html += '<strong>User:</strong> ' + escapeHtml(post.userName) + ' (' + escapeHtml(post.userEmail) + ')';
+    html += ' | <strong>Language:</strong> ' + escapeHtml(post.language);
+    html += ' | <strong>Level:</strong> ' + (post.level || 1);
     html += '</div>';
-    html += '<strong>' + escapeHtml(post.title || 'No Title') + '</strong><br>';
-    html += '<p>' + escapeHtml((post.content || '').substring(0, 300)) + '...</p>';
+
+    // Show fields based on language
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>English:</strong></label>';
+    html += '<input type="text" class="entry-english" value="' + escapeHtml(post.english || '') + '" style="width: 300px;">';
+    html += '</div>';
+
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>' + (isJapanese ? 'Japanese:' : 'Korean:') + '</strong></label>';
+    html += '<input type="text" class="entry-target" value="' + escapeHtml(post[isJapanese ? 'japanese' : 'korean'] || '') + '" style="width: 300px;">';
+    html += '</div>';
+
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>' + (isJapanese ? 'Hiragana:' : 'Romanization:') + '</strong></label>';
+    html += '<input type="text" class="entry-reading" value="' + escapeHtml(post[isJapanese ? 'hiragana' : 'romanization'] || '') + '" style="width: 300px;">';
+    html += '</div>';
+
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Level:</strong></label>';
+    html += '<input type="number" class="entry-level" value="' + (post.level || 1) + '" min="1" max="5" style="width: 100px;">';
+    html += '</div>';
+
+    if (post.example) {
+      html += '<div style="margin: 10px 0;">';
+      html += '<label style="display: inline-block; width: 120px;"><strong>Example:</strong></label>';
+      html += '<input type="text" class="entry-example" value="' + escapeHtml(post.example || '') + '" style="width: 500px;">';
+      html += '</div>';
+    }
+
+    if (post.exampleEn) {
+      html += '<div style="margin: 10px 0;">';
+      html += '<label style="display: inline-block; width: 120px;"><strong>Example (EN):</strong></label>';
+      html += '<input type="text" class="entry-exampleEn" value="' + escapeHtml(post.exampleEn || '') + '" style="width: 500px;">';
+      html += '</div>';
+    }
+
     html += '<div style="margin-top: 10px;">';
-    html += '<label>Source:</label> <input type="text" class="post-source-all" value="' + escapeHtml(post.source || '') + '" style="width: 200px;">';
-    html += '<button class="save-post-all-btn" data-userid="' + post.userId + '" data-postid="' + post.id + '" style="margin-left: 10px;">Save Changes</button>';
-    html += '<button class="delete-post-all-btn" data-userid="' + post.userId + '" data-postid="' + post.id + '" style="margin-left: 10px;">Delete</button>';
+    html += '<button class="save-entry-btn" data-userid="' + post.userId + '" data-entryid="' + post.id + '" data-lang="' + (isJapanese ? 'ja' : 'ko') + '">Save Changes</button>';
+    html += '<button class="delete-entry-btn" data-userid="' + post.userId + '" data-entryid="' + post.id + '" data-lang="' + (isJapanese ? 'ja' : 'ko') + '" style="margin-left: 10px;">Delete</button>';
     html += '</div>';
     html += '</div>';
   });
@@ -455,21 +477,47 @@ function displayAllPosts(posts) {
   html += '</div>';
   document.getElementById('contentSection').innerHTML = html;
 
-  // Attach handlers
-  document.querySelectorAll('.save-post-all-btn').forEach(function(btn) {
+  // Attach save handlers
+  document.querySelectorAll('.save-entry-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      const postDiv = this.closest('div[style*="border"]');
-      const sourceInput = postDiv.querySelector('.post-source-all');
-      savePost(this.getAttribute('data-userid'), this.getAttribute('data-postid'), sourceInput.value);
+      const entryDiv = this.closest('div[style*="border"]');
+      const userId = this.getAttribute('data-userid');
+      const entryId = this.getAttribute('data-entryid');
+      const lang = this.getAttribute('data-lang');
+      const isJa = lang === 'ja';
+
+      const updateData = {
+        english: entryDiv.querySelector('.entry-english').value,
+        level: parseInt(entryDiv.querySelector('.entry-level').value) || 1
+      };
+
+      if (isJa) {
+        updateData.japanese = entryDiv.querySelector('.entry-target').value;
+        updateData.hiragana = entryDiv.querySelector('.entry-reading').value;
+      } else {
+        updateData.korean = entryDiv.querySelector('.entry-target').value;
+        updateData.romanization = entryDiv.querySelector('.entry-reading').value;
+      }
+
+      const exampleInput = entryDiv.querySelector('.entry-example');
+      if (exampleInput) updateData.example = exampleInput.value;
+
+      const exampleEnInput = entryDiv.querySelector('.entry-exampleEn');
+      if (exampleEnInput) updateData.exampleEn = exampleEnInput.value;
+
+      saveDictionaryEntry(userId, lang, entryId, updateData);
     });
   });
 
-  document.querySelectorAll('.delete-post-all-btn').forEach(function(btn) {
+  // Attach delete handlers
+  document.querySelectorAll('.delete-entry-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       const userId = this.getAttribute('data-userid');
-      const postId = this.getAttribute('data-postid');
-      if (confirm('Delete this post?')) {
-        deleteSavedPost(userId, postId, true); // true = reload all posts view
+      const entryId = this.getAttribute('data-entryid');
+      const lang = this.getAttribute('data-lang');
+
+      if (confirm('Delete this dictionary entry?')) {
+        deleteDictionaryEntryFromAllPosts(userId, lang, entryId);
       }
     });
   });
@@ -547,10 +595,37 @@ async function saveUserProfile(userId) {
   }
 }
 
-async function savePost(userId, postId, newSource) {
-  // Since we can't update saved posts directly via the current API,
-  // we'll need to implement this on the backend first
-  alert('Post editing not yet implemented in backend API');
+async function saveDictionaryEntry(userId, lang, entryId, updateData) {
+  try {
+    // Validate level
+    if (updateData.level < 1 || updateData.level > 5) {
+      alert('ERROR: Level must be between 1 and 5');
+      return;
+    }
+
+    const response = await apiRequest(API_BASE + '/users/' + userId + '/dictionary/' + lang + '/' + entryId, {
+      method: 'PUT',
+      body: updateData
+    });
+
+    if (response && response.success) {
+      alert('SUCCESS: Dictionary entry updated successfully!');
+    } else {
+      alert('ERROR: Failed to update dictionary entry. ' + (response ? response.error : 'Unknown error'));
+    }
+  } catch (e) {
+    alert('ERROR: ' + e.message);
+  }
+}
+
+async function deleteDictionaryEntryFromAllPosts(userId, lang, entryId) {
+  const response = await apiRequest(API_BASE + '/users/' + userId + '/dictionary/' + lang + '/' + entryId, { method: 'DELETE' });
+  if (response && response.success) {
+    alert('SUCCESS: Dictionary entry deleted successfully!');
+    loadAllPosts(); // Reload all posts view
+  } else {
+    alert('ERROR: Failed to delete dictionary entry. ' + (response ? response.error : 'Unknown error'));
+  }
 }
 
 async function deleteUser(userId) {
