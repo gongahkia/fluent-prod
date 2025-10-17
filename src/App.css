@@ -4,12 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Font Configuration - Plus Jakarta Sans with CJK and fallbacks */
-  --font-sans: "Plus Jakarta Sans", "Outfit", "Inter", "Space Grotesk", "Manrope", "DM Sans", "Noto Sans JP", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-
-  /* Language-specific font stacks */
-  --font-japanese: "Noto Sans JP", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-korean: "Noto Sans KR", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Font variables are loaded dynamically from src/config/fonts.json */
+  /* --font-sans, --font-japanese, --font-korean are injected by src/utils/fontLoader.js */
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

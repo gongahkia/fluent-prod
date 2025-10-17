@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
 import App from "./App.jsx"
 import { AuthProvider } from "./contexts/AuthContext"
+import { initializeFonts } from "./utils/fontLoader"
+
+// Initialize fonts from config before rendering
+initializeFonts()
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
