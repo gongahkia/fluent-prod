@@ -124,6 +124,19 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* Language-specific font application */
+  :lang(ja),
+  [lang="ja"],
+  .lang-ja {
+    font-family: var(--font-japanese);
+  }
+
+  :lang(ko),
+  [lang="ko"],
+  .lang-ko {
+    font-family: var(--font-korean);
+  }
 }
 
 /* Translation slider styles */
