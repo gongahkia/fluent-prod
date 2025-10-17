@@ -11,6 +11,7 @@ import newsRoutes from './routes/news.js'
 import translationRoutes from './routes/translation.js'
 import vocabularyRoutes from './routes/vocabulary.js'
 import aiRoutes from './routes/ai.js'
+import redditRoutes from './routes/reddit.js'
 
 // Import Firebase and scheduled jobs
 import { initializeFirebase } from './config/firebase.js'
@@ -78,7 +79,8 @@ app.get('/', (req, res) => {
       health: '/health',
       news: '/api/news',
       translate: '/api/translate',
-      vocabulary: '/api/vocabulary'
+      vocabulary: '/api/vocabulary',
+      reddit: '/api/reddit'
     }
   })
 })
@@ -97,6 +99,7 @@ app.use('/api/news', newsRoutes)
 app.use('/api/translate', translationRoutes)
 app.use('/api/vocabulary', vocabularyRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/reddit', redditRoutes)
 
 // 404 handler
 app.use((req, res) => {

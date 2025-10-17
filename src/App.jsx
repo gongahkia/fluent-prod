@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react"
 import React, { useState, useEffect } from "react"
+import { Routes, Route } from "react-router-dom"
 import Auth from "./components/Auth"
 import Dictionary from "./components/Dictionary"
 import Flashcards from "./components/Flashcards"
@@ -10,6 +11,7 @@ import SavedPosts from "./components/SavedPosts"
 import UserSearch from "./components/UserSearch"
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning"
 import MobileBottomBar from "./components/MobileBottomBar"
+import RedditCallback from "./pages/RedditCallback"
 import { useIsMobile } from "./hooks/use-mobile"
 import { useAuth } from "./contexts/AuthContext"
 import {
@@ -172,6 +174,46 @@ function App() {
     }
   }
 
+  // Handle Reddit OAuth callback route first (before auth checks)
+  return (
+    <Routes>
+      {/* Reddit OAuth Callback */}
+      <Route path="/auth/reddit/callback" element={<RedditCallback />} />
+
+      {/* Main App */}
+      <Route path="*" element={<MainApp
+        currentUser={currentUser}
+        userProfile={userProfile}
+        showOnboarding={showOnboarding}
+        currentView={currentView}
+        userDictionary={userDictionary}
+        showLanguageDropdown={showLanguageDropdown}
+        firebaseError={firebaseError}
+        isMobile={isMobile}
+        setShowLanguageDropdown={setShowLanguageDropdown}
+        setCurrentView={setCurrentView}
+        handleLanguageChange={handleLanguageChange}
+        handleNavigation={handleNavigation}
+        handleLogout={handleLogout}
+        handleAuthComplete={handleAuthComplete}
+        handleOnboardingComplete={handleOnboardingComplete}
+        handleProfileUpdate={handleProfileUpdate}
+        addWordToDictionary={addWordToDictionary}
+        removeWordFromDictionary={removeWordFromDictionary}
+        setFirebaseError={setFirebaseError}
+      />} />
+    </Routes>
+  )
+}
+
+// Extracted main app logic into separate component
+function MainApp({
+  currentUser, userProfile, showOnboarding, currentView, userDictionary,
+  showLanguageDropdown, firebaseError, isMobile, setShowLanguageDropdown,
+  setCurrentView, handleLanguageChange, handleNavigation, handleLogout,
+  handleAuthComplete, handleOnboardingComplete, handleProfileUpdate,
+  addWordToDictionary, removeWordFromDictionary, setFirebaseError
+}) {
   // Show authentication if not authenticated
   if (!currentUser) {
     return <Auth onAuthComplete={handleAuthComplete} />
