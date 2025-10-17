@@ -1,0 +1,109 @@
+{
+  "description": "Configuration for Reddit subreddits to fetch posts from for each language/query",
+  "queries": {
+    "korea": {
+      "language": "Korean",
+      "targetLang": "ko",
+      "subreddits": [
+        "hanguk",
+        "kpop",
+        "korea",
+        "korean",
+        "southkorea",
+        "seoul",
+        "koreanews",
+        "koreamemes"
+      ],
+      "description": "Korean language and culture subreddits"
+    },
+    "japan": {
+      "language": "Japanese",
+      "targetLang": "ja",
+      "subreddits": [
+        "lowlevelaware",
+        "newsokur",
+        "anime",
+        "BakaNewsJP",
+        "manga",
+        "jpop",
+        "japannews",
+        "japanmemes",
+        "shibuya",
+        "harajuku"
+      ],
+      "description": "Japanese language and culture subreddits"
+    },
+    "default": {
+      "language": "English",
+      "targetLang": "en",
+      "subreddits": ["memes", "trending", "news", "worldnews"],
+      "description": "Default fallback subreddits"
+    }
+  },
+  "interestCategories": {
+    "korean": [
+      {
+        "name": "r/korea",
+        "displayName": "Korea",
+        "subreddits": ["korea", "southkorea", "seoul", "hanguk"]
+      },
+      {
+        "name": "r/kpop",
+        "displayName": "K-Pop",
+        "subreddits": ["kpop"]
+      },
+      {
+        "name": "r/korean",
+        "displayName": "Korean Language",
+        "subreddits": ["korean"]
+      },
+      {
+        "name": "r/koreanews",
+        "displayName": "Korean News",
+        "subreddits": ["koreanews"]
+      },
+      {
+        "name": "r/koreamemes",
+        "displayName": "Korean Memes",
+        "subreddits": ["koreamemes"]
+      }
+    ],
+    "japanese": [
+      {
+        "name": "r/japan",
+        "displayName": "Japan",
+        "subreddits": ["lowlevelaware", "newsokur", "shibuya", "harajuku"]
+      },
+      {
+        "name": "r/anime",
+        "displayName": "Anime",
+        "subreddits": ["anime"]
+      },
+      {
+        "name": "r/manga",
+        "displayName": "Manga",
+        "subreddits": ["manga"]
+      },
+      {
+        "name": "r/jpop",
+        "displayName": "J-Pop",
+        "subreddits": ["jpop"]
+      },
+      {
+        "name": "r/japannews",
+        "displayName": "Japan News",
+        "subreddits": ["japannews", "BakaNewsJP"]
+      },
+      {
+        "name": "r/japanmemes",
+        "displayName": "Japan Memes",
+        "subreddits": ["japanmemes"]
+      }
+    ]
+  },
+  "settings": {
+    "maxSubredditsPerQuery": 4,
+    "postsPerSubreddit": 10,
+    "shuffleResults": true
+  }
+}
