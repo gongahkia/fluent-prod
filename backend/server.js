@@ -12,6 +12,7 @@ import translationRoutes from './routes/translation.js'
 import vocabularyRoutes from './routes/vocabulary.js'
 import aiRoutes from './routes/ai.js'
 import redditRoutes from './routes/reddit.js'
+import adminRoutes from './routes/admin.js'
 
 // Import Firebase and scheduled jobs
 import { initializeFirebase } from './config/firebase.js'
@@ -57,6 +58,9 @@ app.use(compression())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+// Serve static files for admin dashboard
+app.use('/admin', express.static('public'))
+
 // Logging middleware
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 
@@ -100,6 +104,7 @@ app.use('/api/translate', translationRoutes)
 app.use('/api/vocabulary', vocabularyRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/reddit', redditRoutes)
+app.use('/api/admin', adminRoutes)
 
 // 404 handler
 app.use((req, res) => {
