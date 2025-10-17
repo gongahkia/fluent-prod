@@ -1,4 +1,4 @@
-import { getFirestore } from '../config/firebase.js'
+import { getFirestore } from '../../config/firebase.js'
 
 /**
  * Upload posts to Firestore
