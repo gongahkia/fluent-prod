@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import interestCategoriesData from "@/config/interestCategories.json";
+import interestCategoriesData from "@config/interestCategories.json";
 
 const Onboarding = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);

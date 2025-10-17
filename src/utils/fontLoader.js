@@ -1,4 +1,4 @@
-import fontConfig from '../config/fonts.json';
+import fontConfig from '@config/fonts.json';
 
 /**
  * Generates Google Fonts URL from font configuration

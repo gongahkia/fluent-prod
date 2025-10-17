@@ -12,7 +12,7 @@ import {
   Upload,
 } from "lucide-react"
 import React, { useState } from "react"
-import { getLanguageByName, getLevelColor, getLevelName } from "@/config/languages"
+import { getLanguageByName, getLevelColor, getLevelName } from "@config/languages"
 
 const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
   // Get language configuration
