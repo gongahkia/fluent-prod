@@ -54,20 +54,6 @@ async function loadAllUsers() {
   }
 }
 
-async function searchUsers() {
-  const query = document.getElementById('searchInput').value.trim();
-  if (!query) {
-    alert('Please enter a search query');
-    return;
-  }
-  document.getElementById('contentSection').innerHTML = '<p>Searching...</p>';
-  const response = await apiRequest(API_BASE + '/users/search?q=' + encodeURIComponent(query));
-  if (response && response.success) {
-    allUsers = response.data;
-    displayUsers(allUsers);
-  }
-}
-
 function displayUsers(users) {
   if (users.length === 0) {
     document.getElementById('contentSection').innerHTML = '<p>No users found</p>';
@@ -839,13 +825,9 @@ async function deleteNewsCachePost(docId, postIndex) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('searchBtn').addEventListener('click', searchUsers);
   document.getElementById('loadAllBtn').addEventListener('click', loadAllUsers);
   document.getElementById('loadAllPostsBtn').addEventListener('click', loadAllPosts);
   document.getElementById('loadNewsCacheBtn').addEventListener('click', loadNewsCachePosts);
-  document.getElementById('searchInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') searchUsers();
-  });
 
   document.getElementById('closeModalBtn').addEventListener('click', function() {
     document.getElementById('userModal').classList.remove('active');
