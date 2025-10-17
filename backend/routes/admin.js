@@ -243,4 +243,40 @@ router.get('/all-posts', async (req, res) => {
   }
 })
 
+/**
+ * NEWS-CACHE POSTS ENDPOINTS
+ */
+
+// Get all posts from news-cache collection
+router.get('/news-cache-posts', async (req, res) => {
+  try {
+    const posts = await adminService.getAllNewsCachePosts()
+    res.json({ success: true, data: posts })
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// Update a post in news-cache collection
+router.put('/news-cache-posts/:docId/:postIndex', async (req, res) => {
+  try {
+    const { docId, postIndex } = req.params
+    const result = await adminService.updateNewsCachePost(docId, parseInt(postIndex), req.body)
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// Delete a post from news-cache collection
+router.delete('/news-cache-posts/:docId/:postIndex', async (req, res) => {
+  try {
+    const { docId, postIndex } = req.params
+    const result = await adminService.deleteNewsCachePost(docId, parseInt(postIndex))
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 export default router

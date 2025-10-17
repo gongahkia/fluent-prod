@@ -690,11 +690,159 @@ async function deleteCollection(userId, collectionId) {
   }
 }
 
+async function loadNewsCachePosts() {
+  document.getElementById('contentSection').innerHTML = '<p>Loading all posts from news-cache...</p>';
+
+  const response = await apiRequest(API_BASE + '/news-cache-posts');
+  if (!response || !response.success) {
+    document.getElementById('contentSection').innerHTML = '<p>Error loading news-cache posts</p>';
+    return;
+  }
+
+  displayNewsCachePosts(response.data);
+}
+
+function displayNewsCachePosts(posts) {
+  if (posts.length === 0) {
+    document.getElementById('contentSection').innerHTML = '<p>No posts found in news-cache</p>';
+    return;
+  }
+
+  let html = '<h2>All News-Cache Posts (' + posts.length + ')</h2>';
+  html += '<div>';
+
+  posts.forEach(function(post) {
+    html += '<div style="border: 1px solid black; padding: 15px; margin: 10px 0;">';
+    html += '<div style="background: #f0f0f0; padding: 5px; margin-bottom: 10px;">';
+    html += '<strong>Document:</strong> ' + escapeHtml(post.docId);
+    html += ' | <strong>Index:</strong> ' + post.postIndex;
+    html += '</div>';
+
+    // Title
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Title:</strong></label>';
+    html += '<input type="text" class="news-title" value="' + escapeHtml(post.title || '') + '" style="width: 600px;">';
+    html += '</div>';
+
+    // URL
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>URL:</strong></label>';
+    html += '<input type="text" class="news-url" value="' + escapeHtml(post.url || '') + '" style="width: 600px;">';
+    html += '</div>';
+
+    // Author
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Author:</strong></label>';
+    html += '<input type="text" class="news-author" value="' + escapeHtml(post.author || '') + '" style="width: 300px;">';
+    html += '</div>';
+
+    // Subreddit
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Subreddit:</strong></label>';
+    html += '<input type="text" class="news-subreddit" value="' + escapeHtml(post.subreddit || '') + '" style="width: 300px;">';
+    html += '</div>';
+
+    // Score
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Score:</strong></label>';
+    html += '<input type="number" class="news-score" value="' + (post.score || 0) + '" style="width: 150px;">';
+    html += '</div>';
+
+    // Created
+    html += '<div style="margin: 10px 0;">';
+    html += '<label style="display: inline-block; width: 120px;"><strong>Created:</strong></label>';
+    html += '<input type="text" class="news-created" value="' + (post.created ? new Date(post.created * 1000).toLocaleString() : 'N/A') + '" style="width: 300px;" disabled>';
+    html += '</div>';
+
+    // Content preview
+    if (post.content) {
+      html += '<div style="margin: 10px 0;">';
+      html += '<label style="display: block;"><strong>Content Preview:</strong></label>';
+      html += '<textarea class="news-content" rows="3" style="width: 100%; font-family: monospace;">' + escapeHtml(post.content.substring(0, 500)) + '</textarea>';
+      html += '</div>';
+    }
+
+    // Buttons
+    html += '<div style="margin-top: 10px;">';
+    html += '<button class="save-news-btn" data-docid="' + post.docId + '" data-postindex="' + post.postIndex + '">Save Changes</button>';
+    html += '<button class="delete-news-btn" data-docid="' + post.docId + '" data-postindex="' + post.postIndex + '" style="margin-left: 10px;">Delete</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  document.getElementById('contentSection').innerHTML = html;
+
+  // Attach save handlers
+  document.querySelectorAll('.save-news-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const postDiv = this.closest('div[style*="border"]');
+      const docId = this.getAttribute('data-docid');
+      const postIndex = this.getAttribute('data-postindex');
+
+      const updateData = {
+        title: postDiv.querySelector('.news-title').value,
+        url: postDiv.querySelector('.news-url').value,
+        author: postDiv.querySelector('.news-author').value,
+        subreddit: postDiv.querySelector('.news-subreddit').value,
+        score: parseInt(postDiv.querySelector('.news-score').value) || 0
+      };
+
+      const contentInput = postDiv.querySelector('.news-content');
+      if (contentInput) {
+        updateData.content = contentInput.value;
+      }
+
+      saveNewsCachePost(docId, postIndex, updateData);
+    });
+  });
+
+  // Attach delete handlers
+  document.querySelectorAll('.delete-news-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const docId = this.getAttribute('data-docid');
+      const postIndex = this.getAttribute('data-postindex');
+
+      if (confirm('Delete this news-cache post?')) {
+        deleteNewsCachePost(docId, postIndex);
+      }
+    });
+  });
+}
+
+async function saveNewsCachePost(docId, postIndex, updateData) {
+  try {
+    const response = await apiRequest(API_BASE + '/news-cache-posts/' + docId + '/' + postIndex, {
+      method: 'PUT',
+      body: updateData
+    });
+
+    if (response && response.success) {
+      alert('SUCCESS: News-cache post updated successfully!');
+    } else {
+      alert('ERROR: Failed to update news-cache post. ' + (response ? response.error : 'Unknown error'));
+    }
+  } catch (e) {
+    alert('ERROR: ' + e.message);
+  }
+}
+
+async function deleteNewsCachePost(docId, postIndex) {
+  const response = await apiRequest(API_BASE + '/news-cache-posts/' + docId + '/' + postIndex, { method: 'DELETE' });
+  if (response && response.success) {
+    alert('SUCCESS: News-cache post deleted successfully!');
+    loadNewsCachePosts(); // Reload all news-cache posts view
+  } else {
+    alert('ERROR: Failed to delete news-cache post. ' + (response ? response.error : 'Unknown error'));
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchBtn').addEventListener('click', searchUsers);
   document.getElementById('loadAllBtn').addEventListener('click', loadAllUsers);
   document.getElementById('loadAllPostsBtn').addEventListener('click', loadAllPosts);
+  document.getElementById('loadNewsCacheBtn').addEventListener('click', loadNewsCachePosts);
   document.getElementById('searchInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') searchUsers();
   });

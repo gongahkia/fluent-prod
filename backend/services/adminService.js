@@ -418,3 +418,104 @@ export const getAllDictionaryEntries = async () => {
     throw error
   }
 }
+
+/**
+ * Get all posts from news-cache collection
+ */
+export const getAllNewsCachePosts = async () => {
+  try {
+    const db = getDb()
+    const newsCacheSnapshot = await db.collection('news-cache').get()
+    const allPosts = []
+
+    newsCacheSnapshot.forEach(doc => {
+      const docData = doc.data()
+      const posts = docData.posts || []
+      const metadata = docData.metadata || {}
+
+      posts.forEach((post, index) => {
+        allPosts.push({
+          docId: doc.id, // e.g., 'posts-japan', 'posts-korea'
+          postIndex: index, // Index within the posts array
+          ...post,
+          _metadata: metadata // Include document metadata
+        })
+      })
+    })
+
+    return allPosts
+  } catch (error) {
+    console.error('Error getting all news-cache posts:', error)
+    throw error
+  }
+}
+
+/**
+ * Update a post in the news-cache collection
+ */
+export const updateNewsCachePost = async (docId, postIndex, updateData) => {
+  try {
+    const db = getDb()
+    const docRef = db.collection('news-cache').doc(docId)
+    const doc = await docRef.get()
+
+    if (!doc.exists) {
+      throw new Error('News-cache document not found')
+    }
+
+    const docData = doc.data()
+    const posts = docData.posts || []
+
+    if (postIndex < 0 || postIndex >= posts.length) {
+      throw new Error('Invalid post index')
+    }
+
+    // Update the specific post
+    posts[postIndex] = { ...posts[postIndex], ...updateData }
+
+    // Update the document with modified posts array
+    await docRef.update({ posts })
+
+    return { success: true, message: 'News-cache post updated successfully' }
+  } catch (error) {
+    console.error('Error updating news-cache post:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a post from the news-cache collection
+ */
+export const deleteNewsCachePost = async (docId, postIndex) => {
+  try {
+    const db = getDb()
+    const docRef = db.collection('news-cache').doc(docId)
+    const doc = await docRef.get()
+
+    if (!doc.exists) {
+      throw new Error('News-cache document not found')
+    }
+
+    const docData = doc.data()
+    const posts = docData.posts || []
+
+    if (postIndex < 0 || postIndex >= posts.length) {
+      throw new Error('Invalid post index')
+    }
+
+    // Remove the post at the specified index
+    posts.splice(postIndex, 1)
+
+    // Update metadata count
+    const metadata = docData.metadata || {}
+    metadata.count = posts.length
+
+    // Update the document
+    await docRef.update({ posts, metadata })
+
+    return { success: true, message: 'News-cache post deleted successfully' }
+  } catch (error) {
+    console.error('Error deleting news-cache post:', error)
+    throw error
+  }
+}
