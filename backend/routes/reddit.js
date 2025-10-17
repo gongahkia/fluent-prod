@@ -9,9 +9,18 @@ import {
   isRedditOAuthConfigured
 } from '../services/redditOAuthService.js'
 import { encryptData, decryptData } from '../services/encryptionService.js'
-import { db } from '../config/firebase.js'
+import { getFirestore } from '../config/firebase.js'
 
 const router = express.Router()
+
+// Helper to get Firestore instance safely
+const getDb = () => {
+  try {
+    return getFirestore()
+  } catch (error) {
+    throw new Error('Firebase is not initialized. Please check your configuration.')
+  }
+}
 
 /**
  * GET /api/reddit/auth/url
@@ -73,6 +82,7 @@ router.post('/auth/callback', async (req, res) => {
     })
 
     // Store in Firestore under users/{userId}/credentials
+    const db = getDb()
     const userRef = db.collection('users').doc(userId)
     const userDoc = await userRef.get()
 
@@ -129,6 +139,7 @@ router.post('/sync-subreddits', async (req, res) => {
     }
 
     // Get user from Firestore
+    const db = getDb()
     const userRef = db.collection('users').doc(userId)
     const userDoc = await userRef.get()
 
@@ -258,6 +269,7 @@ router.post('/disconnect', async (req, res) => {
     }
 
     // Get user from Firestore
+    const db = getDb()
     const userRef = db.collection('users').doc(userId)
     const userDoc = await userRef.get()
 
