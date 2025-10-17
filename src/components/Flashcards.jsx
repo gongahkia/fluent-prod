@@ -10,7 +10,7 @@ import {
   getLanguageByName,
   getLevelColor,
   getLevelName,
-} from "@/config/languages"
+} from "@config/languages"
 import { useAuth } from "@/contexts/AuthContext"
 import {
   addWordToCollection,

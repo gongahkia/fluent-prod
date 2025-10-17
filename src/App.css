@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Font variables are loaded dynamically from src/config/fonts.json */
+  /* --font-sans, --font-japanese, --font-korean are injected by src/utils/fontLoader.js */
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -115,7 +118,20 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Language-specific font application */
+  :lang(ja),
+  [lang="ja"],
+  .lang-ja {
+    font-family: var(--font-japanese);
+  }
+
+  :lang(ko),
+  [lang="ko"],
+  .lang-ko {
+    font-family: var(--font-korean);
   }
 }
 

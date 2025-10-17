@@ -13,7 +13,7 @@ import { startTimer, startBatchTimer, logPerformance } from '../utils/performanc
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const subredditConfig = JSON.parse(
-  readFileSync(join(__dirname, '../config/subreddits.json'), 'utf-8')
+  readFileSync(join(__dirname, '../../config/subreddits.json'), 'utf-8')
 )
 
 // Configuration for parallel processing

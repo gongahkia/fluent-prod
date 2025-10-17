@@ -13,7 +13,7 @@ const __dirname = dirname(__filename)
 
 // Load translation mappings
 const translationMappings = JSON.parse(
-  readFileSync(join(__dirname, '../config/translationMappings.json'), 'utf-8')
+  readFileSync(join(__dirname, '../../config/translationMappings.json'), 'utf-8')
 )
 
 // Cache for 30 days (translations rarely change)

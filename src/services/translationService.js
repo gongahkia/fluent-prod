@@ -1,5 +1,5 @@
 // Translation Service - Backend API Client
-import translationMappings from '../config/translationMappings.json'
+import translationMappings from '@config/translationMappings.json'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
