@@ -9,7 +9,7 @@ import {
   isRedditOAuthConfigured
 } from '../services/redditOAuthService.js'
 import { encryptData, decryptData } from '../services/encryptionService.js'
-import { getFirestore } from '../../config/firebase.js'
+import { getFirestore } from '../config/firebase.js'
 
 const router = express.Router()
 

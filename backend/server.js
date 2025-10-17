@@ -14,7 +14,7 @@ import aiRoutes from './routes/ai.js'
 import redditRoutes from './routes/reddit.js'
 
 // Import Firebase and scheduled jobs
-import { initializeFirebase } from '../config/firebase.js'
+import { initializeFirebase } from './config/firebase.js'
 import { initializeScheduledJob, runPostsFetchJob } from './jobs/fetchPostsJob.js'
 
 // Load environment variables
