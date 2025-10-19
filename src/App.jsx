@@ -12,6 +12,7 @@ import UserSearch from "./components/UserSearch";
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import RedditCallback from "./pages/RedditCallback";
+import LoadingScreen from "./components/ui/LoadingScreen";
 import { FluentLogo } from "./components/ui/FluentLogo";
 import { useIsMobile } from "./hooks/use-mobile";
 import { useAuth } from "./contexts/AuthContext";
@@ -26,12 +27,18 @@ import "./App.css";
 
 function App() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'users'
   const [userDictionary, setUserDictionary] = useState([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
   const isMobile = useIsMobile();
+
+  // Handle loading screen completion
+  const handleLoadingComplete = () => {
+    setShowLoadingScreen(false);
+  };
 
   // Listen to dictionary changes in real-time (language-specific)
   useEffect(() => {
@@ -181,6 +188,11 @@ function App() {
       console.error("Error updating language:", error);
     }
   };
+
+  // Show loading screen on initial app load
+  if (showLoadingScreen) {
+    return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
+  }
 
   // Handle Reddit OAuth callback route first (before auth checks)
   return (
