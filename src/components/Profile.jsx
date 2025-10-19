@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { FluentLogo } from "@/components/ui/FluentLogo"
 import { useAuth } from "@/contexts/AuthContext"
 import {
   updateUserProfile,
@@ -313,6 +314,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
+              <div className="w-7 h-7">
+                <FluentLogo variant="short" className="w-full h-full" alt="Fluent" />
+              </div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Profile Settings
               </h1>

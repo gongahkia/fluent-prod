@@ -2,6 +2,7 @@ import { Eye, EyeOff, Globe, Lock, Mail, User } from "lucide-react"
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { registerWithEmail, signInWithEmail, signInWithGoogle } from "@/services/authService"
+import { FluentLogo } from "@/components/ui/FluentLogo"
 
 const Auth = ({ onAuthComplete }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -144,15 +145,10 @@ const Auth = ({ onAuthComplete }) => {
       <div className="max-w-md w-full">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4">
-            <img
-              src="/fluent-logo.png"
-              alt="Fluent Logo"
-              className="w-full h-full rounded-full object-cover"
-            />
+          <div className="w-32 h-auto mx-auto mb-4">
+            <FluentLogo variant="full" className="w-full h-auto" alt="Fluent Logo" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Fluent</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-4">
             {isLogin ? "Welcome back!" : "Start your language learning journey"}
           </p>
         </div>

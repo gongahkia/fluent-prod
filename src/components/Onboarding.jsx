@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FluentLogo } from "@/components/ui/FluentLogo";
 import interestCategoriesData from "@config/interestCategories.json";
 
 const Onboarding = ({ onComplete }) => {
@@ -215,8 +216,8 @@ const Onboarding = ({ onComplete }) => {
         {/* Step 1: Native Language Selection */}
         {currentStep === 1 && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Globe className="w-8 h-8 text-gray-600" />
+            <div className="w-24 h-auto mx-auto mb-6">
+              <FluentLogo variant="full" className="w-full h-auto" alt="Fluent Logo" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Welcome to Fluent!
