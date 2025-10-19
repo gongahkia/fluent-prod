@@ -28,6 +28,8 @@ import "./App.css";
 function App() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
+  const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'users'
   const [userDictionary, setUserDictionary] = useState([]);
@@ -38,6 +40,17 @@ function App() {
   // Handle loading screen completion
   const handleLoadingComplete = () => {
     setShowLoadingScreen(false);
+  };
+
+  // Handle post-login loading screen completion
+  const handlePostLoginLoadingComplete = () => {
+    setShowPostLoginLoading(false);
+  };
+
+  // Handle post-onboarding loading screen completion
+  const handlePostOnboardingLoadingComplete = () => {
+    setShowPostOnboardingLoading(false);
+    setCurrentView("feed");
   };
 
   // Listen to dictionary changes in real-time (language-specific)
@@ -79,9 +92,12 @@ function App() {
 
   const handleAuthComplete = (authData) => {
     // Auth state is now managed by AuthContext
-    // This function is kept for compatibility but doesn't need to do much
+    // Show loading screen after successful login
     if (authData.isNewUser) {
       setShowOnboarding(true);
+    } else {
+      // For existing users (not new users), show post-login loading
+      setShowPostLoginLoading(true);
     }
   };
 
@@ -92,7 +108,8 @@ function App() {
       setUserProfile((prev) => ({ ...prev, ...profile }));
     }
     setShowOnboarding(false);
-    setCurrentView("feed");
+    // Show loading screen after onboarding completion
+    setShowPostOnboardingLoading(true);
   };
 
   const handleProfileUpdate = async (updatedProfile) => {
@@ -192,6 +209,16 @@ function App() {
   // Show loading screen on initial app load
   if (showLoadingScreen) {
     return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
+  }
+
+  // Show loading screen after successful login (for existing users)
+  if (showPostLoginLoading) {
+    return <LoadingScreen onLoadingComplete={handlePostLoginLoadingComplete} />;
+  }
+
+  // Show loading screen after onboarding completion
+  if (showPostOnboardingLoading) {
+    return <LoadingScreen onLoadingComplete={handlePostOnboardingLoadingComplete} />;
   }
 
   // Handle Reddit OAuth callback route first (before auth checks)
