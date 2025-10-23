@@ -24,6 +24,7 @@ import {
   updateCollection,
 } from "@/services/databaseService"
 import CollectionManager from "./CollectionManager"
+import { PronunciationButton } from "./ui/PronunciationButton"
 
 const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
   // Get language configuration
@@ -641,26 +642,54 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
                 </div>
 
                 <div className="mb-6">
-                  <h2 className="text-5xl font-bold text-gray-900 mb-3">
-                    {currentCard.word}
-                  </h2>
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <h2 className="text-5xl font-bold text-gray-900">
+                      {currentCard.word}
+                    </h2>
+                    <PronunciationButton
+                      text={currentCard.word}
+                      language={targetLanguage}
+                      size="lg"
+                    />
+                  </div>
                   <p className="text-xl text-gray-600">{currentCard.reading}</p>
                 </div>
 
                 {showAnswer ? (
                   <div className="space-y-4">
-                    <div className="text-3xl font-semibold text-orange-600 mb-4">
-                      {currentCard.meaning}
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <div className="text-3xl font-semibold text-orange-600">
+                        {currentCard.meaning}
+                      </div>
+                      <PronunciationButton
+                        text={currentCard.meaning}
+                        language="English"
+                        size="default"
+                      />
                     </div>
                     {currentCard.example && (
                       <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                        <p className="text-gray-800 mb-2">
-                          {cleanExampleText(currentCard.example)}
-                        </p>
-                        {currentCard.exampleTranslation && (
-                          <p className="text-gray-600 text-sm">
-                            {cleanExampleText(currentCard.exampleTranslation)}
+                        <div className="flex items-start gap-2 mb-2">
+                          <p className="text-gray-800 flex-1">
+                            {cleanExampleText(currentCard.example)}
                           </p>
+                          <PronunciationButton
+                            text={cleanExampleText(currentCard.example)}
+                            language={targetLanguage}
+                            size="sm"
+                          />
+                        </div>
+                        {currentCard.exampleTranslation && (
+                          <div className="flex items-start gap-2">
+                            <p className="text-gray-600 text-sm flex-1">
+                              {cleanExampleText(currentCard.exampleTranslation)}
+                            </p>
+                            <PronunciationButton
+                              text={cleanExampleText(currentCard.exampleTranslation)}
+                              language="English"
+                              size="sm"
+                            />
+                          </div>
                         )}
                       </div>
                     )}

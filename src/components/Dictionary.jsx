@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import React, { useState } from "react"
 import { getLanguageByName, getLevelColor, getLevelName } from "@config/languages"
+import { PronunciationButton } from "./ui/PronunciationButton"
 
 const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
   // Get language configuration
@@ -471,8 +472,15 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="text-2xl font-bold text-gray-900">
-                          {word[langFields.word] || word.japanese}
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-gray-900">
+                            {word[langFields.word] || word.japanese}
+                          </div>
+                          <PronunciationButton
+                            text={word[langFields.word] || word.japanese}
+                            language={targetLanguage}
+                            size="sm"
+                          />
                         </div>
                         <div className="text-lg text-gray-600">
                           {word[langFields.reading] || word.hiragana || word.romanization}
@@ -488,8 +496,15 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                           </span>
                         )}
                       </div>
-                      <div className="text-lg text-gray-800 font-medium mb-2">
-                        {word[langFields.meaning] || word.english}
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="text-lg text-gray-800 font-medium">
+                          {word[langFields.meaning] || word.english}
+                        </div>
+                        <PronunciationButton
+                          text={word[langFields.meaning] || word.english}
+                          language="English"
+                          size="sm"
+                        />
                       </div>
                       {word.tags && word.tags.length > 0 && (
                         <div className="flex gap-1 flex-wrap mb-2">
@@ -541,9 +556,23 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                             Example Sentence
                           </h4>
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-gray-900 mb-1">{cleanExampleText(word.example)}</p>
+                            <div className="flex items-start gap-2 mb-1">
+                              <p className="text-gray-900 flex-1">{cleanExampleText(word.example)}</p>
+                              <PronunciationButton
+                                text={cleanExampleText(word.example)}
+                                language={targetLanguage}
+                                size="sm"
+                              />
+                            </div>
                             {word.exampleEn && (
-                              <p className="text-gray-600 text-sm">{cleanExampleText(word.exampleEn)}</p>
+                              <div className="flex items-start gap-2">
+                                <p className="text-gray-600 text-sm flex-1">{cleanExampleText(word.exampleEn)}</p>
+                                <PronunciationButton
+                                  text={cleanExampleText(word.exampleEn)}
+                                  language="English"
+                                  size="sm"
+                                />
+                              </div>
                             )}
                           </div>
                         </div>

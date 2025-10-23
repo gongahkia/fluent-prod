@@ -1,6 +1,7 @@
 import { BookOpen } from "lucide-react"
 import React from "react"
 import LoadingSpinner from "../ui/LoadingSpinner"
+import { PronunciationButton } from "../ui/PronunciationButton"
 
 const WordLearningPopup = ({
   selectedWord,
@@ -51,14 +52,26 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English word:
                     </div>
-                    <div className="text-2xl font-bold text-orange-600 mb-2">
-                      {selectedWord.english}
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {selectedWord.english}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.english}
+                        language="English"
+                      />
                     </div>
                     <div className="text-sm text-gray-500 mb-1">
                       Korean translation:
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
-                      {selectedWord.korean}
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <div className="text-3xl font-bold text-gray-900">
+                        {selectedWord.korean}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.korean}
+                        language="Korean"
+                      />
                     </div>
                     {selectedWord.romanization && (
                       <div className="text-lg text-gray-600 mb-2">
@@ -72,8 +85,14 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       Korean word:
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
-                      {selectedWord.korean}
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <div className="text-3xl font-bold text-gray-900">
+                        {selectedWord.korean}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.korean}
+                        language="Korean"
+                      />
                     </div>
                     {selectedWord.romanization && selectedWord.romanization !== selectedWord.korean && (
                       <div className="text-lg text-gray-600 mb-2">
@@ -83,8 +102,14 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English translation:
                     </div>
-                    <div className="text-2xl font-bold text-amber-600">
-                      {selectedWord.english}
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="text-2xl font-bold text-amber-600">
+                        {selectedWord.english}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.english}
+                        language="English"
+                      />
                     </div>
                   </>
                 )
@@ -96,14 +121,26 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English word:
                     </div>
-                    <div className="text-2xl font-bold text-orange-600 mb-2">
-                      {selectedWord.english}
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {selectedWord.english}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.english}
+                        language="English"
+                      />
                     </div>
                     <div className="text-sm text-gray-500 mb-1">
                       Japanese translation:
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
-                      {selectedWord.japanese}
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <div className="text-3xl font-bold text-gray-900">
+                        {selectedWord.japanese}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.japanese}
+                        language="Japanese"
+                      />
                     </div>
                     <div className="text-lg text-gray-600 mb-2">
                       {selectedWord.hiragana}
@@ -115,8 +152,14 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       Japanese word:
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-1">
-                      {selectedWord.japanese}
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <div className="text-3xl font-bold text-gray-900">
+                        {selectedWord.japanese}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.japanese}
+                        language="Japanese"
+                      />
                     </div>
                     {selectedWord.hiragana !== selectedWord.japanese && (
                       <div className="text-lg text-gray-600 mb-2">
@@ -126,8 +169,14 @@ const WordLearningPopup = ({
                     <div className="text-sm text-gray-500 mb-1">
                       English translation:
                     </div>
-                    <div className="text-2xl font-bold text-amber-600">
-                      {selectedWord.english}
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="text-2xl font-bold text-amber-600">
+                        {selectedWord.english}
+                      </div>
+                      <PronunciationButton
+                        text={selectedWord.english}
+                        language="English"
+                      />
                     </div>
                   </>
                 )
