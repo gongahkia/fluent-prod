@@ -1,10 +1,10 @@
 import React from 'react'
-import { Home, BookOpen, CreditCard, User } from 'lucide-react'
+import { Home, BookOpen, CreditCard, User, Trophy } from 'lucide-react'
 
 /**
  * Instagram-style bottom navigation bar for mobile devices
  * Only visible on screens < 768px
- * Shows: Feed, Dictionary, Flashcards, Profile
+ * Shows: Feed, Dictionary, Flashcards, Play, Profile
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -27,6 +27,13 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       label: 'Cards',
       icon: CreditCard,
       activeColor: 'text-amber-600',
+      inactiveColor: 'text-gray-500'
+    },
+    {
+      id: 'play',
+      label: 'Play',
+      icon: Trophy,
+      activeColor: 'text-purple-600',
       inactiveColor: 'text-gray-500'
     },
     {

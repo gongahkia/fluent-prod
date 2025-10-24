@@ -9,6 +9,7 @@ import Onboarding from "./components/Onboarding";
 import Profile from "./components/Profile";
 import SavedPosts from "./components/SavedPosts";
 import UserSearch from "./components/UserSearch";
+import Play from "./components/Play";
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import RedditCallback from "./pages/RedditCallback";
@@ -566,6 +567,16 @@ function MainApp({
               <span>Flashcards</span>
             </button>
             <button
+              onClick={() => handleNavigation("play")}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                currentView === "play"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Play
+            </button>
+            <button
               onClick={() => handleNavigation("savedposts")}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                 currentView === "savedposts"
@@ -611,6 +622,10 @@ function MainApp({
             userDictionary={userDictionary}
             userProfile={userProfile}
           />
+        )}
+
+        {currentView === "play" && (
+          <Play userProfile={userProfile} />
         )}
 
         {currentView === "savedposts" && (
