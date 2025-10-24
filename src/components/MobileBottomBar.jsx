@@ -4,7 +4,7 @@ import { Home, BookOpen, CreditCard, User, Trophy } from 'lucide-react'
 /**
  * Instagram-style bottom navigation bar for mobile devices
  * Only visible on screens < 768px
- * Shows: Feed, Dictionary, Flashcards, Play, Profile
+ * Shows: Feed, Dictionary, Flashcards, Challenge, Profile
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -30,10 +30,10 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       inactiveColor: 'text-gray-500'
     },
     {
-      id: 'play',
-      label: 'Play',
+      id: 'challenge',
+      label: 'Challenge',
       icon: Trophy,
-      activeColor: 'text-purple-600',
+      activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     },
     {

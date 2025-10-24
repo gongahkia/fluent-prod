@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trophy, Clock, Zap, Target, Users, Play as PlayIcon, RotateCcw, Award, Crown } from 'lucide-react';
+import { Trophy, Clock, Target, Award, Crown, CheckCircle } from 'lucide-react';
 
 // Hardcoded word lists for Japanese and Korean
 const WORD_LISTS = {
@@ -59,35 +59,38 @@ const WORD_LISTS = {
   ],
 };
 
-// Mock friends leaderboard data (in-memory, resets on page refresh)
+// Mock friends leaderboard data (in-memory, time in seconds)
 const INITIAL_LEADERBOARD = [
-  { id: 1, name: 'Sarah Kim', score: 2850, streak: 12, gamesPlayed: 15 },
-  { id: 2, name: 'Mike Chen', score: 2340, streak: 8, gamesPlayed: 12 },
-  { id: 3, name: 'Emma Liu', score: 1980, streak: 5, gamesPlayed: 10 },
-  { id: 4, name: 'James Park', score: 1750, streak: 7, gamesPlayed: 9 },
-  { id: 5, name: 'Lisa Wong', score: 1520, streak: 4, gamesPlayed: 8 },
+  { id: 1, name: 'Sarah Kim', time: 125, completedToday: true },
+  { id: 2, name: 'Mike Chen', time: 138, completedToday: true },
+  { id: 3, name: 'Emma Liu', time: 156, completedToday: true },
+  { id: 4, name: 'James Park', time: 172, completedToday: true },
+  { id: 5, name: 'Lisa Wong', time: 189, completedToday: true },
 ];
 
 const QUESTIONS_PER_GAME = 15;
-const TIME_PER_QUESTION = 10; // seconds
-const BASE_POINTS = 100;
-const TIME_BONUS_MULTIPLIER = 10;
+const WRONG_ANSWER_PENALTY = 5; // seconds
 
 const Play = ({ userProfile }) => {
-  const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'results'
+  const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'results', 'completed'
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [score, setScore] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
+  const [elapsedTime, setElapsedTime] = useState(0); // Running timer in seconds
   const [selectedCards, setSelectedCards] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState([]);
   const [cards, setCards] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [gameResults, setGameResults] = useState(null);
   const [leaderboard, setLeaderboard] = useState(INITIAL_LEADERBOARD);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [hasCompletedToday, setHasCompletedToday] = useState(false);
 
   const targetLanguage = userProfile?.targetLanguage || 'Japanese';
+
+  // Format time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Fisher-Yates shuffle algorithm
   const shuffleArray = (array) => {
@@ -101,21 +104,24 @@ const Play = ({ userProfile }) => {
 
   // Initialize game
   const startGame = useCallback(() => {
+    if (hasCompletedToday) {
+      return; // Don't allow replay if already completed
+    }
+
     const wordList = WORD_LISTS[targetLanguage];
     const shuffledWords = shuffleArray(wordList);
     const selectedWords = shuffledWords.slice(0, QUESTIONS_PER_GAME);
 
     setQuestions(selectedWords);
     setCurrentQuestion(0);
-    setScore(0);
-    setStreak(0);
+    setElapsedTime(0);
     setMatchedPairs([]);
     setGameState('playing');
     setGameResults(null);
 
     // Initialize first question
     initializeQuestion(selectedWords[0]);
-  }, [targetLanguage]);
+  }, [targetLanguage, hasCompletedToday]);
 
   // Initialize a single question (create card pairs)
   const initializeQuestion = (word) => {
@@ -142,28 +148,18 @@ const Play = ({ userProfile }) => {
 
     setCards(shuffleArray(cardPairs));
     setSelectedCards([]);
-    setTimeLeft(TIME_PER_QUESTION);
   };
 
-  // Timer countdown
+  // Running timer - increments every second during gameplay
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      // Time's up - move to next question or end game
-      handleTimeUp();
-    }
-  }, [timeLeft, gameState]);
+    const timer = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
 
-  const handleTimeUp = () => {
-    setStreak(0); // Reset streak on timeout
-    moveToNextQuestion();
-  };
+    return () => clearInterval(timer);
+  }, [gameState]);
 
   const handleCardClick = (card) => {
     // Ignore if card already matched or already selected
@@ -193,7 +189,7 @@ const Play = ({ userProfile }) => {
           // Correct match!
           handleCorrectMatch();
         } else {
-          // Wrong match
+          // Wrong match - add time penalty
           handleWrongMatch();
         }
       } else {
@@ -204,13 +200,6 @@ const Play = ({ userProfile }) => {
   };
 
   const handleCorrectMatch = () => {
-    const newStreak = streak + 1;
-    const timeBonus = Math.floor(timeLeft * TIME_BONUS_MULTIPLIER);
-    const streakMultiplier = 1 + (newStreak * 0.1);
-    const questionPoints = Math.floor((BASE_POINTS + timeBonus) * streakMultiplier);
-
-    setStreak(newStreak);
-    setScore(score + questionPoints);
     setMatchedPairs([...matchedPairs, currentQuestion]);
 
     // Mark cards as matched
@@ -225,11 +214,12 @@ const Play = ({ userProfile }) => {
     // Move to next question after a short delay
     setTimeout(() => {
       moveToNextQuestion();
-    }, 1000);
+    }, 800);
   };
 
   const handleWrongMatch = () => {
-    setStreak(0); // Reset streak on wrong answer
+    // Add time penalty for wrong answer
+    setElapsedTime(prev => prev + WRONG_ANSWER_PENALTY);
 
     // Clear selection after a short delay to show the wrong match
     setTimeout(() => {
@@ -249,29 +239,29 @@ const Play = ({ userProfile }) => {
   };
 
   const endGame = () => {
+    const finalTime = elapsedTime;
     const results = {
-      score,
-      streak,
-      correctAnswers: matchedPairs.length,
+      time: finalTime,
+      correctAnswers: matchedPairs.length + 1, // +1 for the last question
       totalQuestions: QUESTIONS_PER_GAME,
-      accuracy: Math.round((matchedPairs.length / QUESTIONS_PER_GAME) * 100),
+      accuracy: Math.round(((matchedPairs.length + 1) / QUESTIONS_PER_GAME) * 100),
     };
 
     setGameResults(results);
-    setGameState('results');
+    setHasCompletedToday(true); // Mark as completed
+    setGameState('completed');
 
     // Add to leaderboard (simulate current user)
     const newEntry = {
       id: Date.now(),
       name: userProfile?.name || 'You',
-      score,
-      streak,
-      gamesPlayed: 1,
+      time: finalTime,
+      completedToday: true,
     };
 
-    // Merge with existing leaderboard and sort
+    // Merge with existing leaderboard and sort by time (ascending - fastest first)
     const updatedLeaderboard = [...leaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => a.time - b.time)
       .slice(0, 10); // Keep top 10
 
     setLeaderboard(updatedLeaderboard);
@@ -291,56 +281,56 @@ const Play = ({ userProfile }) => {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mb-4">
               <Trophy className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Translation Challenge</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Daily Challenge</h1>
             <p className="text-gray-600">
-              Match English words with their {targetLanguage} translations
+              Match English words with their {targetLanguage} translations as fast as you can!
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
-              <Target className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-purple-900">{QUESTIONS_PER_GAME}</div>
-              <div className="text-sm text-purple-700">Questions</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="bg-orange-50 rounded-lg p-4 text-center border border-orange-200">
+              <Target className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-900">{QUESTIONS_PER_GAME}</div>
+              <div className="text-sm text-orange-700">Questions</div>
             </div>
-            <div className="bg-pink-50 rounded-lg p-4 text-center">
-              <Clock className="w-8 h-8 text-pink-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-pink-900">{TIME_PER_QUESTION}s</div>
-              <div className="text-sm text-pink-700">Per Question</div>
-            </div>
-            <div className="bg-indigo-50 rounded-lg p-4 text-center">
-              <Zap className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-indigo-900">Streak</div>
-              <div className="text-sm text-indigo-700">Bonus Points</div>
+            <div className="bg-orange-50 rounded-lg p-4 text-center border border-orange-200">
+              <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-900">Beat the Clock</div>
+              <div className="text-sm text-orange-700">Race Against Time</div>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 mb-6">
             <button
               onClick={startGame}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+              disabled={hasCompletedToday}
+              className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all transform flex items-center justify-center space-x-2 ${
+                hasCompletedToday
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:scale-105'
+              }`}
             >
-              <PlayIcon className="w-6 h-6" />
-              <span>Start Game</span>
-            </button>
-
-            <button
-              onClick={() => setShowLeaderboard(!showLeaderboard)}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Users className="w-5 h-5" />
-              <span>{showLeaderboard ? 'Hide' : 'Show'} Leaderboard</span>
+              {hasCompletedToday ? (
+                <>
+                  <CheckCircle className="w-6 h-6" />
+                  <span>Challenge Completed</span>
+                </>
+              ) : (
+                <>
+                  <Trophy className="w-6 h-6" />
+                  <span>Start Challenge</span>
+                </>
+              )}
             </button>
           </div>
 
-          {showLeaderboard && (
-            <div className="mt-6">
-              <LeaderboardView leaderboard={leaderboard} currentUserName={userProfile?.name} />
-            </div>
-          )}
+          {/* Always show leaderboard */}
+          <div className="mt-6">
+            <LeaderboardView leaderboard={leaderboard} currentUserName={userProfile?.name} />
+          </div>
         </div>
       </div>
     );
@@ -357,33 +347,18 @@ const Play = ({ userProfile }) => {
           {/* Header Stats */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
-              <div className="bg-purple-100 px-3 py-1 rounded-full">
-                <span className="text-purple-800 font-semibold text-sm">
+              <div className="bg-orange-100 px-3 py-1 rounded-full border border-orange-300">
+                <span className="text-orange-800 font-semibold text-sm">
                   Question {currentQuestion + 1}/{QUESTIONS_PER_GAME}
-                </span>
-              </div>
-              <div className="bg-pink-100 px-3 py-1 rounded-full flex items-center space-x-1">
-                <Zap className="w-4 h-4 text-pink-600" />
-                <span className="text-pink-800 font-semibold text-sm">
-                  Streak: {streak}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="bg-indigo-100 px-3 py-1 rounded-full">
-                <span className="text-indigo-800 font-semibold text-sm">
-                  Score: {score}
-                </span>
-              </div>
-              <div className={`px-3 py-1 rounded-full flex items-center space-x-1 ${
-                timeLeft <= 3 ? 'bg-red-100 animate-pulse' : 'bg-gray-100'
-              }`}>
-                <Clock className={`w-4 h-4 ${timeLeft <= 3 ? 'text-red-600' : 'text-gray-600'}`} />
-                <span className={`font-semibold text-sm ${
-                  timeLeft <= 3 ? 'text-red-800' : 'text-gray-800'
-                }`}>
-                  {timeLeft}s
+              <div className="bg-orange-100 px-3 py-1 rounded-full flex items-center space-x-1 border border-orange-300">
+                <Clock className="w-4 h-4 text-orange-600" />
+                <span className="font-semibold text-sm text-orange-800">
+                  {formatTime(elapsedTime)}
                 </span>
               </div>
             </div>
@@ -392,7 +367,7 @@ const Play = ({ userProfile }) => {
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
             <div
-              className="bg-gradient-to-r from-purple-600 to-pink-600 h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -404,6 +379,9 @@ const Play = ({ userProfile }) => {
             </p>
             <p className="text-sm text-gray-500">
               Reading: <span className="font-medium">{currentWord.reading}</span>
+            </p>
+            <p className="text-xs text-orange-600 mt-1">
+              Wrong answers add +{WRONG_ANSWER_PENALTY}s penalty
             </p>
           </div>
 
@@ -423,8 +401,8 @@ const Play = ({ userProfile }) => {
                     ${matched
                       ? 'bg-green-100 border-green-400 text-green-800 cursor-not-allowed opacity-75'
                       : selected
-                      ? 'bg-purple-100 border-purple-500 text-purple-900 scale-105'
-                      : 'bg-white border-gray-300 text-gray-900 hover:border-purple-300'
+                      ? 'bg-orange-100 border-orange-500 text-orange-900 scale-105'
+                      : 'bg-white border-gray-300 text-gray-900 hover:border-orange-300'
                     }
                   `}
                 >
@@ -452,36 +430,32 @@ const Play = ({ userProfile }) => {
     );
   }
 
-  // Results View
-  if (gameState === 'results' && gameResults) {
+  // Completed View (after finishing the challenge)
+  if (gameState === 'completed' && gameResults) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mb-4">
               <Award className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Game Complete!</h2>
-            <p className="text-gray-600">Here's how you did</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Challenge Complete!</h2>
+            <p className="text-gray-600">Great job! Here's how you did</p>
           </div>
 
           {/* Results Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-purple-900">{gameResults.score}</div>
-              <div className="text-sm text-purple-700">Total Score</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 text-center border border-orange-200">
+              <div className="text-3xl font-bold text-orange-900">{formatTime(gameResults.time)}</div>
+              <div className="text-sm text-orange-700">Your Time</div>
             </div>
-            <div className="bg-gradient-to-br from-pink-100 to-pink-50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-pink-900">{gameResults.correctAnswers}</div>
-              <div className="text-sm text-pink-700">Correct Answers</div>
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 text-center border border-orange-200">
+              <div className="text-3xl font-bold text-orange-900">{gameResults.correctAnswers}</div>
+              <div className="text-sm text-orange-700">Correct Answers</div>
             </div>
-            <div className="bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-indigo-900">{gameResults.accuracy}%</div>
-              <div className="text-sm text-indigo-700">Accuracy</div>
-            </div>
-            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-orange-900">{gameResults.streak}</div>
-              <div className="text-sm text-orange-700">Best Streak</div>
+            <div className="bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg p-4 text-center border border-orange-200">
+              <div className="text-3xl font-bold text-orange-900">{gameResults.accuracy}%</div>
+              <div className="text-sm text-orange-700">Accuracy</div>
             </div>
           </div>
 
@@ -490,22 +464,12 @@ const Play = ({ userProfile }) => {
             <LeaderboardView leaderboard={leaderboard} currentUserName={userProfile?.name} />
           </div>
 
-          {/* Actions */}
-          <div className="space-y-3">
-            <button
-              onClick={startGame}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
-            >
-              <RotateCcw className="w-6 h-6" />
-              <span>Play Again</span>
-            </button>
-
-            <button
-              onClick={() => setGameState('menu')}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Back to Menu
-            </button>
+          {/* Daily Challenge Message */}
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-semibold text-orange-900 mb-2">Daily Challenge Completed!</h3>
+            <p className="text-orange-700">
+              Come back tomorrow for a new challenge and improve your ranking!
+            </p>
           </div>
         </div>
       </div>
@@ -517,9 +481,16 @@ const Play = ({ userProfile }) => {
 
 // Leaderboard Component
 const LeaderboardView = ({ leaderboard, currentUserName }) => {
+  // Format time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3">
         <h3 className="text-white font-semibold flex items-center space-x-2">
           <Trophy className="w-5 h-5" />
           <span>Friends Leaderboard</span>
@@ -530,16 +501,16 @@ const LeaderboardView = ({ leaderboard, currentUserName }) => {
         {leaderboard.map((entry, index) => {
           const isCurrentUser = entry.name === currentUserName || entry.name === 'You';
           const rankColors = {
-            0: 'text-yellow-600',
+            0: 'text-orange-600',
             1: 'text-gray-500',
-            2: 'text-orange-600',
+            2: 'text-amber-600',
           };
 
           return (
             <div
               key={entry.id}
               className={`px-4 py-3 flex items-center justify-between ${
-                isCurrentUser ? 'bg-purple-50 border-l-4 border-purple-500' : 'hover:bg-gray-50'
+                isCurrentUser ? 'bg-orange-50 border-l-4 border-orange-500' : 'hover:bg-gray-50'
               }`}
             >
               <div className="flex items-center space-x-3">
@@ -549,20 +520,20 @@ const LeaderboardView = ({ leaderboard, currentUserName }) => {
                   {index === 0 ? <Crown className="w-5 h-5" /> : `#${index + 1}`}
                 </div>
                 <div>
-                  <div className={`font-semibold ${isCurrentUser ? 'text-purple-900' : 'text-gray-900'}`}>
+                  <div className={`font-semibold ${isCurrentUser ? 'text-orange-900' : 'text-gray-900'}`}>
                     {entry.name} {isCurrentUser && '(You)'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {entry.gamesPlayed} games played
+                    {entry.completedToday ? 'Completed today' : 'Not completed'}
                   </div>
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="font-bold text-gray-900">{entry.score}</div>
+                <div className="font-bold text-gray-900">{formatTime(entry.time)}</div>
                 <div className="text-xs text-gray-500 flex items-center justify-end space-x-1">
-                  <Zap className="w-3 h-3 text-orange-500" />
-                  <span>{entry.streak} streak</span>
+                  <Clock className="w-3 h-3 text-orange-500" />
+                  <span>Time</span>
                 </div>
               </div>
             </div>

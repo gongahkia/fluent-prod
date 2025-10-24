@@ -8,7 +8,6 @@ import NewsFeed from "./components/NewsFeed";
 import Onboarding from "./components/Onboarding";
 import Profile from "./components/Profile";
 import SavedPosts from "./components/SavedPosts";
-import UserSearch from "./components/UserSearch";
 import Play from "./components/Play";
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
@@ -32,7 +31,7 @@ function App() {
   const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
   const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'users'
+  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'dictionary', 'flashcards', 'savedposts', or 'challenge'
   const [userDictionary, setUserDictionary] = useState([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
@@ -567,14 +566,14 @@ function MainApp({
               <span>Flashcards</span>
             </button>
             <button
-              onClick={() => handleNavigation("play")}
+              onClick={() => handleNavigation("challenge")}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                currentView === "play"
+                currentView === "challenge"
                   ? "bg-white text-gray-900 shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Play
+              Challenge
             </button>
             <button
               onClick={() => handleNavigation("savedposts")}
@@ -585,16 +584,6 @@ function MainApp({
               }`}
             >
               Saved Posts
-            </button>
-            <button
-              onClick={() => handleNavigation("users")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                currentView === "users"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Find Users
             </button>
           </div>
         )}
@@ -624,7 +613,7 @@ function MainApp({
           />
         )}
 
-        {currentView === "play" && (
+        {currentView === "challenge" && (
           <Play userProfile={userProfile} />
         )}
 
@@ -635,8 +624,6 @@ function MainApp({
             userDictionary={userDictionary}
           />
         )}
-
-        {currentView === "users" && <UserSearch />}
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
