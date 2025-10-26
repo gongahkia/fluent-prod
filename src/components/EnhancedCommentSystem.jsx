@@ -41,6 +41,9 @@ const EnhancedCommentSystem = ({
   const fileInputRef = useRef(null)
   const [selectedMedia, setSelectedMedia] = useState(null)
   const [mediaPreview, setMediaPreview] = useState(null)
+  const [showGrammarCheck, setShowGrammarCheck] = useState(false)
+  const [grammarCheckResult, setGrammarCheckResult] = useState(null)
+  const [isCheckingGrammar, setIsCheckingGrammar] = useState(false)
 
   // Mock comments with nested structure
   const mockComments = {
@@ -117,6 +120,7 @@ const EnhancedCommentSystem = ({
     try {
       // Get Gemini API key from sessionStorage
       const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
+      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
       const response = await fetch(`${API_BASE_URL}/api/ai/comment-suggestions`, {
@@ -125,10 +129,11 @@ const EnhancedCommentSystem = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          postContent: postContent || 'Interesting post about Japan and Japanese culture.',
+          postContent: postContent || 'Interesting post about the target culture.',
           postTitle: postTitle || '',
           numberOfSuggestions: 3,
-          geminiApiKey
+          geminiApiKey,
+          targetLanguage
         }),
       })
 
@@ -138,8 +143,17 @@ const EnhancedCommentSystem = ({
         setAiSuggestions(data.suggestions)
         setAiModel(data.model || 'Gemini 2.0 Flash (Free)')
       } else {
-        // Fallback if API fails
-        setAiSuggestions([
+        // Fallback suggestions based on target language
+        const fallbackSuggestions = targetLanguage === 'Korean' ? [
+          {
+            text: 'This is interesting! 더 알고 싶어요.',
+            translation: 'I want to know more.'
+          },
+          {
+            text: 'Great post! 한국어 공부에 도움이 돼요.',
+            translation: 'This helps with studying Korean.'
+          }
+        ] : [
           {
             text: 'This is interesting! もっと知りたいです。',
             translation: 'I want to know more.'
@@ -148,13 +162,24 @@ const EnhancedCommentSystem = ({
             text: 'Great post! 日本語の勉強になります。',
             translation: 'This helps with studying Japanese.'
           }
-        ])
+        ]
+        setAiSuggestions(fallbackSuggestions)
         setAiModel('Gemini 2.0 Flash (Free)')
       }
     } catch (error) {
       console.error('Failed to fetch AI suggestions:', error)
-      // Fallback suggestions
-      setAiSuggestions([
+      // Fallback suggestions based on target language
+      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
+      const fallbackSuggestions = targetLanguage === 'Korean' ? [
+        {
+          text: 'This looks amazing! 어디예요?',
+          translation: 'Where is this?'
+        },
+        {
+          text: 'Thanks for sharing! 공부가 돼요.',
+          translation: 'This is educational.'
+        }
+      ] : [
         {
           text: 'This looks amazing! どこですか？',
           translation: 'Where is this?'
@@ -163,7 +188,8 @@ const EnhancedCommentSystem = ({
           text: 'Thanks for sharing! 勉強になります。',
           translation: 'This is educational.'
         }
-      ])
+      ]
+      setAiSuggestions(fallbackSuggestions)
       setAiModel('Gemini 2.0 Flash (Free)')
     }
     setIsLoadingAI(false)
@@ -411,51 +437,110 @@ const EnhancedCommentSystem = ({
     }
   }
 
+  // Check grammar before posting
+  const checkCommentGrammar = async () => {
+    setIsCheckingGrammar(true)
+    try {
+      const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
+      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
+
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const response = await fetch(`${API_BASE_URL}/api/ai/check-grammar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentText: commentText.trim(),
+          targetLanguage,
+          geminiApiKey
+        }),
+      })
+
+      const data = await response.json()
+      setGrammarCheckResult(data)
+
+      // Only show modal if there are errors
+      if (!data.isCorrect && data.correctedText) {
+        setShowGrammarCheck(true)
+      } else {
+        // If grammar is correct or no target language detected, post directly
+        postCommentDirectly()
+      }
+    } catch (error) {
+      console.error('Failed to check grammar:', error)
+      // On error, allow posting anyway
+      postCommentDirectly()
+    }
+    setIsCheckingGrammar(false)
+  }
+
+  // Actually post the comment (called after grammar check passes or user confirms)
+  const postCommentDirectly = () => {
+    setShowGrammarCheck(false)
+
+    const newComment = {
+      id: Date.now(),
+      user: userProfile?.name || "Anonymous",
+      content: commentText,
+      likes: 0,
+      avatar: userProfile?.name?.charAt(0) || "A",
+      replies: [],
+      media: selectedMedia ? {
+        type: selectedMedia.type,
+        data: selectedMedia.data,
+        name: selectedMedia.name
+      } : null
+    }
+
+    if (replyingTo) {
+      // Add as a reply to the specified comment
+      const addReply = (comments) => {
+        return comments.map(comment => {
+          if (comment.id === replyingTo.id) {
+            return {
+              ...comment,
+              replies: [...comment.replies, newComment]
+            }
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: addReply(comment.replies)
+            }
+          }
+          return comment
+        })
+      }
+      setComments(addReply(comments))
+      setReplyingTo(null)
+    } else {
+      setComments([newComment, ...comments])
+    }
+
+    setCommentText("")
+    handleRemoveMedia()
+    setShowSuccessMessage("Comment posted successfully!")
+    setTimeout(() => setShowSuccessMessage(""), 2000)
+  }
+
   const handlePostComment = () => {
     if (commentText.trim() || selectedMedia) {
-      const newComment = {
-        id: Date.now(),
-        user: userProfile?.name || "Anonymous",
-        content: commentText,
-        likes: 0,
-        avatar: userProfile?.name?.charAt(0) || "A",
-        replies: [],
-        media: selectedMedia ? {
-          type: selectedMedia.type,
-          data: selectedMedia.data,
-          name: selectedMedia.name
-        } : null
-      }
-
-      if (replyingTo) {
-        // Add as a reply to the specified comment
-        const addReply = (comments) => {
-          return comments.map(comment => {
-            if (comment.id === replyingTo.id) {
-              return {
-                ...comment,
-                replies: [...comment.replies, newComment]
-              }
-            }
-            if (comment.replies && comment.replies.length > 0) {
-              return {
-                ...comment,
-                replies: addReply(comment.replies)
-              }
-            }
-            return comment
-          })
-        }
-        setComments(addReply(comments))
-        setReplyingTo(null)
+      // Check grammar before posting if there's text
+      if (commentText.trim()) {
+        checkCommentGrammar()
       } else {
-        setComments([newComment, ...comments])
+        // If only media, post directly
+        postCommentDirectly()
       }
+    }
+  }
 
-      setCommentText("")
-      handleRemoveMedia()
-      setShowSuccessMessage("Comment posted successfully!")
-      setTimeout(() => setShowSuccessMessage(""), 2000)
+  // Use corrected text from grammar check
+  const handleUseCorrectedText = () => {
+    if (grammarCheckResult?.correctedText) {
+      setCommentText(grammarCheckResult.correctedText)
+      setShowGrammarCheck(false)
     }
   }
 
@@ -614,7 +699,13 @@ const EnhancedCommentSystem = ({
             <textarea
               ref={commentInputRef}
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={(e) => {
+                setCommentText(e.target.value)
+                // Close AI suggestions when user starts typing
+                if (showAIHelp && e.target.value.length > 0) {
+                  setShowAIHelp(false)
+                }
+              }}
               placeholder="Share your thoughts... (You can write in any language)"
               className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               rows={3}
@@ -668,11 +759,20 @@ const EnhancedCommentSystem = ({
 
               <button
                 onClick={handlePostComment}
-                disabled={!commentText.trim() && !selectedMedia}
+                disabled={(!commentText.trim() && !selectedMedia) || isCheckingGrammar}
                 className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-1 transition-colors"
               >
-                <Send className="w-4 h-4" />
-                <span>Post</span>
+                {isCheckingGrammar ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Post</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -810,6 +910,83 @@ const EnhancedCommentSystem = ({
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Grammar Check Modal */}
+      {showGrammarCheck && grammarCheckResult && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGrammarCheck(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Sparkles className="w-5 h-5 mr-2 text-orange-500" />
+                Grammar Suggestion
+              </h3>
+              <button
+                onClick={() => setShowGrammarCheck(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Original Text */}
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">Your comment:</p>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-gray-900">
+                  {grammarCheckResult.originalText}
+                </div>
+              </div>
+
+              {/* Corrected Text */}
+              {grammarCheckResult.correctedText && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Suggested correction:</p>
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-900">
+                    {grammarCheckResult.correctedText}
+                  </div>
+                </div>
+              )}
+
+              {/* Explanation */}
+              {grammarCheckResult.explanation && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Explanation:</p>
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-gray-800">
+                    {grammarCheckResult.explanation}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-2">
+                <button
+                  onClick={handleUseCorrectedText}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Use Correction
+                </button>
+                <button
+                  onClick={postCommentDirectly}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Post Anyway
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 text-center mt-2">
+                AI-powered grammar checking by {grammarCheckResult.model}
+              </p>
+            </div>
           </div>
         </div>
       )}
