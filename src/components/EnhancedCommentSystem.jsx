@@ -118,9 +118,11 @@ const EnhancedCommentSystem = ({
   const fetchAISuggestions = async () => {
     setIsLoadingAI(true)
     try {
-      // Get Gemini API key from sessionStorage
-      const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
+      // Get Gemini API key from localStorage (saved in Profile settings)
+      const geminiApiKey = localStorage.getItem('geminiApiKey') || null
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
+
+      console.log('🤖 Fetching AI suggestions...', { geminiApiKey: geminiApiKey ? '✓ Set' : '✗ Not set', targetLanguage })
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
       const response = await fetch(`${API_BASE_URL}/api/ai/comment-suggestions`, {
@@ -138,11 +140,14 @@ const EnhancedCommentSystem = ({
       })
 
       const data = await response.json()
+      console.log('🤖 AI Response:', data)
 
-      if (data.suggestions) {
+      if (data.suggestions && data.suggestions.length > 0) {
+        console.log('✓ Setting suggestions:', data.suggestions)
         setAiSuggestions(data.suggestions)
         setAiModel(data.model || 'Gemini 2.0 Flash (Free)')
       } else {
+        console.warn('⚠️ No suggestions in response, using fallbacks')
         // Fallback suggestions based on target language
         const fallbackSuggestions = targetLanguage === 'Korean' ? [
           {
@@ -167,7 +172,7 @@ const EnhancedCommentSystem = ({
         setAiModel('Gemini 2.0 Flash (Free)')
       }
     } catch (error) {
-      console.error('Failed to fetch AI suggestions:', error)
+      console.error('❌ Failed to fetch AI suggestions:', error)
       // Fallback suggestions based on target language
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
       const fallbackSuggestions = targetLanguage === 'Korean' ? [
@@ -189,6 +194,7 @@ const EnhancedCommentSystem = ({
           translation: 'This is educational.'
         }
       ]
+      console.log('Using catch block fallbacks:', fallbackSuggestions)
       setAiSuggestions(fallbackSuggestions)
       setAiModel('Gemini 2.0 Flash (Free)')
     }
@@ -441,7 +447,7 @@ const EnhancedCommentSystem = ({
   const checkCommentGrammar = async () => {
     setIsCheckingGrammar(true)
     try {
-      const geminiApiKey = sessionStorage.getItem('geminiApiKey') || null
+      const geminiApiKey = localStorage.getItem('geminiApiKey') || null
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
