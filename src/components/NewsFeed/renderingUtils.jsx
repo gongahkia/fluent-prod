@@ -145,8 +145,10 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     }
 
     if (parsedData && parsedData.text && parsedData.wordMetadata !== undefined) {
-      // NEW: Extract allWordTranslations from parsed data
+      // NEW: Extract allWordTranslations and vocabularyWords from parsed data
       const allTranslations = parsedData.allWordTranslations || allWordTranslations || {}
+      const vocabularyWords = parsedData.vocabularyWords || []
+
       // Process text with word metadata
       let processedText = parsedData.text
 
@@ -205,6 +207,56 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       let lastIndex = 0
       let keyCounter = 0
 
+      // Helper function to render text with vocabulary words clickable
+      const renderTextWithVocab = (text, keyPrefix) => {
+        if (!text) return []
+
+        // If we have vocabularyWords data, make them clickable
+        if (vocabularyWords && vocabularyWords.length > 0) {
+          // Create a map of vocabulary words for quick lookup
+          const vocabMap = new Map()
+          vocabularyWords.forEach(v => {
+            const normalizedWord = v.word.toLowerCase()
+            vocabMap.set(normalizedWord, v)
+          })
+
+          // Split by word boundaries
+          const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
+          return segments.map((segment, idx) => {
+            // Keep whitespace and punctuation as-is
+            if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
+              return <span key={`${keyPrefix}-${idx}`}>{segment}</span>
+            }
+
+            const cleanWord = segment.trim().toLowerCase().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
+            const vocabData = vocabMap.get(cleanWord)
+
+            if (vocabData && vocabularyService.isValidVocabularyWord(cleanWord)) {
+              // This is a vocabulary word - make it clickable
+              const targetLangName = targetLanguage === 'Korean' ? 'Korean' : 'Japanese'
+
+              return (
+                <span
+                  key={`${keyPrefix}-vocab-${idx}`}
+                  className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
+                  onClick={() => handleWordClick(segment.trim(), false, processedText)}
+                  title={`📚 Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
+                  style={{ textDecoration: "none" }}
+                >
+                  {segment}
+                </span>
+              )
+            }
+
+            // Not a vocabulary word - just plain text
+            return <span key={`${keyPrefix}-text-${idx}`}>{segment}</span>
+          })
+        }
+
+        // No vocabulary data, just return plain text
+        return [<span key={keyPrefix}>{text}</span>]
+      }
+
       for (const { index: markerIndex, marker, wordData } of markerPositions) {
         // Add text before this marker (may contain orphaned markers - we'll clean them)
         if (markerIndex > lastIndex) {
@@ -212,7 +264,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           // Remove any orphaned markers in this segment
           const cleanedSegment = textBeforeMarker.replace(/\{\{WORD:\d+\}\}/g, '[word]')
           if (cleanedSegment) {
-            parts.push(<span key={`text-${keyCounter++}`}>{cleanedSegment}</span>)
+            // NEW: Render with vocabulary words clickable
+            parts.push(...renderTextWithVocab(cleanedSegment, `before-${keyCounter++}`))
           }
         }
 
@@ -260,8 +313,10 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const remainingText = processedText.substring(lastIndex)
         // Clean any orphaned markers in the remaining text
         const cleanedRemaining = remainingText.replace(/\{\{WORD:\d+\}\}/g, '[word]')
+
         if (cleanedRemaining) {
-          parts.push(<span key={`text-${keyCounter++}`}>{cleanedRemaining}</span>)
+          // NEW: Render remaining text with ALL vocabulary words clickable
+          parts.push(...renderTextWithVocab(cleanedRemaining, `remaining-${keyCounter++}`))
         }
       }
 

@@ -2,6 +2,7 @@ import nlp from 'compromise'
 import NodeCache from 'node-cache'
 import { translateText } from './translationService.js'
 import { CacheMetrics, startBatchTimer, logPerformance } from '../utils/performanceMonitor.js'
+import { calculateWordDifficulty } from '../utils/difficultyUtils.js'
 
 // Cache for 1 hour
 const cache = new NodeCache({ stdTTL: 3600 })
@@ -106,10 +107,10 @@ export async function detectVocabulary(text) {
 }
 
 // Create a vocabulary word object with translation
-export async function createVocabularyWord(word, type = 'unknown', context = '') {
+export async function createVocabularyWord(word, type = 'unknown', context = '', targetLang = 'ja') {
   const cleanWord = word.toLowerCase().trim()
 
-  const cacheKey = `vocab:word:${cleanWord}:${type}`
+  const cacheKey = `vocab:word:${cleanWord}:${type}:${targetLang}`
   const cached = cache.get(cacheKey)
   if (cached) {
     cacheMetrics.recordHit()
@@ -118,14 +119,19 @@ export async function createVocabularyWord(word, type = 'unknown', context = '')
 
   cacheMetrics.recordMiss()
 
+  // Calculate word-level difficulty based on word characteristics
+  const wordDifficulty = calculateWordDifficulty(cleanWord, type)
+
   // Get translation
-  const translation = await translateText(cleanWord, 'en', 'ja')
+  const translation = await translateText(cleanWord, 'en', targetLang)
 
   const vocabularyWord = {
     english: cleanWord,
-    japanese: translation.translation,
+    translation: translation.translation,
+    japanese: targetLang === 'ja' ? translation.translation : undefined,
+    korean: targetLang === 'ko' ? translation.translation : undefined,
     type: type,
-    level: WORD_LEVELS[type] || 5,
+    level: wordDifficulty, // Use calculated word difficulty instead of type-based
     pronunciation: '', // Could be enhanced with pronunciation API
     isVocabulary: isValidVocabularyWord(cleanWord),
     context: context || ''
@@ -218,4 +224,91 @@ export async function getVocabularyStats(text) {
     averageLevel: totalWords > 0 ? (totalLevel / totalWords).toFixed(2) : 0,
     vocabulary: vocabulary.slice(0, 20) // Return top 20 words
   }
+}
+
+/**
+ * NEW: Extract ALL vocabulary words from text with positions and metadata
+ * This provides comprehensive vocabulary data for every vocabulary word in the text
+ * @param {string} text - Text to analyze
+ * @param {string} targetLang - Target language for translations
+ * @returns {Promise<Array>} - Array of { word, position, type, difficulty, translation }
+ */
+export async function extractAllVocabularyWords(text, targetLang = 'ja') {
+  if (!text || typeof text !== 'string') {
+    return []
+  }
+
+  const timer = startBatchTimer('Extract all vocabulary words', text.length)
+
+  const doc = nlp(text)
+
+  // Extract different word types with their positions in the text
+  const vocabularyWords = []
+
+  // Process each word type
+  const wordTypes = [
+    { name: 'properNoun', extractor: () => doc.places().out('array').concat(doc.people().out('array')) },
+    { name: 'noun', extractor: () => doc.nouns().out('array') },
+    { name: 'verb', extractor: () => doc.verbs().out('array') },
+    { name: 'adjective', extractor: () => doc.adjectives().out('array') },
+    { name: 'adverb', extractor: () => doc.adverbs().out('array') }
+  ]
+
+  // Extract words by type
+  for (const wordType of wordTypes) {
+    const words = wordType.extractor()
+
+    for (const word of words) {
+      if (!isValidVocabularyWord(word)) {
+        continue
+      }
+
+      // Find all positions of this word in the text
+      const cleanWord = word.toLowerCase()
+      const wordRegex = new RegExp(`\\b${word}\\b`, 'gi')
+      let match
+
+      while ((match = wordRegex.exec(text)) !== null) {
+        vocabularyWords.push({
+          word: cleanWord,
+          originalWord: word,
+          position: match.index,
+          type: wordType.name,
+          difficulty: calculateWordDifficulty(cleanWord, wordType.name)
+        })
+      }
+    }
+  }
+
+  // Sort by position
+  vocabularyWords.sort((a, b) => a.position - b.position)
+
+  // Translate all unique words in parallel
+  const uniqueWords = [...new Set(vocabularyWords.map(v => v.word))]
+  const translationMap = {}
+
+  const translationPromises = uniqueWords.map(async (word) => {
+    try {
+      const result = await translateText(word, 'en', targetLang)
+      translationMap[word] = result.translation
+    } catch (error) {
+      console.warn(`Failed to translate word "${word}":`, error.message)
+      translationMap[word] = word // Fallback to original
+    }
+  })
+
+  await Promise.all(translationPromises)
+
+  // Add translations to vocabulary words
+  const vocabularyWithTranslations = vocabularyWords.map(v => ({
+    ...v,
+    translation: translationMap[v.word] || v.word
+  }))
+
+  const metrics = timer.stop()
+  logPerformance(metrics, 'success')
+
+  console.log(`  ✅ Extracted ${vocabularyWithTranslations.length} vocabulary words`)
+
+  return vocabularyWithTranslations
 }

@@ -900,29 +900,40 @@ const NewsFeed = ({
                 )}
               </div>
 
-              {/* Article Content - Center */}
+              {/* Article Content - Twitter-like (combined title + content) */}
               <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  {renderClickableText(article.title, `${article.id}-title`)}
-                </h2>
-                <div className="text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">
-                  {article.content ? (
-                    <>
-                      {expandedPosts[article.id] || !shouldTruncateContent(article.content) ? (
-                        <div>{parseMarkdownContent(article.content, `${article.id}-content`, renderClickableText)}</div>
-                      ) : (
-                        <div>{parseMarkdownContent(truncateContent(article.content), `${article.id}-content`, renderClickableText)}</div>
-                      )}
-                      {shouldTruncateContent(article.content) && (
-                        <button
-                          onClick={() => togglePostExpansion(article.id)}
-                          className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
-                        >
-                          {expandedPosts[article.id] ? 'See Less' : 'See More'}
-                        </button>
-                      )}
-                    </>
-                  ) : ""}
+                {/* Combined Text Block */}
+                <div className="text-gray-900 leading-relaxed mb-4 whitespace-pre-wrap">
+                  {/* Render combined title and content as one block */}
+                  {(() => {
+                    // Combine title and content with a space or period separator
+                    const titleText = article.title || '';
+                    const contentText = article.content || '';
+                    const combinedText = titleText + (titleText && contentText ? '. ' : '') + contentText;
+                    const combinedId = `${article.id}-combined`;
+
+                    // Check if we should truncate
+                    const shouldTruncate = shouldTruncateContent(combinedText);
+                    const displayText = (expandedPosts[article.id] || !shouldTruncate)
+                      ? combinedText
+                      : truncateContent(combinedText);
+
+                    return (
+                      <>
+                        <div className="text-base">
+                          {parseMarkdownContent(displayText, combinedId, renderClickableText)}
+                        </div>
+                        {shouldTruncate && (
+                          <button
+                            onClick={() => togglePostExpansion(article.id)}
+                            className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
+                          >
+                            {expandedPosts[article.id] ? 'See Less' : 'See More'}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {article.image && (

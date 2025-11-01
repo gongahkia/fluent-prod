@@ -1,6 +1,6 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
-import { isValidVocabularyWord } from './vocabularyService.js'
+import { isValidVocabularyWord, extractAllVocabularyWords } from './vocabularyService.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -293,12 +293,12 @@ export async function translateAllWords(text, targetLang = 'ja', sourceLang = 'e
 
 /**
  * Create mixed language content with partial translation
- * Now also generates ALL word translations
+ * NEW: Extracts ALL vocabulary words with positions, difficulties, and translations
  * @param {string} text - Text to process
  * @param {number} userLevel - User's learning level (1-5)
  * @param {string} targetLang - Target language code
  * @param {string} sourceLang - Source language code
- * @returns {Promise<Object>} - { text, wordMetadata, allWordTranslations }
+ * @returns {Promise<Object>} - { text, wordMetadata, allWordTranslations, vocabularyWords }
  */
 export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
@@ -313,7 +313,10 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
   // Strip all markdown formatting FIRST, before translation
   const cleanedText = stripMarkdownFormatting(text)
 
-  // NEW: Generate translations for ALL words first
+  // NEW: Extract ALL vocabulary words with comprehensive metadata
+  const vocabularyWords = await extractAllVocabularyWords(cleanedText, targetLang)
+
+  // Generate translations for ALL words (for backward compatibility)
   const allWordTranslations = await translateAllWords(cleanedText, targetLang, sourceLang)
 
   const translationPercentage = getTranslationPercentage(userLevel)
@@ -351,7 +354,8 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
   const processedResult = {
     text: '',
     wordMetadata: [],
-    allWordTranslations  // NEW: Include all translations
+    allWordTranslations,  // Include all simple word translations
+    vocabularyWords  // NEW: Include comprehensive vocabulary data with difficulty levels
   }
 
   for (const result of sentenceResults) {
