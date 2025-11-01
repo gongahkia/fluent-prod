@@ -58,7 +58,10 @@ const NewsFeed = ({
 
   // Check API configuration on component mount
   useEffect(() => {
-    const loadApiStatus = async () => {
+    const loadApiStatus = async (retryCount = 0) => {
+      const MAX_RETRIES = 3
+      const RETRY_DELAY = 2000 // 2 seconds
+
       try {
         const sources = await checkApiConfiguration()
         // Convert array to object keyed by source id
@@ -67,11 +70,19 @@ const NewsFeed = ({
           statusMap[source.id] = source
         })
         setApiStatus(statusMap)
+        console.log('✅ API configuration loaded successfully:', statusMap)
       } catch (error) {
-        console.error('Failed to load API status:', error)
-        // Don't set fallback - show error instead
-        setError('Failed to connect to backend API. Please ensure the server is running.')
-        setLoading(false)
+        console.error(`Failed to load API status (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, error)
+
+        // Retry logic - backend might still be starting up
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Retrying in ${RETRY_DELAY / 1000} seconds...`)
+          setTimeout(() => loadApiStatus(retryCount + 1), RETRY_DELAY)
+        } else {
+          // All retries exhausted - show error
+          setError('Failed to connect to backend API. Please ensure the server is running.')
+          setLoading(false)
+        }
       }
     }
     loadApiStatus()
