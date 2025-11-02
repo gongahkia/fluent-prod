@@ -197,19 +197,59 @@ const Onboarding = ({ onComplete }) => {
       <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">
-              Step {currentStep} of 4
-            </span>
-            <span className="text-sm text-gray-600">
-              {Math.round((currentStep / 4) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-gray-900 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
-            ></div>
+          {/* Enhanced Progress Indicator */}
+          <div className="space-y-4">
+            {/* Step Dots */}
+            <div className="flex items-center justify-center space-x-3">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className="flex items-center">
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                      transition-all duration-400
+                      ${step < currentStep
+                        ? 'bg-orange-600 text-white scale-100'
+                        : step === currentStep
+                        ? 'bg-orange-600 text-white scale-110 shadow-lg'
+                        : 'bg-gray-200 text-gray-500 scale-100'
+                      }
+                    `}
+                  >
+                    {step < currentStep ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      step
+                    )}
+                  </div>
+                  {step < 4 && (
+                    <div
+                      className={`
+                        w-12 h-1 mx-2 rounded-full transition-all duration-400
+                        ${step < currentStep ? 'bg-orange-600' : 'bg-gray-200'}
+                      `}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Step Labels */}
+            <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+              <span className={currentStep === 1 ? 'text-orange-600 font-semibold' : ''}>Language</span>
+              <span className={currentStep === 2 ? 'text-orange-600 font-semibold' : ''}>Level</span>
+              <span className={currentStep === 3 ? 'text-orange-600 font-semibold' : ''}>Interests</span>
+              <span className={currentStep === 4 ? 'text-orange-600 font-semibold' : ''}>Review</span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-400 ease-out"
+                style={{ width: `${(currentStep / 4) * 100}%` }}
+              ></div>
+            </div>
           </div>
         </div>
 

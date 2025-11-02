@@ -885,47 +885,65 @@ const NewsFeed = ({
                 )}
               </div>
 
-              {/* Article Content - Twitter-like (combined title + content) */}
+              {/* Article Content - Enhanced typography and smooth expansion */}
               <div className="mb-4">
-                {/* Combined Text Block */}
-                <div className="text-gray-900 leading-relaxed mb-4 whitespace-pre-wrap">
-                  {/* Render combined title and content as one block */}
-                  {(() => {
-                    // Combine title and content with a space or period separator
-                    const titleText = article.title || '';
-                    const contentText = article.content || '';
-                    const combinedText = titleText + (titleText && contentText ? '. ' : '') + contentText;
-                    const combinedId = `${article.id}-combined`;
+                {/* Combined Text Block with improved hierarchy */}
+                {(() => {
+                  const titleText = article.title || '';
+                  const contentText = article.content || '';
+                  const combinedText = titleText + (titleText && contentText ? '. ' : '') + contentText;
+                  const combinedId = `${article.id}-combined`;
+                  const shouldTruncate = shouldTruncateContent(combinedText);
+                  const isExpanded = expandedPosts[article.id];
 
-                    // Check if we should truncate
-                    const shouldTruncate = shouldTruncateContent(combinedText);
-                    const displayText = (expandedPosts[article.id] || !shouldTruncate)
-                      ? combinedText
-                      : truncateContent(combinedText);
-
-                    return (
-                      <>
-                        <div className="text-base">
-                          {parseMarkdownContent(displayText, combinedId, renderClickableText)}
-                        </div>
-                        {shouldTruncate && (
-                          <button
-                            onClick={() => togglePostExpansion(article.id)}
-                            className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
-                          >
-                            {expandedPosts[article.id] ? 'See Less' : 'See More'}
-                          </button>
+                  return (
+                    <>
+                      <div
+                        className={`
+                          post-body
+                          ${!isExpanded && shouldTruncate ? 'post-content-truncated' : 'post-content-expanded'}
+                        `}
+                      >
+                        {/* Title portion with emphasis */}
+                        {titleText && (
+                          <span className="post-title">
+                            {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
+                          </span>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
+                        {/* Content portion */}
+                        {contentText && (
+                          <span>
+                            {titleText && '. '}
+                            {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
+                          </span>
+                        )}
+                        {!titleText && !contentText && parseMarkdownContent(combinedText, combinedId, renderClickableText)}
+                      </div>
+                      {shouldTruncate && (
+                        <button
+                          onClick={() => togglePostExpansion(article.id)}
+                          className="text-orange-600 hover:text-orange-700 font-medium mt-3 inline-flex items-center space-x-1 transition-all duration-300 hover:translate-x-1"
+                        >
+                          <span>{isExpanded ? 'See Less' : 'See More'}</span>
+                          <svg
+                            className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {article.image && (
                   <img
                     src={article.image}
                     alt={article.title}
-                    className="w-full h-64 object-cover rounded-lg mb-4"
+                    className="w-full h-64 object-cover rounded-lg mt-4 transition-all duration-300 hover:shadow-lg"
                   />
                 )}
               </div>
