@@ -18,6 +18,7 @@ import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
 import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
+import { FeedSkeleton } from "./ui/skeleton"
 
 const NewsFeed = ({
   selectedCountry,
@@ -54,7 +55,6 @@ const NewsFeed = ({
   const [expandedPosts, setExpandedPosts] = useState({})
   const [savedPostIds, setSavedPostIds] = useState(new Set())
   const [savingPost, setSavingPost] = useState(null)
-  const [sharePopup, setSharePopup] = useState(null)
 
   // Check API configuration on component mount
   useEffect(() => {
@@ -626,22 +626,35 @@ const NewsFeed = ({
     const shareUrl = article.externalUrl || article.url
     const shareTitle = article.title
 
-    // Show share popup
-    setSharePopup({
-      url: shareUrl,
-      title: shareTitle,
-      id: article.id
-    })
+    // Try native share API first (mobile-friendly)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          url: shareUrl
+        })
+        showFeedback('Post shared! ✓', '🔗')
+      } catch (error) {
+        // User cancelled or error - ignore
+        if (error.name !== 'AbortError') {
+          console.error('Share failed:', error)
+          // Fallback to clipboard
+          copyToClipboard(shareUrl)
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      copyToClipboard(shareUrl)
+    }
   }
 
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text)
-      showFeedback('Link copied! ✓', '🔗')
-      setSharePopup(null)
+      showFeedback('Link copied to clipboard! ✓', '📋')
     } catch (error) {
       console.error('Failed to copy:', error)
-      alert('Failed to copy link')
+      showFeedback('Failed to copy link', '❌')
     }
   }
 
@@ -811,49 +824,6 @@ const NewsFeed = ({
         />
       )}
 
-      {/* Share Popup */}
-      {sharePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Share Post</h3>
-            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{sharePopup.title}</p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => copyToClipboard(sharePopup.url)}
-                className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center space-x-2"
-              >
-                <span>Copy Link</span>
-              </button>
-
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(sharePopup.url)}&text=${encodeURIComponent(sharePopup.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition-colors flex items-center justify-center space-x-2"
-              >
-                <span>Share on Twitter</span>
-              </a>
-
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePopup.url)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-orange-800 text-white px-4 py-2 rounded-lg hover:bg-orange-900 transition-colors flex items-center justify-center space-x-2"
-              >
-                <span>Share on Facebook</span>
-              </a>
-
-              <button
-                onClick={() => setSharePopup(null)}
-                className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Error State */}
       {error && !loading && (
@@ -885,11 +855,15 @@ const NewsFeed = ({
         </div>
       )}
 
+      {/* Loading Skeletons */}
+      {loading && !error && (
+        <FeedSkeleton count={5} />
+      )}
+
       {/* Posts - Unified Feed with Separator Lines */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      {!loading &&
-        !error &&
-        (processedPosts.length > 0 ? processedPosts : posts).map((article, index) => (
+      {!loading && !error && (processedPosts.length > 0 || posts.length > 0) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {(processedPosts.length > 0 ? processedPosts : posts).map((article, index) => (
           <div key={article.id || article.url || `post-${index}`}>
             {/* Article Container - No borders, clean layout */}
             <div className="p-6">
@@ -1001,14 +975,15 @@ const NewsFeed = ({
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* See More Button - DISABLED: All posts shown at once */}
       {/* Loading More indicator - DISABLED: All posts shown at once */}
 
       {/* No more posts message */}
-      {(processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
-          <div className="text-center py-8">
+      {!loading && !error && (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
+          <div className="text-center py-8 animate-fadeIn">
             <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
               <span className="text-2xl">📚</span>
               <span className="font-medium">

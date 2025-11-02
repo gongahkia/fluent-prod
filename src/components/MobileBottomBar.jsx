@@ -1,10 +1,10 @@
 import React from 'react'
-import { Home, BookOpen, CreditCard, User, Trophy } from 'lucide-react'
+import { Home, BookOpen, Trophy, User, Settings } from 'lucide-react'
 
 /**
  * Instagram-style bottom navigation bar for mobile devices
  * Only visible on screens < 768px
- * Shows: Feed, Dictionary, Flashcards, Challenge, Profile
+ * Shows: Feed, Dictionary (with flashcards), Challenge, Profile, Settings
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -19,14 +19,7 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'dictionary',
       label: 'Dictionary',
       icon: BookOpen,
-      activeColor: 'text-amber-600',
-      inactiveColor: 'text-gray-500'
-    },
-    {
-      id: 'flashcards',
-      label: 'Cards',
-      icon: CreditCard,
-      activeColor: 'text-amber-600',
+      activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     },
     {
@@ -40,6 +33,13 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'profile',
       label: 'Profile',
       icon: User,
+      activeColor: 'text-orange-600',
+      inactiveColor: 'text-gray-500'
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
       activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     }
@@ -59,20 +59,20 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${
                 isActive ? 'scale-105' : 'scale-100'
               }`}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon
-                className={`w-6 h-6 mb-1 transition-colors ${
+                className={`w-6 h-6 mb-1 transition-all duration-300 ${
                   isActive ? item.activeColor : item.inactiveColor
                 }`}
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <span
-                className={`text-xs font-medium transition-colors ${
+                className={`text-xs font-medium transition-all duration-300 ${
                   isActive ? item.activeColor : item.inactiveColor
                 }`}
               >

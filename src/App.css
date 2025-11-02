@@ -181,3 +181,136 @@
   border-radius: 4px;
   padding: 2px 4px;
 }
+
+/* Custom animations for modals and transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 300ms ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slideInFromBottom {
+  animation: slideInFromBottom 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slideInFromRight {
+  animation: slideInFromRight 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-scaleIn,
+  .animate-slideInFromBottom,
+  .animate-slideInFromRight {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Post content truncation with fade effect */
+.post-content-truncated {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.post-content-truncated::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, white);
+  pointer-events: none;
+}
+
+.post-content-expanded {
+  animation: expandHeight 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes expandHeight {
+  from {
+    max-height: 200px;
+    opacity: 0.8;
+  }
+  to {
+    max-height: 2000px;
+    opacity: 1;
+  }
+}
+
+/* Improved typography for posts */
+.post-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.post-body {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #374151;
+}
+
+/* Better word click hover states */
+.word-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.word-hover:hover {
+  background-color: #FFF7ED;
+  box-shadow: 0 0 0 2px #FB923C;
+  transform: translateY(-1px);
+}

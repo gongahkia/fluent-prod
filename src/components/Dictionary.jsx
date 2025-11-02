@@ -14,6 +14,7 @@ import {
 import React, { useState } from "react"
 import { getLanguageByName, getLevelColor, getLevelName } from "@config/languages"
 import { PronunciationButton } from "./ui/PronunciationButton"
+import { DictionaryListSkeleton } from "./ui/skeleton"
 
 const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
   // Get language configuration
@@ -362,7 +363,32 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
 
         {/* Dictionary Words */}
         <div className="space-y-3">
-          {sortedWords.map((word) => (
+          {sortedWords.length === 0 && userDictionary.length === 0 ? (
+            /* Empty state with helpful message */
+            <div className="bg-white rounded-lg border border-gray-200 p-12 text-center animate-fadeIn">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen className="w-8 h-8 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Start Building Your Vocabulary
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Click on words in the Learning Feed to add them to your dictionary
+              </p>
+              <p className="text-sm text-gray-500">
+                Words you save will appear here for easy review and practice
+              </p>
+            </div>
+          ) : sortedWords.length === 0 ? (
+            /* No results for current filters */
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center animate-fadeIn">
+              <p className="text-gray-600">
+                No words match your current filters. Try adjusting your search or filters.
+              </p>
+            </div>
+          ) : (
+            /* Render words */
+            sortedWords.map((word) => (
             <div
               key={word.id}
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
@@ -612,10 +638,12 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                 </div>
               )}
             </div>
-          ))}
+            ))
+          )}
         </div>
 
-        {sortedWords.length === 0 && (
+        {/* Old empty state removed - now handled above */}
+        {false && sortedWords.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
