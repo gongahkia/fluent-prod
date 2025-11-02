@@ -213,12 +213,12 @@ function App() {
 
   // Show loading screen after successful login (for existing users)
   if (showPostLoginLoading) {
-    return <LoadingScreen onLoadingComplete={handlePostLoginLoadingComplete} />;
+    return <LoadingScreen onLoadingComplete={handlePostLoginLoadingComplete} showText={true} />;
   }
 
   // Show loading screen after onboarding completion
   if (showPostOnboardingLoading) {
-    return <LoadingScreen onLoadingComplete={handlePostOnboardingLoadingComplete} />;
+    return <LoadingScreen onLoadingComplete={handlePostOnboardingLoadingComplete} showText={true} />;
   }
 
   // Handle Reddit OAuth callback route first (before auth checks)

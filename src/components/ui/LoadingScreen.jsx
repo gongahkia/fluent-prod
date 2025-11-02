@@ -2,6 +2,30 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FluentLogo } from "./FluentLogo";
 
+// Goofy action words for loading states
+const goofyLoadingWords = [
+  "skedaddling",
+  "doodling",
+  "ideating",
+  "throwing paint on a canvas",
+  "summoning the language spirits",
+  "wrangling some kanji",
+  "herding vowels",
+  "sprinkling some grammar magic",
+  "decoding the ancient texts",
+  "brewing some vocabulary",
+  "juggling particles",
+  "untangling syntax",
+  "polishing hiragana",
+  "waxing katakana",
+  "marinating in meanings",
+  "whisking up translations",
+  "seasoning sentences",
+  "kneading knowledge",
+  "stirring the language pot",
+  "stretching syllables"
+];
+
 /**
  * LoadingScreen Component
  *
@@ -11,12 +35,15 @@ import { FluentLogo } from "./FluentLogo";
  * @param {Object} props
  * @param {Function} props.onLoadingComplete - Callback function when loading completes
  * @param {number} props.duration - Duration in milliseconds (default: 3000)
+ * @param {boolean} props.showText - Whether to show animated text below spinner (default: false)
  */
 export default function LoadingScreen({
   onLoadingComplete,
   duration = 3000,
+  showText = false,
 }) {
   const [isVisible, setIsVisible] = useState(true);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,6 +53,17 @@ export default function LoadingScreen({
 
     return () => clearTimeout(timer);
   }, [duration, onLoadingComplete]);
+
+  // Cycle through loading words
+  useEffect(() => {
+    if (!showText) return;
+
+    const interval = setInterval(() => {
+      setCurrentWordIndex((prev) => (prev + 1) % goofyLoadingWords.length);
+    }, 1500); // Change word every 1.5 seconds
+
+    return () => clearInterval(interval);
+  }, [showText]);
 
   return (
     <AnimatePresence>
@@ -67,6 +105,29 @@ export default function LoadingScreen({
                 </motion.div>
               </div>
             </motion.div>
+
+            {/* Animated Loading Text */}
+            {showText && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+                className="h-8 flex items-center"
+              >
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentWordIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-orange-600 font-medium text-lg"
+                  >
+                    {goofyLoadingWords[currentWordIndex]}...
+                  </motion.p>
+                </AnimatePresence>
+              </motion.div>
+            )}
           </div>
         </motion.div>
       )}
