@@ -37,6 +37,8 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
     learningLevel: userProfile?.level || "3",
     location: userProfile?.location || "",
     website: userProfile?.website || "",
+    profilePictureUrl: userProfile?.profilePictureUrl || "",
+    bannerImage: userProfile?.bannerImage || "",
     selectedTags: userProfile?.selectedTags || [],
     // Privacy settings
     profileVisibility: userProfile?.settings?.privacy?.profileVisibility || "public",
@@ -121,6 +123,8 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         level: parseInt(formData.learningLevel),
         location: formData.location,
         website: formData.website,
+        profilePictureUrl: formData.profilePictureUrl,
+        bannerImage: formData.bannerImage,
         selectedTags: formData.selectedTags,
         settings: {
           notifications: {
@@ -185,6 +189,43 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           disabled: true,
           help: "Email cannot be changed"
         },
+        {
+          label: "Bio",
+          type: "textarea",
+          name: "bio",
+          value: formData.bio,
+          placeholder: "Tell others about yourself and your language learning journey...",
+        },
+        {
+          label: "Location",
+          type: "input",
+          name: "location",
+          value: formData.location,
+          placeholder: "e.g. New York, USA",
+        },
+        {
+          label: "Website",
+          type: "input",
+          name: "website",
+          value: formData.website,
+          placeholder: "https://yourwebsite.com",
+        },
+        {
+          label: "Profile Picture URL",
+          type: "input",
+          name: "profilePictureUrl",
+          value: formData.profilePictureUrl,
+          placeholder: "https://example.com/profile.jpg",
+          help: "Enter a URL for your profile picture"
+        },
+        {
+          label: "Banner Image URL",
+          type: "input",
+          name: "bannerImage",
+          value: formData.bannerImage,
+          placeholder: "https://example.com/banner.jpg",
+          help: "Enter a URL for your profile banner image"
+        },
       ]
     },
     {
@@ -238,8 +279,9 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           name: "profileVisibility",
           value: formData.profileVisibility,
           options: [
-            { value: "public", label: "Public" },
-            { value: "private", label: "Private" },
+            { value: "public", label: "Public - Anyone can see your profile" },
+            { value: "friends", label: "Friends Only - Only friends can see your profile" },
+            { value: "private", label: "Private - Only you can see your profile" },
           ],
           help: "Control who can see your profile"
         },
@@ -258,7 +300,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           options: [
             { value: "light", label: "Light" },
             { value: "dark", label: "Dark" },
-            { value: "system", label: "System" },
+            { value: "auto", label: "Auto" },
           ],
         },
         {
@@ -270,6 +312,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
             { value: "small", label: "Small" },
             { value: "medium", label: "Medium" },
             { value: "large", label: "Large" },
+            { value: "xlarge", label: "Extra Large" },
           ],
         },
       ]
@@ -346,6 +389,16 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
                               placeholder={item.placeholder}
                               disabled={item.disabled}
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-300"
+                            />
+                          )}
+                          {item.type === "textarea" && (
+                            <textarea
+                              name={item.name}
+                              value={item.value}
+                              onChange={handleInputChange}
+                              placeholder={item.placeholder}
+                              rows="3"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
                             />
                           )}
                           {item.type === "checkbox" && (
