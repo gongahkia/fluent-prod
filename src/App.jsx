@@ -8,7 +8,6 @@ import Onboarding from "./components/Onboarding";
 import PublicProfile from "./components/PublicProfile";
 import Settings from "./components/Settings";
 import SavedPosts from "./components/SavedPosts";
-import Play from "./components/Play";
 import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import RedditCallback from "./pages/RedditCallback";
@@ -31,7 +30,7 @@ function App() {
   const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
   const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'settings', 'dictionary', 'savedposts', or 'challenge'
+  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'settings', 'dictionary', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
@@ -468,16 +467,6 @@ function MainApp({
               Dictionary
             </button>
             <button
-              onClick={() => handleNavigation("challenge")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "challenge"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Challenge
-            </button>
-            <button
               onClick={() => handleNavigation("savedposts")}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
                 currentView === "savedposts"
@@ -506,10 +495,6 @@ function MainApp({
             onRemoveWord={removeWordFromDictionary}
             userProfile={userProfile}
           />
-        )}
-
-        {currentView === "challenge" && (
-          <Play userProfile={userProfile} />
         )}
 
         {currentView === "savedposts" && (

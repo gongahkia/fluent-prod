@@ -1,10 +1,10 @@
 import React from 'react'
-import { Home, BookOpen, Trophy, User, Settings } from 'lucide-react'
+import { Home, BookOpen, User, Settings } from 'lucide-react'
 
 /**
  * Instagram-style bottom navigation bar for mobile devices
  * Only visible on screens < 768px
- * Shows: Feed, Dictionary (with flashcards), Challenge, Profile, Settings
+ * Shows: Feed, Dictionary (with flashcards), Profile, Settings
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -19,13 +19,6 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'dictionary',
       label: 'Dictionary',
       icon: BookOpen,
-      activeColor: 'text-orange-600',
-      inactiveColor: 'text-gray-500'
-    },
-    {
-      id: 'challenge',
-      label: 'Challenge',
-      icon: Trophy,
       activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     },
