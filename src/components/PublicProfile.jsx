@@ -12,7 +12,6 @@ import {
   getUserFollowers,
   getUserFollowing,
 } from "@/services/databaseService"
-import ConsistencyGraph from "./ConsistencyGraph"
 
 const PublicProfile = ({ userProfile, onBack }) => {
   const { currentUser } = useAuth()
@@ -161,12 +160,6 @@ const PublicProfile = ({ userProfile, onBack }) => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Learning Stats */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 animate-slideInFromBottom" style={{ animationDelay: '100ms' }}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Learning Progress</h3>
-          <ConsistencyGraph userId={currentUser?.uid} />
         </div>
 
         {/* Interests */}
