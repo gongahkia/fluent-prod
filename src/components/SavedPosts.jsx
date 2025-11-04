@@ -116,7 +116,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading saved posts..." />
+        <LoadingSpinner size="lg" showRandomWords={true} />
       </div>
     )
   }

@@ -1,7 +1,30 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { FluentLogo } from "./FluentLogo"
 
-const LoadingSpinner = ({ size = "md", className = "", text = "", showLogo = true }) => {
+const goofyLoadingWords = [
+  "skedaddling",
+  "doodling",
+  "ideating",
+  "summoning",
+  "wrangling",
+  "herding",
+  "sprinkling",
+  "canvasing",
+  "decoding",
+  "brewing",
+  "juggling",
+  "untangling",
+  "polishing",
+  "waxing",
+  "marinating",
+  "whisking",
+  "seasoning",
+  "kneading",
+  "stirring",
+  "stretching",
+]
+
+const LoadingSpinner = ({ size = "md", className = "", text = "", showLogo = true, showRandomWords = false }) => {
   const sizes = {
     sm: "w-4 h-4",
     md: "w-6 h-6",
@@ -16,6 +39,34 @@ const LoadingSpinner = ({ size = "md", className = "", text = "", showLogo = tru
     xl: "w-20 h-20",
   }
 
+  // Initialize with random word
+  const [currentWordIndex, setCurrentWordIndex] = useState(
+    Math.floor(Math.random() * goofyLoadingWords.length)
+  )
+
+  // Randomize loading words every 1.5 seconds
+  useEffect(() => {
+    if (!showRandomWords) return
+
+    const interval = setInterval(() => {
+      // Pick a random word that's different from the current one
+      setCurrentWordIndex((prev) => {
+        let newIndex
+        do {
+          newIndex = Math.floor(Math.random() * goofyLoadingWords.length)
+        } while (newIndex === prev && goofyLoadingWords.length > 1)
+        return newIndex
+      })
+    }, 1500) // Change word every 1.5 seconds
+
+    return () => clearInterval(interval)
+  }, [showRandomWords])
+
+  // Determine what text to display
+  const displayText = showRandomWords
+    ? `${goofyLoadingWords[currentWordIndex]}...`
+    : text
+
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       {showLogo && (
@@ -26,7 +77,11 @@ const LoadingSpinner = ({ size = "md", className = "", text = "", showLogo = tru
       <div
         className={`${sizes[size]} border-2 border-gray-200 border-t-orange-600 rounded-full animate-spin`}
       ></div>
-      {text && <p className="mt-2 text-sm text-gray-600">{text}</p>}
+      {displayText && (
+        <p className="mt-2 text-sm text-gray-600 transition-opacity duration-300">
+          {displayText}
+        </p>
+      )}
     </div>
   )
 }

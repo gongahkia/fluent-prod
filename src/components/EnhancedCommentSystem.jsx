@@ -860,7 +860,7 @@ const EnhancedCommentSystem = ({
           >
             {isTranslating ? (
               <div className="text-center py-8">
-                <LoadingSpinner size="lg" text="Translating..." />
+                <LoadingSpinner size="lg" showRandomWords={true} />
               </div>
             ) : (
               <>
