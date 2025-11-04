@@ -27,13 +27,80 @@ const WordLearningPopup = ({
     return "bg-red-500"                      // Native
   }
 
+  // Calculate popup position based on click position
+  const getPopupPosition = () => {
+    if (!selectedWord?.clickPosition) {
+      // Fallback to center if no position data
+      return {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)'
+      }
+    }
+
+    const { x, y, elementRect } = selectedWord.clickPosition
+    const popupWidth = 320
+    const popupMaxHeight = 400
+    const gap = 12
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    let top, left
+    let transformOrigin = 'top center'
+    let positionAbove = false
+
+    // Position below the clicked element by default
+    top = elementRect.bottom + gap
+
+    // If popup would go off bottom, position above instead
+    if (top + popupMaxHeight > viewportHeight - 20) {
+      top = elementRect.top - gap
+      transformOrigin = 'bottom center'
+      positionAbove = true
+    }
+
+    // Center horizontally on the clicked element
+    left = elementRect.left + (elementRect.width / 2)
+
+    // Adjust if too far right
+    if (left + (popupWidth / 2) > viewportWidth - 20) {
+      left = viewportWidth - popupWidth - 20
+    }
+
+    // Adjust if too far left
+    if (left - (popupWidth / 2) < 20) {
+      left = 20 + (popupWidth / 2)
+    }
+
+    return {
+      position: 'fixed',
+      top: `${Math.max(20, Math.min(top, viewportHeight - 20))}px`,
+      left: `${left}px`,
+      transform: positionAbove ? 'translate(-50%, -100%)' : 'translateX(-50%)',
+      transformOrigin,
+      maxHeight: `${Math.min(popupMaxHeight, viewportHeight - 40)}px`
+    }
+  }
+
+  const popupStyle = getPopupPosition()
+
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}
-    >
+    <>
+      {/* Invisible backdrop for click-outside-to-close */}
       <div
-        className="bg-white rounded-lg p-6 max-w-md mx-4"
+        className="fixed inset-0 z-40"
+        onClick={onClose}
+      />
+
+      {/* Anchored popup */}
+      <div
+        className="bg-white rounded-lg shadow-2xl border-2 border-orange-400 p-6 z-50 overflow-y-auto"
+        style={{
+          ...popupStyle,
+          width: '320px',
+          animation: 'scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {isTranslating ? (
@@ -273,7 +340,7 @@ const WordLearningPopup = ({
           </div>
         )}
       </div>
-    </div>
+    </>
   )
 }
 

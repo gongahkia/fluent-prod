@@ -16,7 +16,8 @@ export const handleWordClick = async (
   context = null,
   contextTranslation = null,
   setLoading = null,
-  targetLanguage = 'Japanese' // Add target language parameter
+  targetLanguage = 'Japanese', // Add target language parameter
+  clickPosition = null // Add click position parameter
 ) => {
   // Auto-detect if word is in target language or English if not specified
   let isTargetLang = isJapanese
@@ -95,6 +96,7 @@ export const handleWordClick = async (
             isApiTranslated: true,
             isVocabulary: true,
             wordType: vocabData.type || "unknown",
+            clickPosition: clickPosition, // Add click position for anchored popup
           }
 
           if (targetLanguage === 'Korean') {
@@ -150,6 +152,7 @@ export const handleWordClick = async (
       original: cleanWord,
       isApiTranslated: true,
       isVocabulary: isVocabularyWord,
+      clickPosition: clickPosition, // Add click position for anchored popup
     }
 
     if (targetLanguage === 'Korean') {
@@ -175,7 +178,8 @@ export const handleWordClick = async (
       exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
       original: cleanWord,
       isApiFallback: true,
-      error: true
+      error: true,
+      clickPosition: clickPosition, // Add click position for anchored popup
     }
 
     if (targetLanguage === 'Korean') {

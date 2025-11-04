@@ -664,7 +664,14 @@ const NewsFeed = ({
     return 0
   }
 
-  const handleWordClick = async (word, isJapanese, context = null) => {
+  const handleWordClick = async (word, isJapanese, context = null, event = null) => {
+    // Capture click position if event is provided
+    const clickPosition = event ? {
+      x: event.clientX,
+      y: event.clientY,
+      elementRect: event.target.getBoundingClientRect()
+    } : null
+
     await sharedHandleWordClick(
       word,
       setSelectedWord,
@@ -672,7 +679,8 @@ const NewsFeed = ({
       context,
       null,
       setIsTranslating,
-      userProfile?.targetLanguage || 'Japanese'
+      userProfile?.targetLanguage || 'Japanese',
+      clickPosition
     )
   }
 
