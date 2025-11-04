@@ -412,20 +412,6 @@ const NewsFeed = ({
     }
   }
 
-  // Map 1-5 levels to names - needed for post difficulty badges
-  const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
-  const getLevelName = (level) => {
-    return levelNames[level - 1] || 'Beginner'
-  }
-
-  const getLevelColor = (level) => {
-    if (level === 1) return "bg-amber-500"  // Beginner
-    if (level === 2) return "bg-orange-500"   // Intermediate
-    if (level === 3) return "bg-yellow-500" // Advanced
-    if (level === 4) return "bg-orange-500" // Expert
-    return "bg-red-500"                      // Native
-  }
-
   const showFeedback = (message, icon) => {
     setFeedbackMessage({ message, icon })
     setTimeout(() => {
@@ -874,22 +860,15 @@ const NewsFeed = ({
           <div key={article.id || article.url || `post-${index}`}>
             {/* Article Container - No borders, clean layout */}
             <div className="p-6">
-              {/* Top Row: @username (left) and Difficulty Pill (right) */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-600 text-sm font-medium">
-                    @{article.author || 'user'}
-                  </span>
-                  <span className="text-gray-400 text-sm">•</span>
-                  <span className="text-gray-500 text-sm">
-                    {article.time || new Date(article.publishedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                {article.difficulty && (
-                  <span className={`${getLevelColor(article.difficulty)} text-white px-3 py-1 rounded-full text-xs font-semibold`}>
-                    {getLevelName(article.difficulty)}
-                  </span>
-                )}
+              {/* Top Row: @username and timestamp */}
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-gray-600 text-sm font-medium">
+                  @{article.author || 'user'}
+                </span>
+                <span className="text-gray-400 text-sm">•</span>
+                <span className="text-gray-500 text-sm">
+                  {article.time || new Date(article.publishedAt).toLocaleDateString()}
+                </span>
               </div>
 
               {/* Article Content - Enhanced typography and smooth expansion */}
