@@ -14,6 +14,7 @@ import {
 import React, { useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import LoadingSpinner from "./ui/LoadingSpinner"
+import SpeechToTextButton from "./ui/SpeechToTextButton"
 
 const EnhancedCommentSystem = ({
   articleId,
@@ -443,6 +444,22 @@ const EnhancedCommentSystem = ({
     }
   }
 
+  // Handle speech-to-text transcript
+  const handleTranscript = (transcript) => {
+    // Append transcript to existing comment text (with space if there's existing text)
+    setCommentText((prevText) => {
+      if (prevText.trim()) {
+        return prevText + ' ' + transcript
+      }
+      return transcript
+    })
+
+    // Focus on the comment input after transcription
+    if (commentInputRef.current) {
+      commentInputRef.current.focus()
+    }
+  }
+
   // Check grammar before posting
   const checkCommentGrammar = async () => {
     setIsCheckingGrammar(true)
@@ -753,6 +770,11 @@ const EnhancedCommentSystem = ({
                   <ImageIcon className="w-4 h-4" />
                   <span>Photo/GIF</span>
                 </button>
+
+                <SpeechToTextButton
+                  targetLanguage={userProfile?.targetLanguage || 'Japanese'}
+                  onTranscript={handleTranscript}
+                />
 
                 <input
                   ref={fileInputRef}
