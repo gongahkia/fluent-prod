@@ -238,7 +238,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
               return (
                 <span
                   key={`${keyPrefix}-vocab-${idx}`}
-                  className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
+                  className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
                   onClick={(e) => handleWordClick(segment.trim(), false, processedText, e)}
                   title={`📚 Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
                   style={{ textDecoration: "none" }}
@@ -286,7 +286,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         parts.push(
           <span
             key={`word-${wordData.index}-${keyCounter++}`}
-            className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
+            className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-100"
             onClick={(e) => {
               if (postId) toggleTranslation(postId, wordData.index)
               // When clicking, pass the ACTUAL language of the currently displayed text
@@ -407,8 +407,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const isVocabularyWord =
           vocabularyService.isValidVocabularyWord(cleanWord)
 
-        // Use consistent amber styling for ALL words (vocabulary or not)
-        const vocabularyClasses = "cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
+        // Use lighter styling for non-partially-translated words
+        const vocabularyClasses = "cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
 
         const vocabularyTitle = `Click to translate: "${cleanWord}"`
 
