@@ -15,6 +15,8 @@ import React, { useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import SpeechToTextButton from "./ui/SpeechToTextButton"
+import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
+import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 
 const EnhancedCommentSystem = ({
   articleId,
@@ -46,74 +48,8 @@ const EnhancedCommentSystem = ({
   const [grammarCheckResult, setGrammarCheckResult] = useState(null)
   const [isCheckingGrammar, setIsCheckingGrammar] = useState(false)
 
-  // Mock comments with nested structure
-  const mockComments = {
-    1: [
-      {
-        id: 1,
-        user: "Yuki_Tokyo",
-        content:
-          "この場所は本当に本格的です！地元の人だけが知る隠れた宝石ですね。",
-        likes: 24,
-        avatar: "YT",
-        replies: [
-          {
-            id: 101,
-            user: "LocalGuide",
-            content: "本当にそう思います！10年住んでいても新しい発見があります。",
-            likes: 8,
-            avatar: "LG",
-            replies: []
-          }
-        ]
-      },
-      {
-        id: 2,
-        user: "RamenLover92",
-        content:
-          "先月、これらの場所の一つを訪問しました！それを経営していたおじいさんは、私の下手な日本語にとても親切で忍耐強くしてくれました。",
-        likes: 18,
-        avatar: "RL",
-        replies: [
-          {
-            id: 201,
-            user: "TokyoFoodie",
-            content: "Family-run places have the best atmosphere! おじいさんの笑顔が忘れられません。",
-            likes: 12,
-            avatar: "TF",
-            replies: [
-              {
-                id: 301,
-                user: "RamenLover92",
-                content: "Exactly! そういう温かさが日本の良いところですね。",
-                likes: 5,
-                avatar: "RL",
-                replies: []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 3,
-        user: "FoodExplorer",
-        content:
-          "The ramen here is absolutely phenomenal! 世代を超えた伝統の味を感じます。",
-        likes: 19,
-        avatar: "FE",
-        replies: []
-      },
-    ],
-  }
-
-  const allCommentsFlat = mockComments[articleId] || []
-
-  // Convert flat comments to nested structure
-  const buildCommentTree = (comments) => {
-    return comments
-  }
-
-  const allComments = buildCommentTree([...allCommentsFlat, ...comments])
+  // All comments come from user-submitted comments state
+  const allComments = comments
 
   // Fetch AI suggestions
   const fetchAISuggestions = async () => {
@@ -242,6 +178,12 @@ const EnhancedCommentSystem = ({
     )
   }
 
+  const handleClosePopup = () => {
+    setSelectedWord(null)
+    setIsTranslating(false)
+    setFeedbackMessage(null)
+  }
+
   const showFeedback = (message, icon) => {
     setFeedbackMessage({ message, icon })
     setTimeout(() => {
@@ -252,20 +194,29 @@ const EnhancedCommentSystem = ({
 
   const handleAddToDictionary = () => {
     if (selectedWord) {
-      const wordToAdd = {
-        japanese: selectedWord.japanese,
-        hiragana: selectedWord.hiragana,
-        english: selectedWord.english,
-        level: selectedWord.level,
-        example: selectedWord.example,
-        exampleEn: selectedWord.exampleEn,
-      }
+      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
-      const isAlreadyInDictionary = userDictionary.some(
-        (item) =>
-          item.japanese === wordToAdd.japanese ||
-          item.english === wordToAdd.english
-      )
+      const wordToAdd = targetLanguage === 'Korean'
+        ? {
+            korean: selectedWord.korean,
+            romanization: selectedWord.romanization,
+            english: selectedWord.english,
+            level: selectedWord.level,
+          }
+        : {
+            japanese: selectedWord.japanese,
+            hiragana: selectedWord.hiragana,
+            english: selectedWord.english,
+            level: selectedWord.level,
+          }
+
+      const isAlreadyInDictionary = userDictionary.some((item) => {
+        if (targetLanguage === 'Korean') {
+          return item.korean === wordToAdd.korean || item.english === wordToAdd.english
+        } else {
+          return item.japanese === wordToAdd.japanese || item.english === wordToAdd.english
+        }
+      })
 
       if (!isAlreadyInDictionary) {
         onAddWordToDictionary(wordToAdd)
@@ -274,10 +225,6 @@ const EnhancedCommentSystem = ({
         showFeedback("Already in dictionary!", "📖")
       }
     }
-  }
-
-  const handleMastered = () => {
-    showFeedback("Sugoi!", "😊")
   }
 
   const handleLikeComment = (commentId) => {
@@ -331,33 +278,43 @@ const EnhancedCommentSystem = ({
   }
 
   const renderClickableText = (text) => {
-    const segments = text.split(/(\s+|[。、！？])/)
+    // Split by spaces and punctuation, preserving them
+    const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
 
     return segments.map((segment, segmentIndex) => {
-      if (!segment.trim()) return <span key={segmentIndex}>{segment}</span>
+      // Keep whitespace and punctuation as-is
+      if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
+        return <span key={segmentIndex}>{segment}</span>
+      }
 
-      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
-        segment
-      )
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment)
       const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
+        // Use intelligent segmentation for Japanese text
+        const words = segmentJapaneseText(segment)
+
         // Japanese is target language if user is learning Japanese
         const isTargetLanguage = userProfile?.targetLanguage === 'Japanese'
+
         return (
           <span key={segmentIndex}>
-            {segment.split("").map((char, charIndex) => (
-              <span
-                key={`${segmentIndex}-${charIndex}`}
-                className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
-                onClick={() => handleWordClick(char, isTargetLanguage, text)}
-                title={`Click to learn: ${char}`}
-                style={{ textDecoration: "none" }}
-              >
-                {char}
-              </span>
-            ))}
+            {words.map((wordObj, wordIndex) => {
+              const { text: wordText } = wordObj
+
+              return (
+                <span
+                  key={`${segmentIndex}-${wordIndex}`}
+                  className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
+                  onClick={() => handleWordClick(wordText, isTargetLanguage, text)}
+                  title={`Click to translate: ${wordText}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  {wordText}
+                </span>
+              )
+            })}
           </span>
         )
       } else if (hasKorean) {
@@ -366,9 +323,9 @@ const EnhancedCommentSystem = ({
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-0.5 py-0.5 transition-all duration-200 inline-block"
+              className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
               onClick={() => handleWordClick(segment.trim(), isTargetLanguage, text)}
-              title={`Click to learn: ${segment.trim()}`}
+              title={`Click to translate: ${segment.trim()}`}
               style={{ textDecoration: "none" }}
             >
               {segment}
@@ -376,12 +333,19 @@ const EnhancedCommentSystem = ({
           </span>
         )
       } else if (hasEnglish) {
+        const cleanWord = segment.trim().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
+
+        // Skip if empty after cleaning
+        if (!cleanWord) {
+          return <span key={segmentIndex}>{segment}</span>
+        }
+
         return (
           <span key={segmentIndex}>
             <span
-              className="cursor-pointer hover:bg-orange-100 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-1 py-0.5 transition-all duration-200"
-              onClick={() => handleWordClick(segment.trim(), false, text)}
-              title={`Click to learn: ${segment.trim()}`}
+              className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
+              onClick={() => handleWordClick(cleanWord, false, text)}
+              title={`Click to translate: ${cleanWord}`}
               style={{ textDecoration: "none" }}
             >
               {segment}
@@ -392,13 +356,6 @@ const EnhancedCommentSystem = ({
 
       return <span key={segmentIndex}>{segment}</span>
     })
-  }
-
-  const getLevelColor = (level) => {
-    if (level <= 2) return "bg-amber-500"
-    if (level <= 4) return "bg-yellow-500"
-    if (level <= 6) return "bg-orange-500"
-    return "bg-red-500"
   }
 
   // Handle file selection for media uploads
@@ -869,77 +826,15 @@ const EnhancedCommentSystem = ({
 
       {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => {
-            setSelectedWord(null)
-            setIsTranslating(false)
-          }}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {isTranslating ? (
-              <div className="text-center py-8">
-                <LoadingSpinner size="lg" showRandomWords={true} />
-              </div>
-            ) : (
-              <>
-                <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-gray-900 mb-2">
-                    {selectedWord.japanese}
-                  </div>
-                  <div className="text-lg text-gray-600 mb-2">
-                    {selectedWord.hiragana}
-                  </div>
-                  <div className="text-sm text-gray-500 mb-2">Meaning:</div>
-                  <div className="text-xl text-amber-600 font-semibold">
-                    {selectedWord.english}
-                  </div>
-                </div>
-
-                {selectedWord.level && (
-                  <div className="mb-4 flex items-center space-x-2">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-white text-sm font-medium ${getLevelColor(selectedWord.level)}`}
-                    >
-                      Level {selectedWord.level}
-                    </span>
-                    {selectedWord.isApiTranslated && (
-                      <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
-                        🌐 Live Translation
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <button
-                    onClick={handleMastered}
-                    className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                  >
-                    Mastered! ✨
-                  </button>
-                  <button
-                    onClick={handleAddToDictionary}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
-                  >
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Add to My Dictionary
-                  </button>
-                </div>
-
-                {feedbackMessage && (
-                  <div className="mt-4 p-3 bg-amber-100 text-amber-800 rounded-lg text-center">
-                    <span className="text-lg mr-2">{feedbackMessage.icon}</span>
-                    {feedbackMessage.message}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        <WordLearningPopup
+          selectedWord={selectedWord}
+          isTranslating={isTranslating}
+          feedbackMessage={feedbackMessage}
+          userProfile={userProfile}
+          userDictionary={userDictionary}
+          onClose={handleClosePopup}
+          onAddToDictionary={handleAddToDictionary}
+        />
       )}
 
       {/* Grammar Check Modal */}
