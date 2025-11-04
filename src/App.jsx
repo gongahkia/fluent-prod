@@ -83,10 +83,16 @@ function App() {
   // Check if user needs onboarding
   useEffect(() => {
     if (currentUser && userProfile) {
-      // Show onboarding if user doesn't have a level set (new user)
-      const needsOnboarding =
-        !userProfile.level || userProfile.level === undefined;
-      setShowOnboarding(needsOnboarding);
+      // FIXED: More robust check for onboarding completion
+      // Check if onboardingCompleted flag exists, or if essential onboarding fields are present
+      const hasCompletedOnboarding =
+        userProfile.onboardingCompleted === true ||
+        (userProfile.level &&
+         userProfile.targetLanguage &&
+         userProfile.nativeLanguages &&
+         userProfile.nativeLanguages.length > 0);
+
+      setShowOnboarding(!hasCompletedOnboarding);
     }
   }, [currentUser, userProfile]);
 
@@ -103,9 +109,15 @@ function App() {
 
   const handleOnboardingComplete = async (profile) => {
     if (currentUser) {
+      // FIXED: Add onboardingCompleted flag to prevent re-triggering
+      const profileWithFlag = {
+        ...profile,
+        onboardingCompleted: true,
+        completedAt: new Date(),
+      };
       // Update user profile in Firestore
-      await updateUserProfile(currentUser.uid, profile);
-      setUserProfile((prev) => ({ ...prev, ...profile }));
+      await updateUserProfile(currentUser.uid, profileWithFlag);
+      setUserProfile((prev) => ({ ...prev, ...profileWithFlag }));
     }
     setShowOnboarding(false);
     // Show loading screen after onboarding completion

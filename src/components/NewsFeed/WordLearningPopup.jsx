@@ -11,7 +11,6 @@ const WordLearningPopup = ({
   userDictionary,
   onClose,
   onAddToDictionary,
-  onMastered,
 }) => {
   // Map 1-5 levels to names
   const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
@@ -39,7 +38,7 @@ const WordLearningPopup = ({
       }
     }
 
-    const { x, y, elementRect } = selectedWord.clickPosition
+    const { elementRect } = selectedWord.clickPosition
     const popupWidth = 320
     const popupMaxHeight = 400
     const gap = 12
@@ -286,12 +285,6 @@ const WordLearningPopup = ({
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              <button
-                className="w-full bg-amber-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-amber-600 transition-colors"
-                onClick={onMastered}
-              >
-                Mastered! ✨
-              </button>
               <button
                 className="w-full bg-orange-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center justify-center space-x-1"
                 onClick={onAddToDictionary}

@@ -43,7 +43,10 @@ export default function LoadingScreen({
   showText = false,
 }) {
   const [isVisible, setIsVisible] = useState(true);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  // FIXED: Initialize with random word instead of always starting at 0
+  const [currentWordIndex, setCurrentWordIndex] = useState(
+    Math.floor(Math.random() * goofyLoadingWords.length)
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -54,12 +57,19 @@ export default function LoadingScreen({
     return () => clearTimeout(timer);
   }, [duration, onLoadingComplete]);
 
-  // Cycle through loading words
+  // FIXED: Randomize loading words instead of cycling sequentially
   useEffect(() => {
     if (!showText) return;
 
     const interval = setInterval(() => {
-      setCurrentWordIndex((prev) => (prev + 1) % goofyLoadingWords.length);
+      // Pick a random word that's different from the current one
+      setCurrentWordIndex((prev) => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * goofyLoadingWords.length);
+        } while (newIndex === prev && goofyLoadingWords.length > 1);
+        return newIndex;
+      });
     }, 1500); // Change word every 1.5 seconds
 
     return () => clearInterval(interval);

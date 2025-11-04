@@ -457,7 +457,6 @@ const SinglePostView = ({
               setIsTranslating(false)
             }}
             onAddToDictionary={handleAddToDictionary}
-            onMastered={handleMastered}
           />
         )}
       </div>

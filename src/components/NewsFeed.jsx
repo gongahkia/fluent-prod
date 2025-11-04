@@ -828,7 +828,6 @@ const NewsFeed = ({
             setIsTranslating(false)
           }}
           onAddToDictionary={handleAddToDictionary}
-          onMastered={handleMastered}
         />
       )}
 

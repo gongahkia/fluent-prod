@@ -28,6 +28,8 @@ import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 
 const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
   const { currentUser } = useAuth()
+  // FIXED: Add active tab state for tab navigation
+  const [activeTab, setActiveTab] = useState("account")
   const [formData, setFormData] = useState({
     name: userProfile?.name || "",
     email: userProfile?.email || "",
@@ -357,9 +359,40 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         </div>
       </header>
 
+      {/* FIXED: Added tab navigation */}
+      <div className="bg-white border-b border-gray-200 sticky top-16 z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8" aria-label="Settings tabs">
+            {settingsSections.map((section) => {
+              const Icon = section.icon
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveTab(section.id)}
+                  className={`
+                    flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                    ${
+                      activeTab === section.id
+                        ? "border-orange-500 text-orange-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{section.title}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <div className="space-y-6">
-          {settingsSections.map((section) => {
+          {/* FIXED: Only render the active tab's content */}
+          {settingsSections
+            .filter(section => section.id === activeTab)
+            .map((section) => {
             const Icon = section.icon
             return (
               <div key={section.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
