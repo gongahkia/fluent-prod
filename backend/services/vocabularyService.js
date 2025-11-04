@@ -150,43 +150,21 @@ export function isValidVocabularyWord(word) {
 
   const cleanWord = word.toLowerCase().trim()
 
-  // Basic function words to exclude
-  const excludeWords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-    'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be',
-    'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-    'would', 'should', 'could', 'may', 'might', 'must', 'can', 'this',
-    'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
-    'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our',
-    'their', 'am', 'not', 'no', 'yes', 'so', 'up', 'out', 'if', 'about',
-    'who', 'get', 'which', 'go', 'me', 'when', 'make', 'than', 'look',
-    'use', 'find', 'give', 'tell', 'work', 'call', 'try', 'ask', 'need',
-    'feel', 'become', 'leave', 'put', 'mean', 'keep', 'let', 'begin',
-    'seem', 'help', 'talk', 'turn', 'start', 'show', 'hear', 'play',
-    'run', 'move', 'like', 'live', 'believe', 'hold', 'bring', 'happen',
-    'write', 'provide', 'sit', 'stand', 'lose', 'pay', 'meet', 'include',
-    'continue', 'set', 'learn', 'change', 'lead', 'understand', 'watch',
-    'follow', 'stop', 'create', 'speak', 'read', 'allow', 'add', 'spend',
-    'grow', 'open', 'walk', 'win', 'offer', 'remember', 'love', 'consider'
-  ])
+  // MODIFIED: Removed excludeWords list to make ALL words clickable
+  // Now only basic validation checks
 
-  // Length check
-  if (cleanWord.length < 3 || cleanWord.length > 15) {
+  // Length check - relaxed to allow shorter words (2 chars minimum)
+  if (cleanWord.length < 2 || cleanWord.length > 20) {
     return false
   }
 
-  // Check if in exclude list
-  if (excludeWords.has(cleanWord)) {
-    return false
-  }
-
-  // Check for numbers
+  // Check for pure numbers
   if (/^\d+$/.test(cleanWord)) {
     return false
   }
 
-  // Check for special characters (allow apostrophes)
-  if (/[^a-zA-Z']/.test(cleanWord)) {
+  // Check for special characters (allow apostrophes and hyphens)
+  if (/[^a-zA-Z'-]/.test(cleanWord)) {
     return false
   }
 

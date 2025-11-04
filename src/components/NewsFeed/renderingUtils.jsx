@@ -396,7 +396,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           </span>
         )
       } else if (hasEnglish) {
-        // Enhanced English word handling with vocabulary detection
+        // MODIFIED: ALL English words are now clickable with consistent styling
         const cleanWord = segment.trim().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
 
         // Skip if empty after cleaning
@@ -407,14 +407,10 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const isVocabularyWord =
           vocabularyService.isValidVocabularyWord(cleanWord)
 
-        // Different styling for vocabulary vs regular words
-        const vocabularyClasses = isVocabularyWord
-          ? "cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
-          : "cursor-pointer hover:bg-orange-100 hover:shadow-sm border-b border-transparent hover:border-orange-300 rounded px-1 py-0.5 transition-all duration-200"
+        // Use consistent amber styling for ALL words (vocabulary or not)
+        const vocabularyClasses = "cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-50"
 
-        const vocabularyTitle = isVocabularyWord
-          ? `📚 Vocabulary: Click to learn "${cleanWord}"`
-          : `Click to translate: ${cleanWord}`
+        const vocabularyTitle = `Click to translate: "${cleanWord}"`
 
         return (
           <span key={segmentIndex}>

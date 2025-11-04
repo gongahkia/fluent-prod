@@ -429,17 +429,16 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
 async function selectWordsForTranslation(words, percentage) {
   const wordsToTranslate = new Set()
 
-  const neverTranslate = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-    'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be'
-  ])
+  // MODIFIED: Make ALL words selectable for translation
+  // No more neverTranslate list - every word is now clickable
 
-  // Prioritize vocabulary words
+  // Still prioritize vocabulary words for marker selection
   const vocabularyWords = []
   const nonVocabularyWords = []
 
   for (const word of words) {
-    if (neverTranslate.has(word.toLowerCase())) {
+    // Skip empty words or pure punctuation
+    if (!word.trim() || /^[^\w]+$/.test(word)) {
       continue
     }
 
@@ -453,7 +452,7 @@ async function selectWordsForTranslation(words, percentage) {
   const totalWords = words.length
   const targetCount = Math.floor(totalWords * percentage)
 
-  // Add vocabulary words first
+  // Add vocabulary words first (for marker selection)
   let count = 0
   for (const word of vocabularyWords) {
     if (count >= targetCount) break
@@ -461,7 +460,7 @@ async function selectWordsForTranslation(words, percentage) {
     count++
   }
 
-  // Add non-vocabulary words if needed
+  // Add non-vocabulary words if needed (for marker selection)
   if (count < targetCount) {
     for (const word of nonVocabularyWords) {
       if (count >= targetCount) break

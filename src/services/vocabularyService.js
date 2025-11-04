@@ -15,29 +15,21 @@ class VocabularyService {
 
     const cleanWord = word.toLowerCase().trim()
 
-    // Basic function words to exclude
-    const excludeWords = new Set([
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-      'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be'
-    ])
+    // MODIFIED: Removed excludeWords list to make ALL words clickable
+    // Now only basic validation checks
 
-    // Length check
-    if (cleanWord.length < 3 || cleanWord.length > 15) {
+    // Length check - relaxed to allow shorter words (1 char minimum)
+    if (cleanWord.length < 1 || cleanWord.length > 20) {
       return false
     }
 
-    // Check if in exclude list
-    if (excludeWords.has(cleanWord)) {
-      return false
-    }
-
-    // Check for numbers
+    // Check for pure numbers
     if (/^\d+$/.test(cleanWord)) {
       return false
     }
 
-    // Check for special characters (allow apostrophes)
-    if (/[^a-zA-Z']/.test(cleanWord)) {
+    // Check for special characters (allow apostrophes and hyphens)
+    if (/[^a-zA-Z'-]/.test(cleanWord)) {
       return false
     }
 
