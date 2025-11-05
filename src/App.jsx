@@ -20,9 +20,8 @@ import {
   removeWordFromDictionary as removeWordFromDb,
   onDictionaryChange,
   updateUserProfile,
-} from "./services/databaseService";
-import { signOutUser } from "./services/authService";
-import { Timestamp } from "firebase/firestore";
+} from "./services/supabaseDatabaseService";
+import { signOutUser } from "./services/supabaseAuthService";
 import "./App.css";
 
 function App() {

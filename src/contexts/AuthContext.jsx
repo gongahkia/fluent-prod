@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChange } from '@/services/authService'
-import { getUserProfile, createUserProfile } from '@/services/databaseService'
+import { onAuthStateChange } from '@/services/supabaseAuthService'
+import { getUserProfile, createUserProfile } from '@/services/supabaseDatabaseService'
 
 const AuthContext = createContext({})
 
@@ -24,7 +24,8 @@ export const AuthProvider = ({ children }) => {
 
       if (user) {
         // User is signed in, fetch their profile
-        const profileResult = await getUserProfile(user.uid)
+        // Note: Supabase uses user.id instead of user.uid
+        const profileResult = await getUserProfile(user.id)
 
         if (profileResult.success) {
           // Merge user profile with any missing default values
@@ -60,8 +61,13 @@ export const AuthProvider = ({ children }) => {
           // Profile doesn't exist, create a minimal profile
           // DO NOT set level - this should only be set after onboarding
           // Default customization values (previously from onboarding step 4)
+          const displayName = user.user_metadata?.display_name ||
+                              user.user_metadata?.name ||
+                              user.email?.split('@')[0] ||
+                              'User'
+
           const defaultProfile = {
-            name: user.displayName || user.email?.split('@')[0] || 'User',
+            name: displayName,
             email: user.email,
             bio: '',
             location: '',
@@ -92,7 +98,7 @@ export const AuthProvider = ({ children }) => {
             }
           }
 
-          await createUserProfile(user.uid, defaultProfile)
+          await createUserProfile(user.id, defaultProfile)
           setUserProfile(defaultProfile)
         }
       } else {
