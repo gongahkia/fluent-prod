@@ -308,6 +308,7 @@ function MainApp({
         <PublicProfile
           userProfile={userProfile}
           onBack={() => handleNavigation("feed")}
+          onNavigateToSettings={() => handleNavigation("settings")}
         />
 
         {/* Mobile Bottom Navigation Bar */}

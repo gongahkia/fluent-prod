@@ -4,6 +4,7 @@ import {
   Globe,
   Calendar,
   Award,
+  Settings,
 } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { FluentLogo } from "@/components/ui/FluentLogo"
@@ -13,7 +14,7 @@ import {
   getUserFollowing,
 } from "@/services/databaseService"
 
-const PublicProfile = ({ userProfile, onBack }) => {
+const PublicProfile = ({ userProfile, onBack, onNavigateToSettings }) => {
   const { currentUser } = useAuth()
   const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
   const getLevelName = (level) => {
@@ -74,6 +75,13 @@ const PublicProfile = ({ userProfile, onBack }) => {
                 Profile
               </h1>
             </div>
+            <button
+              onClick={onNavigateToSettings}
+              className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all duration-300 font-medium"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Edit Profile</span>
+            </button>
           </div>
         </div>
       </header>
