@@ -22,6 +22,7 @@ import {
   updateUserProfile,
 } from "./services/databaseService";
 import { signOutUser } from "./services/authService";
+import { Timestamp } from "firebase/firestore";
 import "./App.css";
 
 function App() {
@@ -91,6 +92,15 @@ function App() {
          userProfile.nativeLanguages &&
          userProfile.nativeLanguages.length > 0);
 
+      console.log('Onboarding check:', {
+        onboardingCompleted: userProfile.onboardingCompleted,
+        level: userProfile.level,
+        targetLanguage: userProfile.targetLanguage,
+        nativeLanguages: userProfile.nativeLanguages,
+        hasCompletedOnboarding,
+        willShowOnboarding: !hasCompletedOnboarding
+      });
+
       setShowOnboarding(!hasCompletedOnboarding);
     }
   }, [currentUser, userProfile]);
@@ -112,15 +122,25 @@ function App() {
       const profileWithFlag = {
         ...profile,
         onboardingCompleted: true,
-        completedAt: new Date(),
+        completedAt: Timestamp.now(),
       };
+
+      console.log('Saving onboarding profile:', profileWithFlag);
+
       // Update user profile in Firestore
-      await updateUserProfile(currentUser.uid, profileWithFlag);
-      setUserProfile((prev) => ({ ...prev, ...profileWithFlag }));
+      const result = await updateUserProfile(currentUser.uid, profileWithFlag);
+
+      if (result.success) {
+        console.log('Onboarding profile saved successfully');
+        setUserProfile((prev) => ({ ...prev, ...profileWithFlag }));
+        setShowOnboarding(false);
+        // Show loading screen after onboarding completion
+        setShowPostOnboardingLoading(true);
+      } else {
+        console.error('Failed to save onboarding profile:', result.error);
+        alert('Failed to save your profile. Please try again.');
+      }
     }
-    setShowOnboarding(false);
-    // Show loading screen after onboarding completion
-    setShowPostOnboardingLoading(true);
   };
 
   const handleProfileUpdate = async (updatedProfile) => {

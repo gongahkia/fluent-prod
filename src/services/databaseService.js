@@ -76,10 +76,12 @@ export const getUserProfile = async (userId) => {
 export const updateUserProfile = async (userId, updates) => {
   try {
     const userRef = doc(db, "users", userId)
-    await updateDoc(userRef, {
+    // Use setDoc with merge: true to create document if it doesn't exist
+    // This prevents race conditions during onboarding
+    await setDoc(userRef, {
       ...updates,
       updatedAt: serverTimestamp(),
-    })
+    }, { merge: true })
     return { success: true }
   } catch (error) {
     console.error("Error updating user profile:", error)
