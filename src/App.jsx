@@ -12,6 +12,8 @@ import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import RedditCallback from "./pages/RedditCallback";
 import LoadingScreen from "./components/ui/LoadingScreen";
+import AuthTest from "./pages/testing/AuthTest";
+import DatabaseTest from "./pages/testing/DatabaseTest";
 import { FluentLogo } from "./components/ui/FluentLogo";
 import { useIsMobile } from "./hooks/use-mobile";
 import { useAuth } from "./contexts/AuthContext";
@@ -57,7 +59,7 @@ function App() {
     if (!currentUser || !userProfile?.targetLanguage) return;
 
     const unsubscribe = onDictionaryChange(
-      currentUser.uid,
+      currentUser.id,
       (words) => {
         setUserDictionary(words);
       },
@@ -121,13 +123,13 @@ function App() {
       const profileWithFlag = {
         ...profile,
         onboardingCompleted: true,
-        completedAt: Timestamp.now(),
+        completedAt: new Date().toISOString(),
       };
 
       console.log('Saving onboarding profile:', profileWithFlag);
 
-      // Update user profile in Firestore
-      const result = await updateUserProfile(currentUser.uid, profileWithFlag);
+      // Update user profile in Supabase
+      const result = await updateUserProfile(currentUser.id, profileWithFlag);
 
       if (result.success) {
         console.log('Onboarding profile saved successfully');
@@ -144,8 +146,8 @@ function App() {
 
   const handleProfileUpdate = async (updatedProfile) => {
     if (currentUser) {
-      // Update user profile in Firestore
-      await updateUserProfile(currentUser.uid, updatedProfile);
+      // Update user profile in Supabase
+      await updateUserProfile(currentUser.id, updatedProfile);
       setUserProfile((prev) => ({ ...prev, ...updatedProfile }));
     }
     setCurrentView("feed");
@@ -201,9 +203,9 @@ function App() {
       if (exists) return;
     }
 
-    // Add to Firestore (will trigger real-time update)
+    // Add to Supabase (will trigger real-time update)
     // The targetLanguage in newWord will be used to determine the correct collection
-    const result = await addWordToDb(currentUser.uid, newWord);
+    const result = await addWordToDb(currentUser.id, newWord);
 
     // Check for Firebase errors
     if (result && !result.success && result.blocked) {
@@ -214,10 +216,10 @@ function App() {
   const removeWordFromDictionary = async (wordId) => {
     if (!currentUser) return;
 
-    // Remove from Firestore (will trigger real-time update)
+    // Remove from Supabase (will trigger real-time update)
     // Pass target language to remove from correct collection
     const targetLang = userProfile?.targetLanguage || "Japanese";
-    await removeWordFromDb(currentUser.uid, wordId, targetLang);
+    await removeWordFromDb(currentUser.id, wordId, targetLang);
   };
 
   const handleNavigation = (view) => {
@@ -228,7 +230,7 @@ function App() {
     if (!currentUser) return;
 
     try {
-      await updateUserProfile(currentUser.uid, { targetLanguage: newLanguage });
+      await updateUserProfile(currentUser.id, { targetLanguage: newLanguage });
       setUserProfile((prev) => ({ ...prev, targetLanguage: newLanguage }));
       setShowLanguageDropdown(false);
     } catch (error) {
@@ -256,6 +258,10 @@ function App() {
     <Routes>
       {/* Reddit OAuth Callback */}
       <Route path="/auth/reddit/callback" element={<RedditCallback />} />
+
+      {/* Testing Routes */}
+      <Route path="/test/auth" element={<AuthTest />} />
+      <Route path="/test/database" element={<DatabaseTest />} />
 
       {/* Main App */}
       <Route
