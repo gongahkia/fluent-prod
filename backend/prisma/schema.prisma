@@ -222,7 +222,7 @@ model UserBlock {
 
 model NewsCache {
   id                String   @id @default(uuid())
-  cacheKey          String   @unique
+  cacheKey          String
   postId            String
   title             String
   content           String
