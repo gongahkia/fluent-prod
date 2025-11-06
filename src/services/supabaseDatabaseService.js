@@ -120,16 +120,25 @@ export const getUserProfile = async (userId) => {
  */
 export const updateUserProfile = async (userId, updates) => {
   try {
-    // Separate settings from profile updates
-    const { settings, ...profileUpdates } = updates;
+    // Separate settings from profile updates and remove fields that don't exist in schema
+    const { settings, interests, levelName, ...profileUpdates } = updates;
 
-    // Update profile
-    const { error: profileError } = await supabase
-      .from('users')
-      .update(profileUpdates)
-      .eq('id', userId);
+    // Remove undefined values and fields that don't exist in schema
+    Object.keys(profileUpdates).forEach(key => {
+      if (profileUpdates[key] === undefined) {
+        delete profileUpdates[key];
+      }
+    });
 
-    if (profileError) throw profileError;
+    // Only update if there are fields to update
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error: profileError } = await supabase
+        .from('users')
+        .update(profileUpdates)
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+    }
 
     // Update settings if provided
     if (settings) {
