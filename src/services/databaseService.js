@@ -1,38 +1,29 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-  writeBatch,
-} from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import {
-  getFirebaseErrorMessage,
-  isFirebaseBlocked,
-  retryFirebaseOperation,
-} from "@/utils/firebaseErrorHandler"
+/**
+ * Database Service - Supabase Edition
+ * Migrated from Firebase Firestore to Supabase PostgreSQL
+ * Uses Prisma schema on backend, direct Supabase client on frontend
+ */
+
+import { supabase } from "@/lib/supabase"
 
 // ================== USER PROFILE OPERATIONS ==================
 
 /**
- * Create a new user profile in Firestore
+ * Create a new user profile in Supabase
  */
 export const createUserProfile = async (userId, profileData) => {
   try {
-    const userRef = doc(db, "users", userId)
-    await setDoc(userRef, {
-      ...profileData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-    return { success: true }
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        ...profileData,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, data }
   } catch (error) {
     console.error("Error creating user profile:", error)
     return { success: false, error: error.message }
@@ -40,48 +31,109 @@ export const createUserProfile = async (userId, profileData) => {
 }
 
 /**
- * Get user profile from Firestore
+ * Get user profile from Supabase
  */
 export const getUserProfile = async (userId) => {
   try {
-    const userRef = doc(db, "users", userId)
-    const userSnap = await retryFirebaseOperation(() => getDoc(userRef))
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        *,
+        settings:user_settings(*)
+      `)
+      .eq('id', userId)
+      .single()
 
-    if (userSnap.exists()) {
-      return { success: true, data: userSnap.data() }
+    if (error) throw error
+
+    if (data) {
+      // Transform settings to match Firebase structure
+      if (data.settings) {
+        const settings = data.settings
+        data.settings = {
+          notifications: {
+            email: settings.emailNotifications,
+            push: settings.pushNotifications,
+            comments: settings.commentNotifications,
+          },
+          privacy: {
+            profileVisibility: settings.profileVisibility,
+            showEmail: settings.showEmail,
+            showLocation: settings.showLocation,
+          },
+          appearance: {
+            theme: settings.theme,
+            accentColor: settings.accentColor,
+            fontSize: settings.fontSize,
+          },
+          goals: {
+            dailyWords: settings.dailyWords,
+            dailyReading: settings.dailyReading,
+            studyReminder: settings.studyReminder,
+            reminderTime: settings.reminderTime,
+          },
+        }
+      }
+
+      return { success: true, data }
     }
+
     return { success: false, error: "User profile not found" }
   } catch (error) {
     console.error("Error getting user profile:", error)
-
-    // Check if Firebase is blocked
-    if (isFirebaseBlocked(error)) {
-      const errorInfo = getFirebaseErrorMessage(error)
-      return {
-        success: false,
-        error: errorInfo.message,
-        blocked: true,
-        errorInfo,
-      }
-    }
-
     return { success: false, error: error.message }
   }
 }
 
 /**
- * Update user profile in Firestore
- * Note: Sensitive API credentials should be encrypted before calling this function
+ * Update user profile in Supabase
  */
 export const updateUserProfile = async (userId, updates) => {
   try {
-    const userRef = doc(db, "users", userId)
-    // Use setDoc with merge: true to create document if it doesn't exist
-    // This prevents race conditions during onboarding
-    await setDoc(userRef, {
-      ...updates,
-      updatedAt: serverTimestamp(),
-    }, { merge: true })
+    // Separate settings from profile updates
+    const { settings, ...profileUpdates } = updates
+
+    // Update profile
+    const { error: profileError } = await supabase
+      .from('users')
+      .update(profileUpdates)
+      .eq('id', userId)
+
+    if (profileError) throw profileError
+
+    // Update settings if provided
+    if (settings) {
+      const settingsData = {
+        emailNotifications: settings.notifications?.email,
+        pushNotifications: settings.notifications?.push,
+        commentNotifications: settings.notifications?.comments,
+        profileVisibility: settings.privacy?.profileVisibility,
+        showEmail: settings.privacy?.showEmail,
+        showLocation: settings.privacy?.showLocation,
+        theme: settings.appearance?.theme,
+        accentColor: settings.appearance?.accentColor,
+        fontSize: settings.appearance?.fontSize,
+        dailyWords: settings.goals?.dailyWords,
+        dailyReading: settings.goals?.dailyReading,
+        studyReminder: settings.goals?.studyReminder,
+        reminderTime: settings.goals?.reminderTime,
+      }
+
+      // Remove undefined values
+      Object.keys(settingsData).forEach(key =>
+        settingsData[key] === undefined && delete settingsData[key]
+      )
+
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          userId,
+          ...settingsData,
+        })
+
+      if (settingsError) throw settingsError
+    }
+
     return { success: true }
   } catch (error) {
     console.error("Error updating user profile:", error)
@@ -94,11 +146,14 @@ export const updateUserProfile = async (userId, updates) => {
  */
 export const updateUserCredentials = async (userId, encryptedCredentials) => {
   try {
-    const userRef = doc(db, "users", userId)
-    await updateDoc(userRef, {
-      credentials: encryptedCredentials,
-      updatedAt: serverTimestamp(),
-    })
+    const { error } = await supabase
+      .from('encrypted_credentials')
+      .upsert({
+        userId,
+        encryptedData: encryptedCredentials,
+      })
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error updating user credentials:", error)
@@ -111,13 +166,14 @@ export const updateUserCredentials = async (userId, encryptedCredentials) => {
  */
 export const getUserCredentials = async (userId) => {
   try {
-    const userRef = doc(db, "users", userId)
-    const userSnap = await getDoc(userRef)
+    const { data, error } = await supabase
+      .from('encrypted_credentials')
+      .select('encryptedData')
+      .eq('userId', userId)
+      .single()
 
-    if (userSnap.exists() && userSnap.data().credentials) {
-      return { success: true, data: userSnap.data().credentials }
-    }
-    return { success: true, data: null }
+    if (error && error.code !== 'PGRST116') throw error // PGRST116 = not found
+    return { success: true, data: data?.encryptedData || null }
   } catch (error) {
     console.error("Error getting user credentials:", error)
     return { success: false, error: error.message }
@@ -127,39 +183,49 @@ export const getUserCredentials = async (userId) => {
 // ================== DICTIONARY OPERATIONS ==================
 
 /**
- * Helper function to get the correct dictionary collection name based on language
- * @param {string} targetLanguage - 'Japanese' or 'Korean'
- * @returns {string} Collection name (e.g., 'dictionary_ja' or 'dictionary_ko')
+ * Helper function to determine language code
  */
-const getDictionaryCollectionName = (targetLanguage) => {
-  const languageCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
-  return `dictionary_${languageCode}`
+const getLanguageCode = (targetLanguage) => {
+  return targetLanguage === 'Korean' ? 'Korean' : 'Japanese'
 }
 
 /**
- * Add word to user's language-specific dictionary
- * @param {string} userId - User ID
- * @param {object} wordData - Word data including targetLanguage
+ * Add word to user's dictionary
  */
 export const addWordToDictionary = async (userId, wordData) => {
   try {
-    // Determine target language from wordData or default to Japanese
-    const targetLanguage = wordData.targetLanguage || 'Japanese'
-    const collectionName = getDictionaryCollectionName(targetLanguage)
+    const targetLanguage = getLanguageCode(wordData.targetLanguage || 'Japanese')
 
-    const wordRef = doc(
-      db,
-      "users",
-      userId,
-      collectionName,
-      wordData.id.toString()
-    )
-    await setDoc(wordRef, {
-      ...wordData,
-      targetLanguage, // Store the language with the word
-      dateAdded: serverTimestamp(),
-    })
-    return { success: true }
+    const { data, error } = await supabase
+      .from('dictionary_words')
+      .insert({
+        userId,
+        language: targetLanguage,
+        word: wordData.word || wordData.japanese || wordData.korean,
+        english: wordData.english,
+        japanese: wordData.japanese,
+        hiragana: wordData.hiragana,
+        kanji: wordData.kanji,
+        romaji: wordData.romaji,
+        korean: wordData.korean,
+        romanization: wordData.romanization,
+        pronunciation: wordData.pronunciation,
+        hanja: wordData.hanja,
+        meaning: wordData.meaning,
+        partOfSpeech: wordData.partOfSpeech,
+        level: wordData.level,
+        jlptLevel: wordData.jlptLevel,
+        topikLevel: wordData.topikLevel,
+        examples: wordData.examples,
+        example: wordData.example,
+        exampleEn: wordData.exampleEn,
+        source: wordData.source || 'Fluent Post',
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, data }
   } catch (error) {
     console.error("Error adding word to dictionary:", error)
     return { success: false, error: error.message }
@@ -167,53 +233,42 @@ export const addWordToDictionary = async (userId, wordData) => {
 }
 
 /**
- * Get all words from user's language-specific dictionary
- * @param {string} userId - User ID
- * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
+ * Get all words from user's dictionary
  */
 export const getUserDictionary = async (userId, targetLanguage = 'Japanese') => {
   try {
-    const collectionName = getDictionaryCollectionName(targetLanguage)
-    const dictionaryRef = collection(db, "users", userId, collectionName)
-    const querySnapshot = await retryFirebaseOperation(() =>
-      getDocs(dictionaryRef)
-    )
+    const language = getLanguageCode(targetLanguage)
 
-    const words = []
-    querySnapshot.forEach((doc) => {
-      words.push({ id: doc.id, ...doc.data() })
-    })
+    const { data, error } = await supabase
+      .from('dictionary_words')
+      .select(`
+        *,
+        flashcard:flashcards(*)
+      `)
+      .eq('userId', userId)
+      .eq('language', language)
+      .order('dateAdded', { ascending: false })
 
-    return { success: true, data: words }
+    if (error) throw error
+    return { success: true, data: data || [] }
   } catch (error) {
     console.error("Error getting user dictionary:", error)
-
-    // Check if Firebase is blocked
-    if (isFirebaseBlocked(error)) {
-      const errorInfo = getFirebaseErrorMessage(error)
-      return {
-        success: false,
-        error: errorInfo.message,
-        blocked: true,
-        errorInfo,
-      }
-    }
-
     return { success: false, error: error.message }
   }
 }
 
 /**
- * Remove word from user's language-specific dictionary
- * @param {string} userId - User ID
- * @param {string} wordId - Word ID
- * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
+ * Remove word from user's dictionary
  */
 export const removeWordFromDictionary = async (userId, wordId, targetLanguage = 'Japanese') => {
   try {
-    const collectionName = getDictionaryCollectionName(targetLanguage)
-    const wordRef = doc(db, "users", userId, collectionName, wordId.toString())
-    await deleteDoc(wordRef)
+    const { error } = await supabase
+      .from('dictionary_words')
+      .delete()
+      .eq('id', wordId)
+      .eq('userId', userId)
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error removing word from dictionary:", error)
@@ -222,38 +277,53 @@ export const removeWordFromDictionary = async (userId, wordId, targetLanguage = 
 }
 
 /**
- * Listen to language-specific dictionary changes in real-time
- * @param {string} userId - User ID
- * @param {function} callback - Callback function
- * @param {string} targetLanguage - 'Japanese' or 'Korean' (defaults to 'Japanese')
+ * Listen to dictionary changes in real-time
  */
 export const onDictionaryChange = (userId, callback, targetLanguage = 'Japanese') => {
-  const collectionName = getDictionaryCollectionName(targetLanguage)
-  const dictionaryRef = collection(db, "users", userId, collectionName)
-  return onSnapshot(dictionaryRef, (snapshot) => {
-    const words = []
-    snapshot.forEach((doc) => {
-      words.push({ id: doc.id, ...doc.data() })
-    })
-    callback(words)
-  })
+  const language = getLanguageCode(targetLanguage)
+
+  const channel = supabase
+    .channel(`dictionary-${userId}-${language}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'dictionary_words',
+        filter: `userId=eq.${userId}`,
+      },
+      async (payload) => {
+        // Fetch all words to maintain consistency
+        const result = await getUserDictionary(userId, targetLanguage)
+        if (result.success) {
+          callback(result.data)
+        }
+      }
+    )
+    .subscribe()
+
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }
 
 /**
  * Get all dictionaries for a user (both Japanese and Korean)
- * Useful for migration and admin purposes
  */
 export const getAllUserDictionaries = async (userId) => {
   try {
-    const jaResult = await getUserDictionary(userId, 'Japanese')
-    const koResult = await getUserDictionary(userId, 'Korean')
+    const [jaResult, koResult] = await Promise.all([
+      getUserDictionary(userId, 'Japanese'),
+      getUserDictionary(userId, 'Korean'),
+    ])
 
     return {
       success: true,
       data: {
         japanese: jaResult.success ? jaResult.data : [],
-        korean: koResult.success ? koResult.data : []
-      }
+        korean: koResult.success ? koResult.data : [],
+      },
     }
   } catch (error) {
     console.error("Error getting all user dictionaries:", error)
@@ -268,15 +338,24 @@ export const getAllUserDictionaries = async (userId) => {
  */
 export const saveFlashcardProgress = async (userId, wordId, progressData) => {
   try {
-    const flashcardRef = doc(
-      db,
-      "users",
-      userId,
-      "flashcards",
-      wordId.toString()
-    )
-    await setDoc(flashcardRef, progressData, { merge: true })
-    return { success: true }
+    const { data, error } = await supabase
+      .from('flashcards')
+      .upsert({
+        userId,
+        wordId,
+        interval: progressData.interval || 1,
+        repetitions: progressData.repetitions || 0,
+        easeFactor: progressData.easeFactor || 2.5,
+        lastReviewed: progressData.lastReviewed || null,
+        nextReview: progressData.nextReview || null,
+        correctCount: progressData.correctCount || 0,
+        incorrectCount: progressData.incorrectCount || 0,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, data }
   } catch (error) {
     console.error("Error saving flashcard progress:", error)
     return { success: false, error: error.message }
@@ -288,12 +367,20 @@ export const saveFlashcardProgress = async (userId, wordId, progressData) => {
  */
 export const getFlashcardProgress = async (userId) => {
   try {
-    const flashcardsRef = collection(db, "users", userId, "flashcards")
-    const querySnapshot = await getDocs(flashcardsRef)
+    const { data, error } = await supabase
+      .from('flashcards')
+      .select(`
+        *,
+        word:dictionary_words(*)
+      `)
+      .eq('userId', userId)
 
+    if (error) throw error
+
+    // Convert to object format for compatibility
     const progress = {}
-    querySnapshot.forEach((doc) => {
-      progress[doc.id] = doc.data()
+    data?.forEach((flashcard) => {
+      progress[flashcard.wordId] = flashcard
     })
 
     return { success: true, data: progress }
@@ -308,20 +395,17 @@ export const getFlashcardProgress = async (userId) => {
  */
 export const batchUpdateFlashcards = async (userId, updates) => {
   try {
-    const batch = writeBatch(db)
+    const upsertData = Object.entries(updates).map(([wordId, progressData]) => ({
+      userId,
+      wordId,
+      ...progressData,
+    }))
 
-    Object.entries(updates).forEach(([wordId, progressData]) => {
-      const flashcardRef = doc(
-        db,
-        "users",
-        userId,
-        "flashcards",
-        wordId.toString()
-      )
-      batch.set(flashcardRef, progressData, { merge: true })
-    })
+    const { error } = await supabase
+      .from('flashcards')
+      .upsert(upsertData)
 
-    await batch.commit()
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error batch updating flashcards:", error)
@@ -336,18 +420,25 @@ export const batchUpdateFlashcards = async (userId, updates) => {
  */
 export const savePost = async (userId, postData) => {
   try {
-    const postRef = doc(
-      db,
-      "users",
-      userId,
-      "savedPosts",
-      postData.id.toString()
-    )
-    await setDoc(postRef, {
-      ...postData,
-      savedAt: serverTimestamp(),
-    })
-    return { success: true }
+    const { data, error } = await supabase
+      .from('saved_posts')
+      .insert({
+        userId,
+        postId: postData.id,
+        title: postData.title,
+        content: postData.content,
+        url: postData.url,
+        author: postData.author,
+        publishedAt: postData.publishedAt,
+        source: postData.source || 'reddit',
+        tags: postData.tags || [],
+        difficulty: postData.difficulty,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, data }
   } catch (error) {
     console.error("Error saving post:", error)
     return { success: false, error: error.message }
@@ -359,15 +450,14 @@ export const savePost = async (userId, postData) => {
  */
 export const getSavedPosts = async (userId) => {
   try {
-    const postsRef = collection(db, "users", userId, "savedPosts")
-    const querySnapshot = await getDocs(postsRef)
+    const { data, error } = await supabase
+      .from('saved_posts')
+      .select('*')
+      .eq('userId', userId)
+      .order('savedAt', { ascending: false })
 
-    const posts = []
-    querySnapshot.forEach((doc) => {
-      posts.push({ id: doc.id, ...doc.data() })
-    })
-
-    return { success: true, data: posts }
+    if (error) throw error
+    return { success: true, data: data || [] }
   } catch (error) {
     console.error("Error getting saved posts:", error)
     return { success: false, error: error.message }
@@ -379,8 +469,13 @@ export const getSavedPosts = async (userId) => {
  */
 export const removeSavedPost = async (userId, postId) => {
   try {
-    const postRef = doc(db, "users", userId, "savedPosts", postId.toString())
-    await deleteDoc(postRef)
+    const { error } = await supabase
+      .from('saved_posts')
+      .delete()
+      .eq('userId', userId)
+      .eq('postId', postId)
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error removing saved post:", error)
@@ -392,14 +487,28 @@ export const removeSavedPost = async (userId, postId) => {
  * Listen to saved posts changes in real-time
  */
 export const onSavedPostsChange = (userId, callback) => {
-  const postsRef = collection(db, "users", userId, "savedPosts")
-  return onSnapshot(postsRef, (snapshot) => {
-    const posts = []
-    snapshot.forEach((doc) => {
-      posts.push({ id: doc.id, ...doc.data() })
-    })
-    callback(posts)
-  })
+  const channel = supabase
+    .channel(`saved-posts-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'saved_posts',
+        filter: `userId=eq.${userId}`,
+      },
+      async () => {
+        const result = await getSavedPosts(userId)
+        if (result.success) {
+          callback(result.data)
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }
 
 // ================== FLASHCARD COLLECTIONS OPERATIONS ==================
@@ -409,17 +518,34 @@ export const onSavedPostsChange = (userId, callback) => {
  */
 export const createCollection = async (userId, collectionData) => {
   try {
-    const collectionRef = doc(collection(db, "users", userId, "collections"))
-    const newCollection = {
-      name: collectionData.name,
-      description: collectionData.description || "",
-      isDefault: collectionData.isDefault || false,
-      wordIds: collectionData.wordIds || [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    const { data, error } = await supabase
+      .from('collections')
+      .insert({
+        userId,
+        name: collectionData.name,
+        description: collectionData.description || '',
+        isDefault: collectionData.isDefault || false,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Add words to collection if provided
+    if (collectionData.wordIds && collectionData.wordIds.length > 0) {
+      const collectionWords = collectionData.wordIds.map(wordId => ({
+        collectionId: data.id,
+        wordId,
+      }))
+
+      const { error: wordsError } = await supabase
+        .from('collection_words')
+        .insert(collectionWords)
+
+      if (wordsError) console.error('Error adding words to collection:', wordsError)
     }
-    await setDoc(collectionRef, newCollection)
-    return { success: true, id: collectionRef.id, data: newCollection }
+
+    return { success: true, id: data.id, data }
   } catch (error) {
     console.error("Error creating collection:", error)
     return { success: false, error: error.message }
@@ -431,13 +557,25 @@ export const createCollection = async (userId, collectionData) => {
  */
 export const getCollections = async (userId) => {
   try {
-    const collectionsRef = collection(db, "users", userId, "collections")
-    const querySnapshot = await getDocs(collectionsRef)
+    const { data, error } = await supabase
+      .from('collections')
+      .select(`
+        *,
+        collectionWords:collection_words(
+          wordId,
+          word:dictionary_words(*)
+        )
+      `)
+      .eq('userId', userId)
+      .order('createdAt', { ascending: false })
 
-    const collections = []
-    querySnapshot.forEach((doc) => {
-      collections.push({ id: doc.id, ...doc.data() })
-    })
+    if (error) throw error
+
+    // Transform to include wordIds array for compatibility
+    const collections = data?.map(collection => ({
+      ...collection,
+      wordIds: collection.collectionWords?.map(cw => cw.wordId) || [],
+    })) || []
 
     return { success: true, data: collections }
   } catch (error) {
@@ -451,16 +589,25 @@ export const getCollections = async (userId) => {
  */
 export const getCollection = async (userId, collectionId) => {
   try {
-    const collectionRef = doc(db, "users", userId, "collections", collectionId)
-    const collectionSnap = await getDoc(collectionRef)
+    const { data, error } = await supabase
+      .from('collections')
+      .select(`
+        *,
+        collectionWords:collection_words(
+          wordId,
+          word:dictionary_words(*)
+        )
+      `)
+      .eq('id', collectionId)
+      .eq('userId', userId)
+      .single()
 
-    if (collectionSnap.exists()) {
-      return {
-        success: true,
-        data: { id: collectionSnap.id, ...collectionSnap.data() },
-      }
-    }
-    return { success: false, error: "Collection not found" }
+    if (error) throw error
+
+    // Transform to include wordIds array
+    data.wordIds = data.collectionWords?.map(cw => cw.wordId) || []
+
+    return { success: true, data }
   } catch (error) {
     console.error("Error getting collection:", error)
     return { success: false, error: error.message }
@@ -472,11 +619,13 @@ export const getCollection = async (userId, collectionId) => {
  */
 export const updateCollection = async (userId, collectionId, updates) => {
   try {
-    const collectionRef = doc(db, "users", userId, "collections", collectionId)
-    await updateDoc(collectionRef, {
-      ...updates,
-      updatedAt: serverTimestamp(),
-    })
+    const { error } = await supabase
+      .from('collections')
+      .update(updates)
+      .eq('id', collectionId)
+      .eq('userId', userId)
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error updating collection:", error)
@@ -489,8 +638,13 @@ export const updateCollection = async (userId, collectionId, updates) => {
  */
 export const deleteCollection = async (userId, collectionId) => {
   try {
-    const collectionRef = doc(db, "users", userId, "collections", collectionId)
-    await deleteDoc(collectionRef)
+    const { error } = await supabase
+      .from('collections')
+      .delete()
+      .eq('id', collectionId)
+      .eq('userId', userId)
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error deleting collection:", error)
@@ -503,22 +657,31 @@ export const deleteCollection = async (userId, collectionId) => {
  */
 export const addWordToCollection = async (userId, collectionId, wordId) => {
   try {
-    const collectionRef = doc(db, "users", userId, "collections", collectionId)
-    const collectionSnap = await getDoc(collectionRef)
+    // Verify user owns the collection
+    const { data: collection, error: collError } = await supabase
+      .from('collections')
+      .select('id')
+      .eq('id', collectionId)
+      .eq('userId', userId)
+      .single()
 
-    if (!collectionSnap.exists()) {
-      return { success: false, error: "Collection not found" }
+    if (collError) throw collError
+
+    // Add word to collection
+    const { error } = await supabase
+      .from('collection_words')
+      .insert({
+        collectionId,
+        wordId,
+      })
+
+    if (error) {
+      // Check for duplicate
+      if (error.code === '23505') {
+        return { success: true, message: "Word already in collection" }
+      }
+      throw error
     }
-
-    const currentWordIds = collectionSnap.data().wordIds || []
-    if (currentWordIds.includes(wordId.toString())) {
-      return { success: true, message: "Word already in collection" }
-    }
-
-    await updateDoc(collectionRef, {
-      wordIds: [...currentWordIds, wordId.toString()],
-      updatedAt: serverTimestamp(),
-    })
 
     return { success: true }
   } catch (error) {
@@ -530,29 +693,25 @@ export const addWordToCollection = async (userId, collectionId, wordId) => {
 /**
  * Remove word from collection
  */
-export const removeWordFromCollection = async (
-  userId,
-  collectionId,
-  wordId
-) => {
+export const removeWordFromCollection = async (userId, collectionId, wordId) => {
   try {
-    const collectionRef = doc(db, "users", userId, "collections", collectionId)
-    const collectionSnap = await getDoc(collectionRef)
+    // Verify user owns the collection
+    const { data: collection, error: collError } = await supabase
+      .from('collections')
+      .select('id')
+      .eq('id', collectionId)
+      .eq('userId', userId)
+      .single()
 
-    if (!collectionSnap.exists()) {
-      return { success: false, error: "Collection not found" }
-    }
+    if (collError) throw collError
 
-    const currentWordIds = collectionSnap.data().wordIds || []
-    const updatedWordIds = currentWordIds.filter(
-      (id) => id !== wordId.toString()
-    )
+    const { error } = await supabase
+      .from('collection_words')
+      .delete()
+      .eq('collectionId', collectionId)
+      .eq('wordId', wordId)
 
-    await updateDoc(collectionRef, {
-      wordIds: updatedWordIds,
-      updatedAt: serverTimestamp(),
-    })
-
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error removing word from collection:", error)
@@ -564,56 +723,60 @@ export const removeWordFromCollection = async (
  * Listen to collections changes in real-time
  */
 export const onCollectionsChange = (userId, callback, errorCallback) => {
-  const collectionsRef = collection(db, "users", userId, "collections")
-  return onSnapshot(
-    collectionsRef,
-    (snapshot) => {
-      const collections = []
-      snapshot.forEach((doc) => {
-        collections.push({ id: doc.id, ...doc.data() })
-      })
-      callback(collections)
-    },
-    (error) => {
-      console.error("Collections listener error:", error)
-      if (errorCallback) {
-        errorCallback(error)
+  const channel = supabase
+    .channel(`collections-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'collections',
+        filter: `userId=eq.${userId}`,
+      },
+      async () => {
+        const result = await getCollections(userId)
+        if (result.success) {
+          callback(result.data)
+        } else if (errorCallback) {
+          errorCallback(result.error)
+        }
       }
-    }
-  )
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }
 
 /**
  * Get or create the default "Learning" collection
- * Auto-populated with all dictionary words
  */
 export const getOrCreateLearningCollection = async (userId) => {
   try {
-    // Check if Learning collection already exists
-    const collectionsRef = collection(db, "users", userId, "collections")
-    const q = query(collectionsRef, where("isDefault", "==", true))
-    const querySnapshot = await getDocs(q)
+    // Check if Learning collection exists
+    const { data: existing, error: queryError } = await supabase
+      .from('collections')
+      .select('*')
+      .eq('userId', userId)
+      .eq('isDefault', true)
+      .single()
 
-    if (!querySnapshot.empty) {
-      // Return existing Learning collection
-      const learningDoc = querySnapshot.docs[0]
-      return {
-        success: true,
-        data: { id: learningDoc.id, ...learningDoc.data() },
-      }
+    if (existing) {
+      return { success: true, data: existing }
     }
 
-    // Create new Learning collection with all dictionary words
+    // Create new Learning collection
     const dictionaryResult = await getUserDictionary(userId)
     const wordIds = dictionaryResult.success
-      ? dictionaryResult.data.map((word) => word.id.toString())
+      ? dictionaryResult.data.map(word => word.id)
       : []
 
     const result = await createCollection(userId, {
       name: "Learning",
       description: "Customised by Fluent",
       isDefault: true,
-      wordIds: wordIds,
+      wordIds,
     })
 
     return result
@@ -625,26 +788,27 @@ export const getOrCreateLearningCollection = async (userId) => {
 
 /**
  * Sync Learning collection with dictionary
- * Adds any new dictionary words to the Learning collection
  */
 export const syncLearningCollection = async (userId) => {
   try {
     // Get Learning collection
-    const collectionsRef = collection(db, "users", userId, "collections")
-    const q = query(collectionsRef, where("isDefault", "==", true))
-    const querySnapshot = await getDocs(q)
+    const { data: learningCollection, error: collError } = await supabase
+      .from('collections')
+      .select(`
+        id,
+        collectionWords:collection_words(wordId)
+      `)
+      .eq('userId', userId)
+      .eq('isDefault', true)
+      .single()
 
-    if (querySnapshot.empty) {
-      // Create Learning collection if it doesn't exist
+    if (collError) {
+      // Create if doesn't exist
       await getOrCreateLearningCollection(userId)
-      return {
-        success: true,
-        message: "Learning collection created and synced",
-      }
+      return { success: true, message: "Learning collection created and synced" }
     }
 
-    const learningDoc = querySnapshot.docs[0]
-    const currentWordIds = learningDoc.data().wordIds || []
+    const currentWordIds = learningCollection.collectionWords?.map(cw => cw.wordId) || []
 
     // Get all dictionary words
     const dictionaryResult = await getUserDictionary(userId)
@@ -652,16 +816,21 @@ export const syncLearningCollection = async (userId) => {
       return { success: false, error: "Failed to get dictionary" }
     }
 
-    const allWordIds = dictionaryResult.data.map((word) => word.id.toString())
-
-    // Find new words not in Learning collection
-    const newWordIds = allWordIds.filter((id) => !currentWordIds.includes(id))
+    const allWordIds = dictionaryResult.data.map(word => word.id)
+    const newWordIds = allWordIds.filter(id => !currentWordIds.includes(id))
 
     if (newWordIds.length > 0) {
-      await updateDoc(doc(db, "users", userId, "collections", learningDoc.id), {
-        wordIds: [...currentWordIds, ...newWordIds],
-        updatedAt: serverTimestamp(),
-      })
+      const newWords = newWordIds.map(wordId => ({
+        collectionId: learningCollection.id,
+        wordId,
+      }))
+
+      const { error } = await supabase
+        .from('collection_words')
+        .insert(newWords)
+
+      if (error) throw error
+
       return {
         success: true,
         message: `Added ${newWordIds.length} new words to Learning collection`,
@@ -678,7 +847,7 @@ export const syncLearningCollection = async (userId) => {
 // ================== FOLLOWERS/FOLLOWING OPERATIONS ==================
 
 /**
- * Follow a user
+ * Follow a user using PostgreSQL function
  */
 export const followUser = async (currentUserId, targetUserId) => {
   try {
@@ -686,37 +855,12 @@ export const followUser = async (currentUserId, targetUserId) => {
       return { success: false, error: "Cannot follow yourself" }
     }
 
-    const batch = writeBatch(db)
-
-    // Add to current user's following list
-    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
-    batch.set(followingRef, {
-      userId: targetUserId,
-      followedAt: serverTimestamp(),
+    const { error } = await supabase.rpc('follow_user', {
+      follower_id: currentUserId,
+      following_id: targetUserId,
     })
 
-    // Add to target user's followers list
-    const followersRef = doc(db, "users", targetUserId, "followers", currentUserId)
-    batch.set(followersRef, {
-      userId: currentUserId,
-      followedAt: serverTimestamp(),
-    })
-
-    // Update counts
-    const currentUserRef = doc(db, "users", currentUserId)
-    const targetUserRef = doc(db, "users", targetUserId)
-
-    batch.update(currentUserRef, {
-      followingCount: (await getDoc(currentUserRef)).data()?.followingCount || 0 + 1,
-      updatedAt: serverTimestamp(),
-    })
-
-    batch.update(targetUserRef, {
-      followersCount: (await getDoc(targetUserRef)).data()?.followersCount || 0 + 1,
-      updatedAt: serverTimestamp(),
-    })
-
-    await batch.commit()
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error following user:", error)
@@ -725,38 +869,16 @@ export const followUser = async (currentUserId, targetUserId) => {
 }
 
 /**
- * Unfollow a user
+ * Unfollow a user using PostgreSQL function
  */
 export const unfollowUser = async (currentUserId, targetUserId) => {
   try {
-    const batch = writeBatch(db)
-
-    // Remove from current user's following list
-    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
-    batch.delete(followingRef)
-
-    // Remove from target user's followers list
-    const followersRef = doc(db, "users", targetUserId, "followers", currentUserId)
-    batch.delete(followersRef)
-
-    // Update counts
-    const currentUserRef = doc(db, "users", currentUserId)
-    const targetUserRef = doc(db, "users", targetUserId)
-
-    const currentUserDoc = await getDoc(currentUserRef)
-    const targetUserDoc = await getDoc(targetUserRef)
-
-    batch.update(currentUserRef, {
-      followingCount: Math.max(0, (currentUserDoc.data()?.followingCount || 0) - 1),
-      updatedAt: serverTimestamp(),
+    const { error } = await supabase.rpc('unfollow_user', {
+      follower_id: currentUserId,
+      following_id: targetUserId,
     })
 
-    batch.update(targetUserRef, {
-      followersCount: Math.max(0, (targetUserDoc.data()?.followersCount || 0) - 1),
-      updatedAt: serverTimestamp(),
-    })
-
-    await batch.commit()
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error unfollowing user:", error)
@@ -769,9 +891,15 @@ export const unfollowUser = async (currentUserId, targetUserId) => {
  */
 export const isFollowing = async (currentUserId, targetUserId) => {
   try {
-    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
-    const followingSnap = await getDoc(followingRef)
-    return { success: true, isFollowing: followingSnap.exists() }
+    const { data, error } = await supabase
+      .from('user_follows')
+      .select('id')
+      .eq('followerId', currentUserId)
+      .eq('followingId', targetUserId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return { success: true, isFollowing: !!data }
   } catch (error) {
     console.error("Error checking follow status:", error)
     return { success: false, error: error.message }
@@ -783,21 +911,29 @@ export const isFollowing = async (currentUserId, targetUserId) => {
  */
 export const getUserFollowers = async (userId) => {
   try {
-    const followersRef = collection(db, "users", userId, "followers")
-    const querySnapshot = await getDocs(followersRef)
+    const { data, error } = await supabase
+      .from('user_follows')
+      .select(`
+        followedAt,
+        follower:users!user_follows_followerId_fkey(
+          id,
+          name,
+          email,
+          profilePictureUrl,
+          targetLanguage,
+          level
+        )
+      `)
+      .eq('followingId', userId)
+      .order('followedAt', { ascending: false })
 
-    const followers = []
-    for (const docSnap of querySnapshot.docs) {
-      const followerUserId = docSnap.id
-      const userProfileResult = await getUserProfile(followerUserId)
-      if (userProfileResult.success) {
-        followers.push({
-          userId: followerUserId,
-          ...userProfileResult.data,
-          followedAt: docSnap.data().followedAt,
-        })
-      }
-    }
+    if (error) throw error
+
+    const followers = data?.map(item => ({
+      userId: item.follower.id,
+      ...item.follower,
+      followedAt: item.followedAt,
+    })) || []
 
     return { success: true, data: followers }
   } catch (error) {
@@ -811,21 +947,29 @@ export const getUserFollowers = async (userId) => {
  */
 export const getUserFollowing = async (userId) => {
   try {
-    const followingRef = collection(db, "users", userId, "following")
-    const querySnapshot = await getDocs(followingRef)
+    const { data, error } = await supabase
+      .from('user_follows')
+      .select(`
+        followedAt,
+        following:users!user_follows_followingId_fkey(
+          id,
+          name,
+          email,
+          profilePictureUrl,
+          targetLanguage,
+          level
+        )
+      `)
+      .eq('followerId', userId)
+      .order('followedAt', { ascending: false })
 
-    const following = []
-    for (const docSnap of querySnapshot.docs) {
-      const followingUserId = docSnap.id
-      const userProfileResult = await getUserProfile(followingUserId)
-      if (userProfileResult.success) {
-        following.push({
-          userId: followingUserId,
-          ...userProfileResult.data,
-          followedAt: docSnap.data().followedAt,
-        })
-      }
-    }
+    if (error) throw error
+
+    const following = data?.map(item => ({
+      userId: item.following.id,
+      ...item.following,
+      followedAt: item.followedAt,
+    })) || []
 
     return { success: true, data: following }
   } catch (error) {
@@ -839,34 +983,13 @@ export const getUserFollowing = async (userId) => {
  */
 export const removeFollower = async (currentUserId, followerUserId) => {
   try {
-    const batch = writeBatch(db)
-
-    // Remove from current user's followers list
-    const followersRef = doc(db, "users", currentUserId, "followers", followerUserId)
-    batch.delete(followersRef)
-
-    // Remove from follower's following list
-    const followingRef = doc(db, "users", followerUserId, "following", currentUserId)
-    batch.delete(followingRef)
-
-    // Update counts
-    const currentUserRef = doc(db, "users", currentUserId)
-    const followerUserRef = doc(db, "users", followerUserId)
-
-    const currentUserDoc = await getDoc(currentUserRef)
-    const followerUserDoc = await getDoc(followerUserRef)
-
-    batch.update(currentUserRef, {
-      followersCount: Math.max(0, (currentUserDoc.data()?.followersCount || 0) - 1),
-      updatedAt: serverTimestamp(),
+    // This is the same as unfollowing from the follower's perspective
+    const { error } = await supabase.rpc('unfollow_user', {
+      follower_id: followerUserId,
+      following_id: currentUserId,
     })
 
-    batch.update(followerUserRef, {
-      followingCount: Math.max(0, (followerUserDoc.data()?.followingCount || 0) - 1),
-      updatedAt: serverTimestamp(),
-    })
-
-    await batch.commit()
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error removing follower:", error)
@@ -879,30 +1002,20 @@ export const removeFollower = async (currentUserId, followerUserId) => {
  */
 export const searchUsers = async (searchQuery, limit = 20) => {
   try {
-    const usersRef = collection(db, "users")
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, profilePictureUrl, targetLanguage, level, followersCount')
+      .or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
+      .limit(limit)
 
-    // Get all users (Firestore doesn't support text search natively)
-    // In production, you'd want to use Algolia or similar for better search
-    const querySnapshot = await getDocs(usersRef)
+    if (error) throw error
 
-    const users = []
-    const lowerQuery = searchQuery.toLowerCase()
+    const users = data?.map(user => ({
+      userId: user.id,
+      ...user,
+    })) || []
 
-    querySnapshot.forEach((doc) => {
-      const userData = doc.data()
-      const userName = (userData.name || '').toLowerCase()
-      const userEmail = (userData.email || '').toLowerCase()
-
-      if (userName.includes(lowerQuery) || userEmail.includes(lowerQuery)) {
-        users.push({
-          userId: doc.id,
-          ...userData,
-        })
-      }
-    })
-
-    // Limit results
-    return { success: true, data: users.slice(0, limit) }
+    return { success: true, data: users }
   } catch (error) {
     console.error("Error searching users:", error)
     return { success: false, error: error.message }
@@ -910,31 +1023,16 @@ export const searchUsers = async (searchQuery, limit = 20) => {
 }
 
 /**
- * Block a user
+ * Block a user using PostgreSQL function
  */
 export const blockUser = async (currentUserId, targetUserId) => {
   try {
-    const batch = writeBatch(db)
-
-    // Add to current user's blocked list
-    const blockedRef = doc(db, "users", currentUserId, "blocked", targetUserId)
-    batch.set(blockedRef, {
-      userId: targetUserId,
-      blockedAt: serverTimestamp(),
+    const { error } = await supabase.rpc('block_user', {
+      blocker_id: currentUserId,
+      blocked_id: targetUserId,
     })
 
-    // Remove any existing follow relationships
-    const followingRef = doc(db, "users", currentUserId, "following", targetUserId)
-    const followersRef = doc(db, "users", currentUserId, "followers", targetUserId)
-    const targetFollowingRef = doc(db, "users", targetUserId, "following", currentUserId)
-    const targetFollowersRef = doc(db, "users", targetUserId, "followers", currentUserId)
-
-    batch.delete(followingRef)
-    batch.delete(followersRef)
-    batch.delete(targetFollowingRef)
-    batch.delete(targetFollowersRef)
-
-    await batch.commit()
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error blocking user:", error)
@@ -945,13 +1043,14 @@ export const blockUser = async (currentUserId, targetUserId) => {
 // ================== MIGRATION UTILITIES ==================
 
 /**
- * Migrate localStorage flashcard data to Firestore
+ * Migrate localStorage flashcard data to Supabase
  */
 export const migrateFlashcardData = async (userId) => {
   try {
     const localData = localStorage.getItem("flashcardData")
-    if (!localData)
+    if (!localData) {
       return { success: true, message: "No local data to migrate" }
+    }
 
     const flashcardData = JSON.parse(localData)
     await batchUpdateFlashcards(userId, flashcardData)
