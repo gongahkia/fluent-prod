@@ -21,55 +21,55 @@ CREATE POLICY "Users can view public profiles" ON users
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can update own profile" ON users
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid()::text = id);
 
 CREATE POLICY "Users can insert own profile" ON users
-  FOR INSERT WITH CHECK (auth.uid() = id);
+  FOR INSERT WITH CHECK (auth.uid()::text = id);
 
 -- User settings policies
 CREATE POLICY "Users can view own settings" ON user_settings
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can update own settings" ON user_settings
-  FOR UPDATE USING (auth.uid() = "userId");
+  FOR UPDATE USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can insert own settings" ON user_settings
-  FOR INSERT WITH CHECK (auth.uid() = "userId");
+  FOR INSERT WITH CHECK (auth.uid()::text = "userId");
 
 -- Encrypted credentials policies
 CREATE POLICY "Users can view own credentials" ON encrypted_credentials
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can manage own credentials" ON encrypted_credentials
-  FOR ALL USING (auth.uid() = "userId");
+  FOR ALL USING (auth.uid()::text = "userId");
 
 -- Dictionary words policies
 CREATE POLICY "Users can view own dictionary" ON dictionary_words
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can manage own dictionary" ON dictionary_words
-  FOR ALL USING (auth.uid() = "userId");
+  FOR ALL USING (auth.uid()::text = "userId");
 
 -- Flashcards policies
 CREATE POLICY "Users can view own flashcards" ON flashcards
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can manage own flashcards" ON flashcards
-  FOR ALL USING (auth.uid() = "userId");
+  FOR ALL USING (auth.uid()::text = "userId");
 
 -- Saved posts policies
 CREATE POLICY "Users can view own saved posts" ON saved_posts
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can manage own saved posts" ON saved_posts
-  FOR ALL USING (auth.uid() = "userId");
+  FOR ALL USING (auth.uid()::text = "userId");
 
 -- Collections policies
 CREATE POLICY "Users can view own collections" ON collections
-  FOR SELECT USING (auth.uid() = "userId");
+  FOR SELECT USING (auth.uid()::text = "userId");
 
 CREATE POLICY "Users can manage own collections" ON collections
-  FOR ALL USING (auth.uid() = "userId");
+  FOR ALL USING (auth.uid()::text = "userId");
 
 -- Collection words policies (inherit from collection ownership)
 CREATE POLICY "Users can view own collection words" ON collection_words
@@ -77,7 +77,7 @@ CREATE POLICY "Users can view own collection words" ON collection_words
     EXISTS (
       SELECT 1 FROM collections
       WHERE collections.id = collection_words."collectionId"
-      AND collections."userId" = auth.uid()
+      AND collections."userId" = auth.uid()::text
     )
   );
 
@@ -86,7 +86,7 @@ CREATE POLICY "Users can manage own collection words" ON collection_words
     EXISTS (
       SELECT 1 FROM collections
       WHERE collections.id = collection_words."collectionId"
-      AND collections."userId" = auth.uid()
+      AND collections."userId" = auth.uid()::text
     )
   );
 
@@ -95,14 +95,14 @@ CREATE POLICY "Users can view all follows" ON user_follows
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage own follows" ON user_follows
-  FOR ALL USING (auth.uid() = "followerId");
+  FOR ALL USING (auth.uid()::text = "followerId");
 
 -- User blocks policies
 CREATE POLICY "Users can view own blocks" ON user_blocks
-  FOR SELECT USING (auth.uid() = "blockerId");
+  FOR SELECT USING (auth.uid()::text = "blockerId");
 
 CREATE POLICY "Users can manage own blocks" ON user_blocks
-  FOR ALL USING (auth.uid() = "blockerId");
+  FOR ALL USING (auth.uid()::text = "blockerId");
 
 -- News cache policies (read-only for users)
 CREATE POLICY "Users can view news cache" ON news_cache

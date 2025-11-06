@@ -9,18 +9,9 @@ import {
   isRedditOAuthConfigured
 } from '../services/redditOAuthService.js'
 import { encryptData, decryptData } from '../services/encryptionService.js'
-import { getFirestore } from '../config/firebase.js'
+import * as prismaService from '../services/prismaService.js'
 
 const router = express.Router()
-
-// Helper to get Firestore instance safely
-const getDb = () => {
-  try {
-    return getFirestore()
-  } catch (error) {
-    throw new Error('Firebase is not initialized. Please check your configuration.')
-  }
-}
 
 /**
  * GET /api/reddit/auth/url
@@ -81,36 +72,28 @@ router.post('/auth/callback', async (req, res) => {
       scope
     })
 
-    // Store in Firestore under users/{userId}/credentials
-    const db = getDb()
-    const userRef = db.collection('users').doc(userId)
-    const userDoc = await userRef.get()
-
-    if (!userDoc.exists) {
+    // Get user profile to verify existence
+    const userResult = await prismaService.getUserProfile(userId)
+    if (!userResult.success) {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    // Update user profile with Reddit metadata
-    const updates = {
-      reddit: {
-        connected: true,
-        username: username,
-        redditId: id,
-        syncedSubreddits: [], // Will be populated on first sync
-        lastSynced: null
-      },
-      updatedAt: new Date()
+    // Get existing credentials
+    const credsResult = await prismaService.getUserCredentials(userId)
+    const existingCreds = credsResult.success && credsResult.data
+      ? JSON.parse(credsResult.data)
+      : {}
+
+    // Store encrypted Reddit tokens
+    const updatedCreds = {
+      ...existingCreds,
+      reddit: encryptedTokens
     }
 
-    // Store encrypted credentials
-    const credentialsUpdate = {
-      credentials: {
-        ...(userDoc.data().credentials || {}),
-        reddit: encryptedTokens
-      }
-    }
+    await prismaService.updateUserCredentials(userId, JSON.stringify(updatedCreds))
 
-    await userRef.update({ ...updates, ...credentialsUpdate })
+    // Note: Reddit metadata (username, connected status) can be stored in a custom field or separate table if needed
+    // For now, we'll skip updating the user profile with Reddit metadata
 
     console.log(`✅ Reddit OAuth completed for user ${userId} (@${username})`)
 

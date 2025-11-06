@@ -14,20 +14,11 @@ import aiRoutes from './routes/ai.js'
 import redditRoutes from './routes/reddit.js'
 import adminRoutes from './routes/admin.js'
 
-// Import Firebase and scheduled jobs
-import { initializeFirebase } from './config/firebase.js'
+// Import scheduled jobs
 import { initializeScheduledJob, runPostsFetchJob } from './jobs/fetchPostsJob.js'
 
 // Load environment variables
 dotenv.config()
-
-// Initialize Firebase Admin SDK
-try {
-  initializeFirebase()
-} catch (error) {
-  console.error('⚠️  Firebase initialization failed:', error.message)
-  console.error('⚠️  Posts will not be fetched/cached. Check your Firebase configuration.')
-}
 
 const app = express()
 const PORT = process.env.PORT || 3001

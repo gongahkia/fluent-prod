@@ -1,27 +1,22 @@
 /**
  * Admin Service
- * Provides Firebase Admin operations for managing users and data
+ * Provides admin operations for managing users and data via Prisma
  */
 
-import { getFirestore } from 'firebase-admin/firestore'
-
-// Lazy-load Firestore instance to avoid initialization issues
-const getDb = () => getFirestore()
+import * as prismaService from './prismaService.js'
 
 /**
  * Get all users with their profiles
  */
 export const getAllUsers = async () => {
   try {
-    const db = getDb()
-    const usersSnapshot = await db.collection('users').get()
-    const users = []
+    const { prisma } = await import('./prismaService.js')
 
-    usersSnapshot.forEach(doc => {
-      users.push({
-        id: doc.id,
-        ...doc.data()
-      })
+    const users = await prisma.user.findMany({
+      include: {
+        settings: true,
+      },
+      orderBy: { createdAt: 'desc' }
     })
 
     return users
@@ -32,21 +27,31 @@ export const getAllUsers = async () => {
 }
 
 /**
+ * Search users by name or email
+ */
+export const searchUsers = async (query) => {
+  try {
+    const result = await prismaService.searchUsers(query, 50)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.data
+  } catch (error) {
+    console.error('Error searching users:', error)
+    throw error
+  }
+}
+
+/**
  * Get a single user by ID with all their data
  */
 export const getUserById = async (userId) => {
   try {
-    const db = getDb()
-    const userDoc = await db.collection('users').doc(userId).get()
-
-    if (!userDoc.exists) {
-      throw new Error('User not found')
+    const result = await prismaService.getUserProfile(userId)
+    if (!result.success) {
+      throw new Error(result.error)
     }
-
-    return {
-      id: userDoc.id,
-      ...userDoc.data()
-    }
+    return result.data
   } catch (error) {
     console.error('Error getting user:', error)
     throw error
@@ -58,9 +63,8 @@ export const getUserById = async (userId) => {
  */
 export const updateUser = async (userId, data) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).update(data)
-    return { success: true, message: 'User updated successfully' }
+    const result = await prismaService.updateUserProfile(userId, data)
+    return result
   } catch (error) {
     console.error('Error updating user:', error)
     throw error
@@ -68,38 +72,12 @@ export const updateUser = async (userId, data) => {
 }
 
 /**
- * Delete a user and all their sub-collections
+ * Delete a user and all their data (CASCADE handled by Prisma schema)
  */
 export const deleteUser = async (userId) => {
   try {
-    const db = getDb()
-    const batch = db.batch()
-
-    // Delete user document
-    const userRef = db.collection('users').doc(userId)
-    batch.delete(userRef)
-
-    // Delete all sub-collections
-    const subCollections = [
-      'dictionary_ja',
-      'dictionary_ko',
-      'flashcards',
-      'savedPosts',
-      'collections',
-      'following',
-      'followers',
-      'blocked'
-    ]
-
-    for (const collectionName of subCollections) {
-      const snapshot = await db.collection('users').doc(userId).collection(collectionName).get()
-      snapshot.forEach(doc => {
-        batch.delete(doc.ref)
-      })
-    }
-
-    await batch.commit()
-    return { success: true, message: 'User deleted successfully' }
+    const result = await prismaService.deleteUserProfile(userId)
+    return result
   } catch (error) {
     console.error('Error deleting user:', error)
     throw error
@@ -107,23 +85,15 @@ export const deleteUser = async (userId) => {
 }
 
 /**
- * Get user's dictionary entries (Japanese or Korean)
+ * Get user's dictionary for a specific language
  */
-export const getUserDictionary = async (userId, language = 'ja') => {
+export const getUserDictionary = async (userId, language) => {
   try {
-    const db = getDb()
-    const collectionName = `dictionary_${language}`
-    const snapshot = await db.collection('users').doc(userId).collection(collectionName).get()
-
-    const entries = []
-    snapshot.forEach(doc => {
-      entries.push({
-        id: doc.id,
-        ...doc.data()
-      })
-    })
-
-    return entries
+    const result = await prismaService.getUserDictionary(userId, language)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.data
   } catch (error) {
     console.error('Error getting dictionary:', error)
     throw error
@@ -133,12 +103,13 @@ export const getUserDictionary = async (userId, language = 'ja') => {
 /**
  * Add dictionary entry
  */
-export const addDictionaryEntry = async (userId, language, data) => {
+export const addDictionaryEntry = async (userId, language, entryData) => {
   try {
-    const db = getDb()
-    const collectionName = `dictionary_${language}`
-    const docRef = await db.collection('users').doc(userId).collection(collectionName).add(data)
-    return { success: true, id: docRef.id, message: 'Dictionary entry added' }
+    const result = await prismaService.addWordToDictionary(userId, {
+      ...entryData,
+      language
+    })
+    return result
   } catch (error) {
     console.error('Error adding dictionary entry:', error)
     throw error
@@ -150,10 +121,17 @@ export const addDictionaryEntry = async (userId, language, data) => {
  */
 export const updateDictionaryEntry = async (userId, language, entryId, data) => {
   try {
-    const db = getDb()
-    const collectionName = `dictionary_${language}`
-    await db.collection('users').doc(userId).collection(collectionName).doc(entryId).update(data)
-    return { success: true, message: 'Dictionary entry updated' }
+    const { prisma } = await import('./prismaService.js')
+
+    const entry = await prisma.dictionaryWord.update({
+      where: {
+        id: entryId,
+        userId // Ensure user owns the entry
+      },
+      data
+    })
+
+    return { success: true, data: entry }
   } catch (error) {
     console.error('Error updating dictionary entry:', error)
     throw error
@@ -165,10 +143,8 @@ export const updateDictionaryEntry = async (userId, language, entryId, data) => 
  */
 export const deleteDictionaryEntry = async (userId, language, entryId) => {
   try {
-    const db = getDb()
-    const collectionName = `dictionary_${language}`
-    await db.collection('users').doc(userId).collection(collectionName).doc(entryId).delete()
-    return { success: true, message: 'Dictionary entry deleted' }
+    const result = await prismaService.removeWordFromDictionary(userId, entryId)
+    return result
   } catch (error) {
     console.error('Error deleting dictionary entry:', error)
     throw error
@@ -180,18 +156,11 @@ export const deleteDictionaryEntry = async (userId, language, entryId) => {
  */
 export const getUserFlashcards = async (userId) => {
   try {
-    const db = getDb()
-    const snapshot = await db.collection('users').doc(userId).collection('flashcards').get()
-
-    const flashcards = []
-    snapshot.forEach(doc => {
-      flashcards.push({
-        id: doc.id,
-        ...doc.data()
-      })
-    })
-
-    return flashcards
+    const result = await prismaService.getFlashcardProgress(userId)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.data
   } catch (error) {
     console.error('Error getting flashcards:', error)
     throw error
@@ -203,9 +172,17 @@ export const getUserFlashcards = async (userId) => {
  */
 export const updateFlashcard = async (userId, flashcardId, data) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).collection('flashcards').doc(flashcardId).update(data)
-    return { success: true, message: 'Flashcard updated' }
+    const { prisma } = await import('./prismaService.js')
+
+    const flashcard = await prisma.flashcard.update({
+      where: {
+        id: flashcardId,
+        userId
+      },
+      data
+    })
+
+    return { success: true, data: flashcard }
   } catch (error) {
     console.error('Error updating flashcard:', error)
     throw error
@@ -217,9 +194,16 @@ export const updateFlashcard = async (userId, flashcardId, data) => {
  */
 export const deleteFlashcard = async (userId, flashcardId) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).collection('flashcards').doc(flashcardId).delete()
-    return { success: true, message: 'Flashcard deleted' }
+    const { prisma } = await import('./prismaService.js')
+
+    await prisma.flashcard.delete({
+      where: {
+        id: flashcardId,
+        userId
+      }
+    })
+
+    return { success: true, message: 'Flashcard deleted successfully' }
   } catch (error) {
     console.error('Error deleting flashcard:', error)
     throw error
@@ -231,18 +215,11 @@ export const deleteFlashcard = async (userId, flashcardId) => {
  */
 export const getUserSavedPosts = async (userId) => {
   try {
-    const db = getDb()
-    const snapshot = await db.collection('users').doc(userId).collection('savedPosts').get()
-
-    const posts = []
-    snapshot.forEach(doc => {
-      posts.push({
-        id: doc.id,
-        ...doc.data()
-      })
-    })
-
-    return posts
+    const result = await prismaService.getSavedPosts(userId)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.data
   } catch (error) {
     console.error('Error getting saved posts:', error)
     throw error
@@ -254,9 +231,8 @@ export const getUserSavedPosts = async (userId) => {
  */
 export const deleteSavedPost = async (userId, postId) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).collection('savedPosts').doc(postId).delete()
-    return { success: true, message: 'Saved post deleted' }
+    const result = await prismaService.removeSavedPost(userId, postId)
+    return result
   } catch (error) {
     console.error('Error deleting saved post:', error)
     throw error
@@ -268,18 +244,11 @@ export const deleteSavedPost = async (userId, postId) => {
  */
 export const getUserCollections = async (userId) => {
   try {
-    const db = getDb()
-    const snapshot = await db.collection('users').doc(userId).collection('collections').get()
-
-    const collections = []
-    snapshot.forEach(doc => {
-      collections.push({
-        id: doc.id,
-        ...doc.data()
-      })
-    })
-
-    return collections
+    const result = await prismaService.getCollections(userId)
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+    return result.data
   } catch (error) {
     console.error('Error getting collections:', error)
     throw error
@@ -291,9 +260,8 @@ export const getUserCollections = async (userId) => {
  */
 export const updateCollection = async (userId, collectionId, data) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).collection('collections').doc(collectionId).update(data)
-    return { success: true, message: 'Collection updated' }
+    const result = await prismaService.updateCollection(userId, collectionId, data)
+    return result
   } catch (error) {
     console.error('Error updating collection:', error)
     throw error
@@ -305,9 +273,8 @@ export const updateCollection = async (userId, collectionId, data) => {
  */
 export const deleteCollection = async (userId, collectionId) => {
   try {
-    const db = getDb()
-    await db.collection('users').doc(userId).collection('collections').doc(collectionId).delete()
-    return { success: true, message: 'Collection deleted' }
+    const result = await prismaService.deleteCollection(userId, collectionId)
+    return result
   } catch (error) {
     console.error('Error deleting collection:', error)
     throw error
@@ -315,59 +282,25 @@ export const deleteCollection = async (userId, collectionId) => {
 }
 
 /**
- * Get user's social connections (following, followers, blocked)
+ * Get user's social connections (followers and following)
  */
 export const getUserSocialConnections = async (userId) => {
   try {
-    const db = getDb()
-    const [followingSnap, followersSnap, blockedSnap] = await Promise.all([
-      db.collection('users').doc(userId).collection('following').get(),
-      db.collection('users').doc(userId).collection('followers').get(),
-      db.collection('users').doc(userId).collection('blocked').get()
+    const [followersResult, followingResult] = await Promise.all([
+      prismaService.getUserFollowers(userId),
+      prismaService.getUserFollowing(userId)
     ])
 
-    const following = []
-    const followers = []
-    const blocked = []
+    if (!followersResult.success || !followingResult.success) {
+      throw new Error('Failed to get social connections')
+    }
 
-    followingSnap.forEach(doc => following.push({ id: doc.id, ...doc.data() }))
-    followersSnap.forEach(doc => followers.push({ id: doc.id, ...doc.data() }))
-    blockedSnap.forEach(doc => blocked.push({ id: doc.id, ...doc.data() }))
-
-    return { following, followers, blocked }
+    return {
+      followers: followersResult.data,
+      following: followingResult.data
+    }
   } catch (error) {
     console.error('Error getting social connections:', error)
-    throw error
-  }
-}
-
-/**
- * Search users by email or name
- */
-export const searchUsers = async (query) => {
-  try {
-    const db = getDb()
-    const usersSnapshot = await db.collection('users').get()
-    const users = []
-
-    const lowerQuery = query.toLowerCase()
-
-    usersSnapshot.forEach(doc => {
-      const data = doc.data()
-      const email = (data.email || '').toLowerCase()
-      const name = (data.name || '').toLowerCase()
-
-      if (email.includes(lowerQuery) || name.includes(lowerQuery)) {
-        users.push({
-          id: doc.id,
-          ...data
-        })
-      }
-    })
-
-    return users
-  } catch (error) {
-    console.error('Error searching users:', error)
     throw error
   }
 }
@@ -377,42 +310,22 @@ export const searchUsers = async (query) => {
  */
 export const getAllDictionaryEntries = async () => {
   try {
-    const db = getDb()
-    const usersSnapshot = await db.collection('users').get()
-    const allEntries = []
+    const { prisma } = await import('./prismaService.js')
 
-    for (const userDoc of usersSnapshot.docs) {
-      const userId = userDoc.id
-      const userData = userDoc.data()
+    const entries = await prisma.dictionaryWord.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
 
-      // Get Japanese entries
-      const jaSnapshot = await db.collection('users').doc(userId).collection('dictionary_ja').get()
-      jaSnapshot.forEach(entryDoc => {
-        allEntries.push({
-          id: entryDoc.id,
-          userId: userId,
-          userName: userData.name || 'Unknown',
-          userEmail: userData.email || 'N/A',
-          language: 'Japanese',
-          ...entryDoc.data()
-        })
-      })
-
-      // Get Korean entries
-      const koSnapshot = await db.collection('users').doc(userId).collection('dictionary_ko').get()
-      koSnapshot.forEach(entryDoc => {
-        allEntries.push({
-          id: entryDoc.id,
-          userId: userId,
-          userName: userData.name || 'Unknown',
-          userEmail: userData.email || 'N/A',
-          language: 'Korean',
-          ...entryDoc.data()
-        })
-      })
-    }
-
-    return allEntries
+    return entries
   } catch (error) {
     console.error('Error getting all dictionary entries:', error)
     throw error
@@ -420,102 +333,111 @@ export const getAllDictionaryEntries = async () => {
 }
 
 /**
- * Get all posts from news-cache collection
+ * Get all posts from news-cache
  */
 export const getAllNewsCachePosts = async () => {
   try {
-    const db = getDb()
-    const newsCacheSnapshot = await db.collection('news-cache').get()
-    const allPosts = []
+    const { prisma } = await import('./prismaService.js')
 
-    newsCacheSnapshot.forEach(doc => {
-      const docData = doc.data()
-      const posts = docData.posts || []
-      const metadata = docData.metadata || {}
-
-      posts.forEach((post, index) => {
-        allPosts.push({
-          docId: doc.id, // e.g., 'posts-japan', 'posts-korea'
-          postIndex: index, // Index within the posts array
-          ...post,
-          _metadata: metadata // Include document metadata
-        })
-      })
+    const posts = await prisma.newsCache.findMany({
+      orderBy: { fetchedAt: 'desc' }
     })
 
-    return allPosts
+    // Group by cacheKey for easier management
+    const grouped = posts.reduce((acc, post) => {
+      if (!acc[post.cacheKey]) {
+        acc[post.cacheKey] = []
+      }
+      acc[post.cacheKey].push(post)
+      return acc
+    }, {})
+
+    return grouped
   } catch (error) {
-    console.error('Error getting all news-cache posts:', error)
+    console.error('Error getting news cache posts:', error)
     throw error
   }
 }
 
 /**
- * Update a post in the news-cache collection
+ * Update a post in news-cache
  */
-export const updateNewsCachePost = async (docId, postIndex, updateData) => {
+export const updateNewsCachePost = async (cacheKey, postId, data) => {
   try {
-    const db = getDb()
-    const docRef = db.collection('news-cache').doc(docId)
-    const doc = await docRef.get()
+    const { prisma } = await import('./prismaService.js')
 
-    if (!doc.exists) {
-      throw new Error('News-cache document not found')
+    // Find the post by cacheKey and postId
+    const post = await prisma.newsCache.findFirst({
+      where: {
+        cacheKey,
+        postId
+      }
+    })
+
+    if (!post) {
+      throw new Error('Post not found')
     }
 
-    const docData = doc.data()
-    const posts = docData.posts || []
+    // Update the post
+    const updated = await prisma.newsCache.update({
+      where: { id: post.id },
+      data
+    })
 
-    if (postIndex < 0 || postIndex >= posts.length) {
-      throw new Error('Invalid post index')
-    }
-
-    // Update the specific post
-    posts[postIndex] = { ...posts[postIndex], ...updateData }
-
-    // Update the document with modified posts array
-    await docRef.update({ posts })
-
-    return { success: true, message: 'News-cache post updated successfully' }
+    return { success: true, data: updated }
   } catch (error) {
-    console.error('Error updating news-cache post:', error)
+    console.error('Error updating news cache post:', error)
     throw error
   }
 }
 
 /**
- * Delete a post from the news-cache collection
+ * Delete a post from news-cache
  */
-export const deleteNewsCachePost = async (docId, postIndex) => {
+export const deleteNewsCachePost = async (cacheKey, postId) => {
   try {
-    const db = getDb()
-    const docRef = db.collection('news-cache').doc(docId)
-    const doc = await docRef.get()
+    const { prisma } = await import('./prismaService.js')
 
-    if (!doc.exists) {
-      throw new Error('News-cache document not found')
+    // Find and delete the post
+    const deleted = await prisma.newsCache.deleteMany({
+      where: {
+        cacheKey,
+        postId
+      }
+    })
+
+    if (deleted.count === 0) {
+      throw new Error('Post not found')
     }
 
-    const docData = doc.data()
-    const posts = docData.posts || []
-
-    if (postIndex < 0 || postIndex >= posts.length) {
-      throw new Error('Invalid post index')
-    }
-
-    // Remove the post at the specified index
-    posts.splice(postIndex, 1)
-
-    // Update metadata count
-    const metadata = docData.metadata || {}
-    metadata.count = posts.length
-
-    // Update the document
-    await docRef.update({ posts, metadata })
-
-    return { success: true, message: 'News-cache post deleted successfully' }
+    return { success: true, message: 'Post deleted successfully' }
   } catch (error) {
-    console.error('Error deleting news-cache post:', error)
+    console.error('Error deleting news cache post:', error)
     throw error
   }
+}
+
+export default {
+  getAllUsers,
+  searchUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  getUserDictionary,
+  addDictionaryEntry,
+  updateDictionaryEntry,
+  deleteDictionaryEntry,
+  getUserFlashcards,
+  updateFlashcard,
+  deleteFlashcard,
+  getUserSavedPosts,
+  deleteSavedPost,
+  getUserCollections,
+  updateCollection,
+  deleteCollection,
+  getUserSocialConnections,
+  getAllDictionaryEntries,
+  getAllNewsCachePosts,
+  updateNewsCachePost,
+  deleteNewsCachePost
 }
