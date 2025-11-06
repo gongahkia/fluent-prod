@@ -881,33 +881,36 @@ export async function searchUsers(searchQuery, limit = 20) {
  */
 export async function savePostsToCache(cacheKey, posts) {
   try {
-    // Delete existing cache entries for this key
-    await prisma.newsCache.deleteMany({
-      where: { cacheKey },
-    });
+    // Use a transaction to ensure atomicity
+    await prisma.$transaction(async (tx) => {
+      // Delete existing cache entries for this key
+      await tx.newsCache.deleteMany({
+        where: { cacheKey },
+      });
 
-    // Create new cache entries
-    const cacheEntries = posts.map(post => ({
-      cacheKey,
-      postId: post.id,
-      title: post.title,
-      content: post.content,
-      url: post.url,
-      author: post.author,
-      publishedAt: new Date(post.publishedAt),
-      source: post.source || 'reddit',
-      tags: post.tags || [],
-      difficulty: post.difficulty,
-      targetLang: post.targetLang,
-      translatedTitle: post.translatedTitle || null,
-      translatedContent: post.translatedContent || null,
-      originalTitle: post.originalTitle,
-      originalContent: post.originalContent,
-      version: '1.0',
-    }));
-
-    await prisma.newsCache.createMany({
-      data: cacheEntries,
+      // Create new cache entries using individual creates to handle potential conflicts
+      for (const post of posts) {
+        await tx.newsCache.create({
+          data: {
+            cacheKey,
+            postId: post.id,
+            title: post.title,
+            content: post.content,
+            url: post.url,
+            author: post.author,
+            publishedAt: new Date(post.publishedAt),
+            source: post.source || 'reddit',
+            tags: post.tags || [],
+            difficulty: post.difficulty,
+            targetLang: post.targetLang,
+            translatedTitle: post.translatedTitle || null,
+            translatedContent: post.translatedContent || null,
+            originalTitle: post.originalTitle,
+            originalContent: post.originalContent,
+            version: '1.0',
+          },
+        });
+      }
     });
 
     return { success: true };
