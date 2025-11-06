@@ -1,116 +1,296 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-  sendPasswordResetEmail,
-  onAuthStateChanged
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+/**
+ * Supabase Authentication Service
+ * Replaces Firebase Authentication
+ */
 
-// Create a new user account with email and password
+import { supabase } from '@/lib/supabase';
+
+/**
+ * Register a new user with email and password
+ */
 export const registerWithEmail = async (email, password, displayName) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+          name: displayName,
+        },
+      },
+    });
 
-    // Update user profile with display name
-    if (displayName) {
-      await updateProfile(userCredential.user, {
-        displayName: displayName
-      })
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
     }
 
     return {
       success: true,
-      user: userCredential.user,
-      isNewUser: true
-    }
+      user: data.user,
+      isNewUser: true,
+    };
   } catch (error) {
-    console.error('Error registering user:', error)
+    console.error('Error registering user:', error);
     return {
       success: false,
-      error: error.message
-    }
+      error: error.message,
+    };
   }
-}
+};
 
-// Sign in with email and password
+/**
+ * Sign in with email and password
+ */
 export const signInWithEmail = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
     return {
       success: true,
-      user: userCredential.user,
-      isNewUser: false
-    }
+      user: data.user,
+      session: data.session,
+      isNewUser: false,
+    };
   } catch (error) {
-    console.error('Error signing in:', error)
+    console.error('Error signing in:', error);
     return {
       success: false,
-      error: error.message
-    }
+      error: error.message,
+    };
   }
-}
+};
 
-// Sign in with Google
+/**
+ * Sign in with Google OAuth
+ */
 export const signInWithGoogle = async () => {
   try {
-    const provider = new GoogleAuthProvider()
-    const result = await signInWithPopup(auth, provider)
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    });
 
-    // Check if this is a new user
-    const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    // Note: OAuth redirects, so this return won't be reached immediately
+    // The actual user data will be available after redirect
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Sign out the current user
+ */
+export const signOutUser = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error signing out:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Send password reset email
+ */
+export const resetPassword = async (email) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Update user password
+ */
+export const updatePassword = async (newPassword) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Update user profile metadata
+ */
+export const updateUserMetadata = async (metadata) => {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      data: metadata,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
 
     return {
       success: true,
-      user: result.user,
-      isNewUser: isNewUser
-    }
+      user: data.user,
+    };
   } catch (error) {
-    console.error('Error signing in with Google:', error)
+    console.error('Error updating user metadata:', error);
     return {
       success: false,
-      error: error.message
-    }
+      error: error.message,
+    };
   }
-}
+};
 
-// Sign out
-export const signOutUser = async () => {
-  try {
-    await signOut(auth)
-    return { success: true }
-  } catch (error) {
-    console.error('Error signing out:', error)
-    return {
-      success: false,
-      error: error.message
-    }
-  }
-}
-
-// Send password reset email
-export const resetPassword = async (email) => {
-  try {
-    await sendPasswordResetEmail(auth, email)
-    return { success: true }
-  } catch (error) {
-    console.error('Error sending password reset email:', error)
-    return {
-      success: false,
-      error: error.message
-    }
-  }
-}
-
-// Listen to auth state changes
+/**
+ * Listen to authentication state changes
+ */
 export const onAuthStateChange = (callback) => {
-  return onAuthStateChanged(auth, callback)
-}
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      const user = session?.user || null;
+      callback(user);
+    }
+  );
 
-// Get current user
-export const getCurrentUser = () => {
-  return auth.currentUser
-}
+  // Return unsubscribe function
+  return () => {
+    subscription.unsubscribe();
+  };
+};
+
+/**
+ * Get current user
+ */
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+};
+
+/**
+ * Get current session
+ */
+export const getCurrentSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error('Error getting current session:', error);
+      return null;
+    }
+
+    return session;
+  } catch (error) {
+    console.error('Error getting current session:', error);
+    return null;
+  }
+};
+
+/**
+ * Refresh session
+ */
+export const refreshSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return {
+      success: true,
+      session: data.session,
+    };
+  } catch (error) {
+    console.error('Error refreshing session:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
