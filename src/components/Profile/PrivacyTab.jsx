@@ -1,9 +1,7 @@
 import React, { useState } from "react"
 import { User, Trash2, X } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "firebase/auth"
-import { doc, deleteDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { supabase } from "@/lib/supabase"
 
 const PrivacyTab = ({ formData, handleInputChange, setShowFollowers, setShowFollowing }) => {
   const { currentUser } = useAuth()
@@ -22,32 +20,49 @@ const PrivacyTab = ({ formData, handleInputChange, setShowFollowers, setShowFoll
     setDeleteError("")
 
     try {
-      // Reauthenticate user
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        deletePassword
+      // Reauthenticate user by verifying password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: deletePassword,
+      })
+
+      if (signInError) {
+        throw signInError
+      }
+
+      // Delete user data from database (CASCADE will handle related tables)
+      const { error: deleteDataError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', currentUser.id)
+
+      if (deleteDataError) {
+        console.error("Error deleting user data:", deleteDataError)
+      }
+
+      // Delete the user account from Supabase Auth
+      const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(
+        currentUser.id
       )
 
-      await reauthenticateWithCredential(currentUser, credential)
+      if (deleteAuthError) {
+        throw deleteAuthError
+      }
 
-      // Delete user data from Firestore
-      const userRef = doc(db, 'users', currentUser.uid)
-      await deleteDoc(userRef)
-
-      // Delete the user account
-      await deleteUser(currentUser)
+      // Sign out (will happen automatically after account deletion)
+      await supabase.auth.signOut()
 
       // User will be logged out automatically
       alert("Your account has been permanently deleted.")
     } catch (error) {
       console.error("Error deleting account:", error)
 
-      if (error.code === 'auth/wrong-password') {
+      if (error.message?.includes('Invalid login credentials')) {
         setDeleteError("Incorrect password. Please try again.")
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (error.message?.includes('too many')) {
         setDeleteError("Too many failed attempts. Please try again later.")
       } else {
-        setDeleteError("Failed to delete account. Please try again.")
+        setDeleteError(`Failed to delete account: ${error.message || 'Please try again.'}`)
       }
       setIsDeleting(false)
     }
