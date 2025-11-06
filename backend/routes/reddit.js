@@ -121,16 +121,13 @@ router.post('/sync-subreddits', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId' })
     }
 
-    // Get user from Firestore
-    const db = getDb()
-    const userRef = db.collection('users').doc(userId)
-    const userDoc = await userRef.get()
-
-    if (!userDoc.exists) {
+    // Get user from Prisma
+    const userResult = await prismaService.getUserProfile(userId)
+    if (!userResult.success) {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    const userData = userDoc.data()
+    const userData = userResult.data
 
     // Check if Reddit is connected
     if (!userData.reddit?.connected || !userData.credentials?.reddit) {
@@ -251,16 +248,13 @@ router.post('/disconnect', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId' })
     }
 
-    // Get user from Firestore
-    const db = getDb()
-    const userRef = db.collection('users').doc(userId)
-    const userDoc = await userRef.get()
-
-    if (!userDoc.exists) {
+    // Get user from Prisma
+    const userResult = await prismaService.getUserProfile(userId)
+    if (!userResult.success) {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    const userData = userDoc.data()
+    const userData = userResult.data
 
     // Revoke tokens if they exist
     if (userData.credentials?.reddit) {
