@@ -67,7 +67,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
 
       try {
         const token = await currentUser.getIdToken()
-        const result = await getUserCredentials(currentUser.uid)
+        const result = await getUserCredentials(currentUser.id)
 
         if (result.success && result.data) {
           const decrypted = await decryptCredentials(result.data, token)
@@ -111,7 +111,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       }
 
       const encryptedCreds = await encryptCredentials(credentials, token)
-      await updateUserCredentials(currentUser.uid, encryptedCreds)
+      await updateUserCredentials(currentUser.id, encryptedCreds)
 
       localStorage.setItem('redditApiKey', formData.redditApiKey)
       localStorage.setItem('geminiApiKey', formData.geminiApiKey)
@@ -144,7 +144,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         }
       }
 
-      await updateUserProfile(currentUser.uid, profileUpdates)
+      await updateUserProfile(currentUser.id, profileUpdates)
       onProfileUpdate(formData)
 
       setIsLoading(false)

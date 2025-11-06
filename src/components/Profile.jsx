@@ -85,7 +85,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         const token = await currentUser.getIdToken()
 
         // Load encrypted credentials from Firebase
-        const result = await getUserCredentials(currentUser.uid)
+        const result = await getUserCredentials(currentUser.id)
 
         if (result.success && result.data) {
           // Decrypt credentials
@@ -116,7 +116,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       setLoadingFollowers(true)
       try {
-        const result = await getUserFollowers(currentUser.uid)
+        const result = await getUserFollowers(currentUser.id)
         if (result.success) {
           setFollowers(result.data)
         } else {
@@ -139,7 +139,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
       setLoadingFollowing(true)
       try {
-        const result = await getUserFollowing(currentUser.uid)
+        const result = await getUserFollowing(currentUser.id)
         if (result.success) {
           setFollowing(result.data)
         } else {
@@ -182,7 +182,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       const encryptedCreds = await encryptCredentials(credentials, token)
 
       // Save encrypted credentials to Firebase
-      await updateUserCredentials(currentUser.uid, encryptedCreds)
+      await updateUserCredentials(currentUser.id, encryptedCreds)
 
       // Save to localStorage for immediate use
       localStorage.setItem('redditApiKey', formData.redditApiKey)
@@ -217,7 +217,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         }
       }
 
-      await updateUserProfile(currentUser.uid, profileUpdates)
+      await updateUserProfile(currentUser.id, profileUpdates)
 
       // Update parent component
       onProfileUpdate(formData)
@@ -240,7 +240,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     if (!currentUser) return
 
     try {
-      const result = await removeFollower(currentUser.uid, followerUserId)
+      const result = await removeFollower(currentUser.id, followerUserId)
       if (result.success) {
         // Remove from local state
         setFollowers(prev => prev.filter(f => f.userId !== followerUserId))
@@ -258,7 +258,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     if (!currentUser) return
 
     try {
-      const result = await unfollowUser(currentUser.uid, targetUserId)
+      const result = await unfollowUser(currentUser.id, targetUserId)
       if (result.success) {
         // Remove from local state
         setFollowing(prev => prev.filter(f => f.userId !== targetUserId))
@@ -279,7 +279,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     if (!confirmed) return
 
     try {
-      const result = await blockUser(currentUser.uid, targetUserId)
+      const result = await blockUser(currentUser.id, targetUserId)
       if (result.success) {
         // Remove from both lists
         setFollowers(prev => prev.filter(f => f.userId !== targetUserId))

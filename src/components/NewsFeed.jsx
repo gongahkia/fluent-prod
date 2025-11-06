@@ -592,7 +592,7 @@ const NewsFeed = ({
         publishedAt: article.publishedAt,
       }
 
-      const result = await savePost(currentUser.uid, postData)
+      const result = await savePost(currentUser.id, postData)
 
       if (result.success) {
         setSavedPostIds(prev => new Set([...prev, article.id]))

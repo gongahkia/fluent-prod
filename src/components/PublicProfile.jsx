@@ -35,8 +35,8 @@ const PublicProfile = ({ userProfile, onBack, onNavigateToSettings }) => {
       setLoading(true)
       try {
         const [followersResult, followingResult] = await Promise.all([
-          getUserFollowers(currentUser.uid),
-          getUserFollowing(currentUser.uid)
+          getUserFollowers(currentUser.id),
+          getUserFollowing(currentUser.id)
         ])
 
         if (followersResult.success) {

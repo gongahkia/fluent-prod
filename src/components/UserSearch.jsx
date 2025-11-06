@@ -36,7 +36,7 @@ const UserSearch = () => {
           if (currentUser) {
             const statusChecks = {}
             for (const user of filteredUsers) {
-              const followResult = await isFollowing(currentUser.uid, user.userId)
+              const followResult = await isFollowing(currentUser.id, user.userId)
               if (followResult.success) {
                 statusChecks[user.userId] = followResult.isFollowing
               }
@@ -66,14 +66,14 @@ const UserSearch = () => {
       const isCurrentlyFollowing = followStatus[targetUserId]
 
       if (isCurrentlyFollowing) {
-        const result = await unfollowUser(currentUser.uid, targetUserId)
+        const result = await unfollowUser(currentUser.id, targetUserId)
         if (result.success) {
           setFollowStatus(prev => ({ ...prev, [targetUserId]: false }))
         } else {
           alert('Failed to unfollow: ' + result.error)
         }
       } else {
-        const result = await followUser(currentUser.uid, targetUserId)
+        const result = await followUser(currentUser.id, targetUserId)
         if (result.success) {
           setFollowStatus(prev => ({ ...prev, [targetUserId]: true }))
         } else {

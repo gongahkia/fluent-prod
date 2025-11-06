@@ -43,7 +43,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
 
       try {
         setLoading(true)
-        const result = await getSavedPosts(currentUser.uid)
+        const result = await getSavedPosts(currentUser.id)
         if (result.success) {
           setSavedPosts(result.data)
         } else {
@@ -64,7 +64,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
     if (!currentUser) return
 
     try {
-      const result = await removeSavedPost(currentUser.uid, postId)
+      const result = await removeSavedPost(currentUser.id, postId)
       if (result.success) {
         setSavedPosts(savedPosts.filter(post => post.id !== postId))
       } else {

@@ -114,10 +114,10 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
     const loadFlashcardData = async () => {
       // Try to migrate localStorage data first (one-time migration)
-      await migrateFlashcardData(currentUser.uid)
+      await migrateFlashcardData(currentUser.id)
 
       // Load flashcard progress from Firestore
-      const result = await getFlashcardProgress(currentUser.uid)
+      const result = await getFlashcardProgress(currentUser.id)
       if (result.success) {
         setCardData(result.data)
       }
@@ -131,7 +131,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     if (!currentUser) return
 
     const unsubscribe = onCollectionsChange(
-      currentUser.uid,
+      currentUser.id,
       (collections) => {
         setCollections(collections)
       },
@@ -156,17 +156,17 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
   // Collection handlers
   const handleCreateCollection = async (collectionData) => {
     if (!currentUser) return
-    await createCollection(currentUser.uid, collectionData)
+    await createCollection(currentUser.id, collectionData)
   }
 
   const handleUpdateCollection = async (collectionId, updates) => {
     if (!currentUser) return
-    await updateCollection(currentUser.uid, collectionId, updates)
+    await updateCollection(currentUser.id, collectionId, updates)
   }
 
   const handleDeleteCollection = async (collectionId) => {
     if (!currentUser) return
-    await deleteCollection(currentUser.uid, collectionId)
+    await deleteCollection(currentUser.id, collectionId)
     // If currently viewing this collection, go back to collection list
     if (selectedCollection?.id === collectionId) {
       setSelectedCollection(null)
@@ -187,12 +187,12 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
   const handleAddWordToCollection = async (collectionId, wordId) => {
     if (!currentUser) return
-    await addWordToCollection(currentUser.uid, collectionId, wordId)
+    await addWordToCollection(currentUser.id, collectionId, wordId)
   }
 
   const handleRemoveWordFromCollection = async (collectionId, wordId) => {
     if (!currentUser) return
-    await removeWordFromCollection(currentUser.uid, collectionId, wordId)
+    await removeWordFromCollection(currentUser.id, collectionId, wordId)
   }
 
   // Convert user dictionary to flashcard format
@@ -281,7 +281,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     setCardData(newCardData)
 
     // Save to Firestore
-    await saveFlashcardProgress(currentUser.uid, currentCard.id, updatedInfo)
+    await saveFlashcardProgress(currentUser.id, currentCard.id, updatedInfo)
 
     // Update word in dictionary if callback provided
     if (onUpdateWord) {
