@@ -1,7 +1,3 @@
-// Fluent App - Prisma Schema
-// PostgreSQL database with Supabase
-// Migration from Firebase Firestore
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -12,232 +8,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==================== USER MODELS ====================
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  bio       String?
-  location  String?
-  website   String?
-
-  // Profile images
-  profilePictureUrl String?
-  bannerImage       String?
-
-  // Learning preferences (required after onboarding)
-  targetLanguage    String? // 'Japanese' or 'Korean'
-  nativeLanguages   String[] // Array of native languages
-  level             Int? // 1-5 (Beginner to Native)
-
-  // Onboarding tracking
-  onboardingCompleted Boolean  @default(false)
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  name                String
+  bio                 String?
+  location            String?
+  website             String?
+  profilePictureUrl   String?
+  bannerImage         String?
+  targetLanguage      String?
+  nativeLanguages     String[]
+  level               Int?
+  onboardingCompleted Boolean               @default(false)
   completedAt         DateTime?
-
-  // Social counts (denormalized for performance)
-  followersCount Int @default(0)
-  followingCount Int @default(0)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  settings          UserSettings?
-  encryptedCreds    EncryptedCredentials?
-  dictionaryWords   DictionaryWord[]
-  flashcards        Flashcard[]
-  savedPosts        SavedPost[]
-  collections       Collection[]
-
-  // Social relationships (as the follower)
-  following         UserFollow[] @relation("UserFollowing")
-  // Social relationships (as the followed user)
-  followers         UserFollow[] @relation("UserFollowers")
-
-  // Blocked users (as the blocker)
-  blocking          UserBlock[] @relation("UserBlocking")
-  // Blocked by (as the blocked user)
-  blockedBy         UserBlock[] @relation("UserBlockedBy")
+  followersCount      Int                   @default(0)
+  followingCount      Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  collections         Collection[]
+  dictionaryWords     DictionaryWord[]
+  encryptedCreds      EncryptedCredentials?
+  flashcards          Flashcard[]
+  savedPosts          SavedPost[]
+  blockedBy           UserBlock[]           @relation("UserBlockedBy")
+  blocking            UserBlock[]           @relation("UserBlocking")
+  following           UserFollow[]          @relation("UserFollowing")
+  followers           UserFollow[]          @relation("UserFollowers")
+  settings            UserSettings?
 
   @@index([email])
   @@index([targetLanguage])
   @@map("users")
 }
 
-// Normalized settings table (1:1 with User)
 model UserSettings {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Notification settings
-  emailNotifications   Boolean @default(true)
-  pushNotifications    Boolean @default(true)
-  commentNotifications Boolean @default(true)
-
-  // Privacy settings
-  profileVisibility String  @default("public") // 'public', 'friends', 'private'
-  showEmail         Boolean @default(false)
-  showLocation      Boolean @default(true)
-
-  // Appearance settings
-  theme       String @default("light") // 'light', 'dark', 'auto'
-  accentColor String @default("orange")
-  fontSize    String @default("medium") // 'small', 'medium', 'large', 'xlarge'
-
-  // Goals settings
-  dailyWords     Int     @default(10)
-  dailyReading   Int     @default(5)
-  studyReminder  Boolean @default(true)
-  reminderTime   String  @default("18:00") // HH:MM format
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  emailNotifications   Boolean  @default(true)
+  pushNotifications    Boolean  @default(true)
+  commentNotifications Boolean  @default(true)
+  profileVisibility    String   @default("public")
+  showEmail            Boolean  @default(false)
+  showLocation         Boolean  @default(true)
+  theme                String   @default("light")
+  accentColor          String   @default("orange")
+  fontSize             String   @default("medium")
+  dailyWords           Int      @default(10)
+  dailyReading         Int      @default(5)
+  studyReminder        Boolean  @default(true)
+  reminderTime         String   @default("18:00")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
 }
 
-// Encrypted API credentials (Reddit, Gemini, etc.)
 model EncryptedCredentials {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Encrypted data (AES-256-GCM)
-  encryptedData String // JSON string containing encrypted credentials
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  encryptedData String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("encrypted_credentials")
 }
 
-// ==================== DICTIONARY MODELS ====================
-
 model DictionaryWord {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Language identifier
-  language String // 'Japanese' or 'Korean'
-
-  // Word data (language-agnostic)
-  word    String // The word in target language
-  english String // English translation
-
-  // Japanese-specific fields
-  japanese String? // Japanese word (kanji/kana)
-  hiragana String? // Reading in hiragana
-  kanji    String? // Kanji form
-  romaji   String? // Romanization
-
-  // Korean-specific fields
-  korean         String? // Korean word in Hangul
-  romanization   String? // Romanization
-  pronunciation  String? // Pronunciation guide
-  hanja          String? // Hanja (Chinese characters)
-
-  // Common fields
-  meaning      String? // Detailed meaning
-  partOfSpeech String? // Part of speech
-  level        Int?    // Difficulty level (1-5)
-
-  // JLPT/TOPIK levels
-  jlptLevel  String? // For Japanese (N5, N4, N3, N2, N1)
-  topikLevel String? // For Korean
-
-  // Example sentences (stored as JSON)
-  examples Json? // Array of {japanese/korean: string, romaji: string, english: string}
-
-  // Context and source
-  example   String? // Example sentence in target language
-  exampleEn String? // Example sentence in English
-  source    String? // Where the word was learned (e.g., "Fluent Post")
-
-  dateAdded DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  flashcard           Flashcard?
-  collectionWords     CollectionWord[]
+  id              String           @id @default(uuid())
+  userId          String
+  language        String
+  word            String
+  english         String
+  japanese        String?
+  hiragana        String?
+  kanji           String?
+  romaji          String?
+  korean          String?
+  romanization    String?
+  pronunciation   String?
+  hanja           String?
+  meaning         String?
+  partOfSpeech    String?
+  level           Int?
+  jlptLevel       String?
+  topikLevel      String?
+  examples        Json?
+  example         String?
+  exampleEn       String?
+  source          String?
+  dateAdded       DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  collectionWords CollectionWord[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard       Flashcard?
 
   @@unique([userId, word, language])
   @@index([userId, language])
   @@index([language])
   @@index([level])
+  @@index([userId, language], map: "idx_dictionary_words_user_lang")
   @@map("dictionary_words")
 }
 
-// ==================== FLASHCARD MODELS ====================
-
-// Spaced Repetition System (SM-2 algorithm)
 model Flashcard {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  wordId String         @unique
-  word   DictionaryWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  // SM-2 Algorithm data
-  interval    Int      @default(1) // Days until next review
-  repetitions Int      @default(0) // Number of successful repetitions
-  easeFactor  Float    @default(2.5) // Ease factor (1.3 - 2.5+)
-
-  // Review tracking
-  lastReviewed DateTime?
-  nextReview   DateTime?
-
-  // Performance counters
-  correctCount   Int @default(0)
-  incorrectCount Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String         @id @default(uuid())
+  userId         String
+  wordId         String         @unique
+  interval       Int            @default(1)
+  repetitions    Int            @default(0)
+  easeFactor     Float          @default(2.5)
+  lastReviewed   DateTime?
+  nextReview     DateTime?
+  correctCount   Int            @default(0)
+  incorrectCount Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word           DictionaryWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([nextReview])
   @@map("flashcards")
 }
 
-// ==================== COLLECTION MODELS ====================
-
-// User-created word collections for organization
 model Collection {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?
-  isDefault   Boolean @default(false) // The "Learning" collection
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
+  id              String           @id @default(uuid())
+  userId          String
+  name            String
+  description     String?
+  isDefault       Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   collectionWords CollectionWord[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isDefault])
+  @@index([userId, isDefault], map: "idx_collections_user_default")
   @@map("collections")
 }
 
-// Junction table for many-to-many relationship
 model CollectionWord {
-  id String @id @default(uuid())
-
+  id           String         @id @default(uuid())
   collectionId String
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-
-  wordId String
-  word   DictionaryWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  addedAt DateTime @default(now())
+  wordId       String
+  addedAt      DateTime       @default(now())
+  collection   Collection     @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  word         DictionaryWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, wordId])
   @@index([collectionId])
@@ -245,74 +166,53 @@ model CollectionWord {
   @@map("collection_words")
 }
 
-// ==================== SAVED POSTS MODELS ====================
-
 model SavedPost {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Post identification
-  postId String // Format: reddit_{subreddit}_{id}
-
-  // Post content
-  title   String
-  content String @db.Text // Use TEXT for long content
-  url     String
-  author  String
-
-  // Metadata
+  id          String   @id @default(uuid())
+  userId      String
+  postId      String
+  title       String
+  content     String
+  url         String
+  author      String
   publishedAt DateTime
-  source      String   @default("reddit") // 'reddit' or 'news'
-  tags        String[] // Array of tags
-  difficulty  Int? // 1-5
-
-  // Timestamps
-  savedAt   DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  source      String   @default("reddit")
+  tags        String[]
+  difficulty  Int?
+  savedAt     DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([userId])
   @@index([difficulty])
+  @@index([userId, savedAt(sort: Desc)], map: "idx_saved_posts_user_saved")
   @@map("saved_posts")
 }
 
-// ==================== SOCIAL MODELS ====================
-
-// User follow relationships (self-referential)
 model UserFollow {
-  id String @id @default(uuid())
-
-  // User doing the following
-  followerId String
-  follower   User   @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
-
-  // User being followed
+  id          String   @id @default(uuid())
+  followerId  String
   followingId String
-  following   User   @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
-
-  followedAt DateTime @default(now())
+  followedAt  DateTime @default(now())
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+  @@index([followerId], map: "idx_user_follows_follower")
+  @@index([followingId], map: "idx_user_follows_following")
   @@map("user_follows")
 }
 
-// Blocked users
 model UserBlock {
-  id String @id @default(uuid())
-
-  // User doing the blocking
+  id        String   @id @default(uuid())
   blockerId String
-  blocker   User   @relation("UserBlocking", fields: [blockerId], references: [id], onDelete: Cascade)
-
-  // User being blocked
   blockedId String
-  blocked   User   @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
-
   blockedAt DateTime @default(now())
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("UserBlocking", fields: [blockerId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
   @@index([blockerId])
@@ -320,48 +220,33 @@ model UserBlock {
   @@map("user_blocks")
 }
 
-// ==================== NEWS CACHE MODELS ====================
-
-// Cached Reddit posts (backend use)
 model NewsCache {
-  id String @id @default(uuid())
-
-  // Cache key: 'posts-japan' or 'posts-korea'
-  cacheKey String @unique
-
-  // Post identification
-  postId String // Format: reddit_{subreddit}_{id}
-
-  // Original content
-  title   String
-  content String @db.Text
-  url     String
-  author  String
-
-  // Metadata
-  publishedAt DateTime
-  source      String   @default("reddit")
-  tags        String[]
-  difficulty  Int? // 1-5
-  targetLang  String // 'ja' or 'ko'
-
-  // Translations (stored as JSON for flexibility)
-  translatedTitle   Json? // Mixed-language translation
-  translatedContent Json? // Mixed-language translation
-  originalTitle     String? // Backup of original English
-  originalContent   String? @db.Text // Backup of original English
-
-  // Cache metadata
-  fetchedAt   DateTime @default(now())
-  lastUpdated DateTime @updatedAt
-  version     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(uuid())
+  cacheKey          String   @unique
+  postId            String
+  title             String
+  content           String
+  url               String
+  author            String
+  publishedAt       DateTime
+  source            String   @default("reddit")
+  tags              String[]
+  difficulty        Int?
+  targetLang        String
+  translatedTitle   Json?
+  translatedContent Json?
+  originalTitle     String?
+  originalContent   String?
+  fetchedAt         DateTime @default(now())
+  lastUpdated       DateTime @updatedAt
+  version           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@unique([cacheKey, postId])
   @@index([cacheKey])
   @@index([difficulty])
   @@index([targetLang])
+  @@index([cacheKey, fetchedAt(sort: Desc)], map: "idx_news_cache_key_fetched")
   @@map("news_cache")
 }
