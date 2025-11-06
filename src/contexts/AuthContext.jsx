@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChange } from '@/services/supabaseAuthService'
+import { onAuthStateChange } from '@/services/authService'
 import { getUserProfile, createUserProfile } from '@/services/supabaseDatabaseService'
 
 const AuthContext = createContext({})

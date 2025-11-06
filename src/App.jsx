@@ -23,7 +23,7 @@ import {
   onDictionaryChange,
   updateUserProfile,
 } from "./services/supabaseDatabaseService";
-import { signOutUser } from "./services/supabaseAuthService";
+import { signOutUser } from "./services/authService";
 import "./App.css";
 
 function App() {
