@@ -1,9 +1,7 @@
 import {
-  ArrowLeft,
-  CheckCircle,
   RotateCcw,
   Settings,
-  XCircle,
+  Shuffle,
 } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import {
@@ -13,17 +11,10 @@ import {
 } from "@config/languages"
 import { useAuth } from "@/contexts/AuthContext"
 import {
-  addWordToCollection,
-  createCollection,
-  deleteCollection,
   getFlashcardProgress,
   migrateFlashcardData,
-  onCollectionsChange,
-  removeWordFromCollection,
   saveFlashcardProgress,
-  updateCollection,
 } from "@/services/databaseService"
-import CollectionManager from "./CollectionManager"
 import { PronunciationButton } from "./ui/PronunciationButton"
 
 const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
@@ -40,13 +31,14 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     // Remove all {{WORD:X}} or {{word:X}} markers, leaving the surrounding text intact
     return text.replace(/\{\{(WORD|word):\s*\d+\}\}\s*/g, "")
   }
-  const [collections, setCollections] = useState([])
-  const [selectedCollection, setSelectedCollection] = useState(null)
+
+  const [quizStarted, setQuizStarted] = useState(false)
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [cardData, setCardData] = useState({})
   const [studyMode, setStudyMode] = useState("all") // 'all', 'new', 'review', 'due'
   const [showSettings, setShowSettings] = useState(false)
+  const [shuffledWords, setShuffledWords] = useState([])
   const [keybinds, setKeybinds] = useState({
     showAnswer: " ",
     again: "1",
@@ -108,7 +100,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     }
   }
 
-  // Initialize card data from Firestore
+  // Initialize card data from database
   useEffect(() => {
     if (!currentUser) return
 
@@ -116,7 +108,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
       // Try to migrate localStorage data first (one-time migration)
       await migrateFlashcardData(currentUser.id)
 
-      // Load flashcard progress from Firestore
+      // Load flashcard progress from database
       const result = await getFlashcardProgress(currentUser.id)
       if (result.success) {
         setCardData(result.data)
@@ -126,73 +118,14 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     loadFlashcardData()
   }, [currentUser])
 
-  // Listen to collections changes in real-time
-  useEffect(() => {
-    if (!currentUser) return
-
-    const unsubscribe = onCollectionsChange(
-      currentUser.id,
-      (collections) => {
-        setCollections(collections)
-      },
-      (error) => {
-        console.error("Collections listener error:", error)
-      }
-    )
-
-    return () => unsubscribe()
-  }, [currentUser])
-
-  // Save card data to Firestore
-  const saveCardData = async (data) => {
-    setCardData(data)
-
-    if (currentUser) {
-      // Note: We only save the updated card, not all cards
-      // This is handled in handleRating
+  // Shuffle array using Fisher-Yates algorithm
+  const shuffleArray = (array) => {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
-  }
-
-  // Collection handlers
-  const handleCreateCollection = async (collectionData) => {
-    if (!currentUser) return
-    await createCollection(currentUser.id, collectionData)
-  }
-
-  const handleUpdateCollection = async (collectionId, updates) => {
-    if (!currentUser) return
-    await updateCollection(currentUser.id, collectionId, updates)
-  }
-
-  const handleDeleteCollection = async (collectionId) => {
-    if (!currentUser) return
-    await deleteCollection(currentUser.id, collectionId)
-    // If currently viewing this collection, go back to collection list
-    if (selectedCollection?.id === collectionId) {
-      setSelectedCollection(null)
-    }
-  }
-
-  const handleSelectCollection = (collection) => {
-    setSelectedCollection(collection)
-    setCurrentCardIndex(0)
-    setShowAnswer(false)
-  }
-
-  const handleBackToCollections = () => {
-    setSelectedCollection(null)
-    setCurrentCardIndex(0)
-    setShowAnswer(false)
-  }
-
-  const handleAddWordToCollection = async (collectionId, wordId) => {
-    if (!currentUser) return
-    await addWordToCollection(currentUser.id, collectionId, wordId)
-  }
-
-  const handleRemoveWordFromCollection = async (collectionId, wordId) => {
-    if (!currentUser) return
-    await removeWordFromCollection(currentUser.id, collectionId, wordId)
+    return shuffled
   }
 
   // Convert user dictionary to flashcard format
@@ -201,16 +134,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
       return []
     }
 
-    // Filter by selected collection if one is selected
-    let filteredWords = userDictionary
-    if (selectedCollection) {
-      const collectionWordIds = selectedCollection.wordIds || []
-      filteredWords = userDictionary.filter((word) =>
-        collectionWordIds.includes(word.id.toString())
-      )
-    }
-
-    return filteredWords.map((word) => ({
+    return userDictionary.map((word) => ({
       id: word.id,
       word: word[langFields.word] || word.japanese || word.korean || "",
       reading:
@@ -266,7 +190,23 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     }
   }
 
-  const flashcards = getFilteredFlashcards()
+  const handleStartQuiz = () => {
+    const filtered = getFilteredFlashcards()
+    const shuffled = shuffleArray(filtered)
+    setShuffledWords(shuffled)
+    setQuizStarted(true)
+    setCurrentCardIndex(0)
+    setShowAnswer(false)
+  }
+
+  const handleBackToStart = () => {
+    setQuizStarted(false)
+    setCurrentCardIndex(0)
+    setShowAnswer(false)
+    setShuffledWords([])
+  }
+
+  const flashcards = quizStarted ? shuffledWords : []
   const currentCard = flashcards[currentCardIndex]
 
   const handleRating = async (rating) => {
@@ -280,7 +220,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
     setCardData(newCardData)
 
-    // Save to Firestore
+    // Save to database
     await saveFlashcardProgress(currentUser.id, currentCard.id, updatedInfo)
 
     // Update word in dictionary if callback provided
@@ -297,18 +237,12 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
     setCurrentCardIndex((prev) => (prev + 1) % flashcards.length)
   }
 
-  const handlePrevious = () => {
-    if (flashcards.length === 0) return
-    setShowAnswer(false)
-    setCurrentCardIndex(
-      (prev) => (prev - 1 + flashcards.length) % flashcards.length
-    )
-  }
-
   const handleStudyModeChange = (newMode) => {
     setStudyMode(newMode)
-    setCurrentCardIndex(0)
-    setShowAnswer(false)
+    if (quizStarted) {
+      // Restart quiz with new mode
+      handleBackToStart()
+    }
   }
 
   const resetProgress = async () => {
@@ -320,10 +254,6 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
       setCardData({})
       setCurrentCardIndex(0)
       setShowAnswer(false)
-
-      // Clear data from Firestore
-      // We'll just set cardData to empty, and avoid saving anything
-      // Individual card progress will be overwritten on next review
     }
   }
 
@@ -333,6 +263,8 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
       // Don't trigger if user is typing in an input
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
         return
+
+      if (!quizStarted) return
 
       if (!showAnswer && e.key === keybinds.showAnswer) {
         setShowAnswer(true)
@@ -356,7 +288,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [showAnswer, keybinds, currentCard])
+  }, [showAnswer, keybinds, currentCard, quizStarted])
 
   // Get statistics
   const getStats = () => {
@@ -379,61 +311,197 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
 
   const stats = getStats()
 
-  // Show collection manager if no collection is selected
-  if (!selectedCollection) {
+  // Show initial view with Start Quiz button
+  if (!quizStarted) {
     return (
-      <CollectionManager
-        collections={collections}
-        onCreateCollection={handleCreateCollection}
-        onUpdateCollection={handleUpdateCollection}
-        onDeleteCollection={handleDeleteCollection}
-        onSelectCollection={handleSelectCollection}
-        userDictionary={userDictionary}
-        onAddWordToCollection={handleAddWordToCollection}
-        onRemoveWordFromCollection={handleRemoveWordFromCollection}
-      />
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Practice Quiz</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Test yourself on all your saved words
+          </p>
+        </div>
+
+        {/* Statistics */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+            Your Progress
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-gray-900">
+                {stats.total}
+              </div>
+              <div className="text-xs text-gray-600">Total Words</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">
+                {stats.newCards}
+              </div>
+              <div className="text-xs text-gray-600">New</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">
+                {stats.learning}
+              </div>
+              <div className="text-xs text-gray-600">Learning</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-amber-600">
+                {stats.mature}
+              </div>
+              <div className="text-xs text-gray-600">Mature</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Study Mode Selection */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+            Study Mode
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              onClick={() => handleStudyModeChange("due")}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                studyMode === "due"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <div className="font-bold">Due</div>
+              <div className="text-xs opacity-90">
+                {
+                  allFlashcards.filter((card) => {
+                    if (!cardData[card.id]) return true
+                    const nextReview = new Date(cardData[card.id].nextReview)
+                    return nextReview <= new Date()
+                  }).length
+                }{" "}
+                words
+              </div>
+            </button>
+            <button
+              onClick={() => handleStudyModeChange("new")}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                studyMode === "new"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <div className="font-bold">New</div>
+              <div className="text-xs opacity-90">{stats.newCards} words</div>
+            </button>
+            <button
+              onClick={() => handleStudyModeChange("review")}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                studyMode === "review"
+                  ? "bg-orange-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <div className="font-bold">Review</div>
+              <div className="text-xs opacity-90">{stats.learning} words</div>
+            </button>
+            <button
+              onClick={() => handleStudyModeChange("all")}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                studyMode === "all"
+                  ? "bg-amber-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <div className="font-bold">All</div>
+              <div className="text-xs opacity-90">{stats.total} words</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Start Quiz Button */}
+        {getFilteredFlashcards().length > 0 ? (
+          <div className="text-center">
+            <button
+              onClick={handleStartQuiz}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-orange-600 text-white rounded-lg font-medium text-lg hover:bg-orange-700 transition-colors shadow-lg"
+            >
+              <Shuffle className="w-6 h-6" />
+              Start Random Quiz ({getFilteredFlashcards().length} words)
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">📚</span>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {stats.total === 0
+                ? "No Saved Words Yet"
+                : studyMode === "new"
+                  ? "No New Words"
+                  : studyMode === "due"
+                    ? "No Cards Due!"
+                    : studyMode === "review"
+                      ? "No Words to Review"
+                      : "No Words Available"}
+            </h3>
+            <p className="text-gray-600">
+              {stats.total === 0
+                ? "Start saving words from the learning feed to practice!"
+                : studyMode === "new"
+                  ? "All words have been studied at least once."
+                  : studyMode === "due"
+                    ? "Great job! You're all caught up for today."
+                    : studyMode === "review"
+                      ? "No words are currently in review."
+                      : "Try selecting a different study mode."}
+            </p>
+          </div>
+        )}
+      </div>
     )
   }
 
-  // Show flashcard study UI when a collection is selected
+  // Show flashcard study UI when quiz is started
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center space-x-3 mb-2">
-          <button
-            onClick={handleBackToCollections}
-            className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
-            title="Back to collections"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {selectedCollection.name}
-            </h1>
-            {selectedCollection.description && (
-              <p className="text-sm text-gray-600">
-                {selectedCollection.description}
-              </p>
-            )}
+            <h1 className="text-2xl font-bold text-gray-900">Practice Quiz</h1>
+            <p className="text-sm text-gray-600">
+              {studyMode === "all"
+                ? "All words"
+                : studyMode === "new"
+                  ? "New words"
+                  : studyMode === "due"
+                    ? "Due for review"
+                    : "Review"}
+            </p>
           </div>
-        </div>
-        <div className="flex items-center justify-end space-x-2">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-          <button
-            onClick={resetProgress}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span className="text-sm">Reset</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            <button
+              onClick={resetProgress}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="text-sm">Reset</span>
+            </button>
+            <button
+              onClick={handleBackToStart}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Exit Quiz
+            </button>
+          </div>
         </div>
       </div>
 
@@ -516,87 +584,6 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
             </div>
           </div>
         )}
-
-        {/* Statistics */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">
-                {stats.total}
-              </div>
-              <div className="text-xs text-gray-600">Total</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats.newCards}
-              </div>
-              <div className="text-xs text-gray-600">New</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats.learning}
-              </div>
-              <div className="text-xs text-gray-600">Learning</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-amber-600">
-                {stats.mature}
-              </div>
-              <div className="text-xs text-gray-600">Mature</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Study Mode Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">
-              Study Mode:
-            </span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <button
-              onClick={() => handleStudyModeChange("due")}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                studyMode === "due"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Due ({getFilteredFlashcards().length})
-            </button>
-            <button
-              onClick={() => handleStudyModeChange("new")}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                studyMode === "new"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              New ({stats.newCards})
-            </button>
-            <button
-              onClick={() => handleStudyModeChange("review")}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                studyMode === "review"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Review ({stats.learning})
-            </button>
-            <button
-              onClick={() => handleStudyModeChange("all")}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                studyMode === "all"
-                  ? "bg-amber-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              All ({allFlashcards.length})
-            </button>
-          </div>
-        </div>
 
         {flashcards.length > 0 ? (
           <>
@@ -777,28 +764,16 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               <span className="text-2xl">🃏</span>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {studyMode === "all"
-                ? "No Words in This Collection"
-                : studyMode === "new"
-                  ? "No New Words"
-                  : studyMode === "due"
-                    ? "No Cards Due!"
-                    : "No Words to Review"}
+              No Words to Practice
             </h3>
             <p className="text-gray-600 mb-4">
-              {studyMode === "all"
-                ? "This collection is empty. Add words from your dictionary to start studying!"
-                : studyMode === "new"
-                  ? "All words in this collection have been studied at least once."
-                  : studyMode === "due"
-                    ? "Great job! You're all caught up for today."
-                    : "No words are currently in review for this collection."}
+              Save some words from the learning feed to start practicing!
             </p>
             <button
-              onClick={handleBackToCollections}
+              onClick={handleBackToStart}
               className="text-orange-600 hover:text-orange-700 font-medium"
             >
-              ← Back to Collections
+              ← Back
             </button>
           </div>
         )}

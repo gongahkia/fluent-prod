@@ -113,7 +113,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
   const sortedWords = getSortedWords()
 
   const removeWord = (wordId) => {
-    if (confirm('Are you sure you want to remove this word from your dictionary?')) {
+    if (confirm('Are you sure you want to remove this saved word?')) {
       onRemoveWord(wordId)
     }
   }
@@ -215,7 +215,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
       <div className="flex items-center justify-between mb-6">
         <div className="text-left">
           <h1 className="text-2xl font-bold text-gray-900">
-            {langLabels.dictionary}
+            Saved Words
           </h1>
           <p className="text-sm text-gray-600">
             {stats.total} words • {stats.mature} mature
@@ -373,10 +373,10 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
                 Start Building Your Vocabulary
               </h3>
               <p className="text-gray-600 mb-4">
-                Click on words in the Learning Feed to add them to your dictionary
+                Click on words in the Learning Feed to save them
               </p>
               <p className="text-sm text-gray-500">
-                Words you save will appear here for easy review and practice
+                Saved words will appear here for easy review and practice
               </p>
             </div>
           ) : sortedWords.length === 0 ? (
@@ -649,19 +649,19 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchQuery || filterLevel !== 'all' || filterTag !== 'all'
                 ? "No words match your filters"
-                : `Your ${targetLanguage} Dictionary is Empty`}
+                : `No Saved Words Yet`}
             </h3>
             <p className="text-gray-600 mb-4">
               {searchQuery || filterLevel !== 'all' || filterTag !== 'all'
                 ? "Try adjusting your search or filters"
-                : `Start clicking on ${targetLanguage} words in posts to build your personal dictionary!`}
+                : `Start clicking on ${targetLanguage} words in posts to save them!`}
             </p>
             {!(searchQuery || filterLevel !== 'all' || filterTag !== 'all') && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
                 <div className="text-sm text-orange-800">
                   <strong>💡 Tip:</strong> Click on any {targetLanguage} word in the news
-                  feed to see its meaning, pronunciation, and add it to your
-                  dictionary for later review.
+                  feed to see its meaning, pronunciation, and save it
+                  for later review.
                 </div>
               </div>
             )}

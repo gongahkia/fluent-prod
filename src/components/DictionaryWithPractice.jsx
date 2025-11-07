@@ -1,4 +1,4 @@
-import { BookOpen, CreditCard } from "lucide-react"
+import { BookOpen, Shuffle } from "lucide-react"
 import React, { useState } from "react"
 import Dictionary from "./Dictionary"
 import Flashcards from "./Flashcards"
@@ -23,7 +23,7 @@ const DictionaryWithPractice = ({ userDictionary, onRemoveWord, userProfile }) =
           }`}
         >
           <BookOpen className="w-4 h-4" />
-          <span>Words</span>
+          <span>Saved Words</span>
         </button>
         <button
           onClick={() => setActiveTab("practice")}
@@ -33,7 +33,7 @@ const DictionaryWithPractice = ({ userDictionary, onRemoveWord, userProfile }) =
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          <CreditCard className="w-4 h-4" />
+          <Shuffle className="w-4 h-4" />
           <span>Practice</span>
         </button>
       </div>
