@@ -45,6 +45,10 @@ const WordLearningPopup = ({
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
+    // Account for safe areas on mobile devices (notches, rounded corners)
+    const safeAreaTop = 20 // Typical safe area top
+    const safeAreaBottom = 64 // Account for mobile bottom bar (h-16 = 64px) + safe area
+
     // Get scroll position
     const scrollY = window.pageYOffset || document.documentElement.scrollTop
     const scrollX = window.pageXOffset || document.documentElement.scrollLeft
@@ -57,11 +61,19 @@ const WordLearningPopup = ({
     // Position below the clicked element by default
     top = elementRect.bottom + gap + scrollY
 
-    // If popup would go off bottom of viewport, position above instead
-    if (elementRect.bottom + gap + popupMaxHeight > viewportHeight) {
+    // If popup would go off bottom of viewport (accounting for safe area), position above instead
+    if (elementRect.bottom + gap + popupMaxHeight > viewportHeight - safeAreaBottom) {
       top = elementRect.top - gap + scrollY
       transformOrigin = 'bottom center'
       positionAbove = true
+    }
+
+    // If positioning above would go off top (accounting for safe area), adjust
+    if (positionAbove && elementRect.top - gap - popupMaxHeight < safeAreaTop) {
+      // Not enough space above either, position below with limited height
+      top = elementRect.bottom + gap + scrollY
+      positionAbove = false
+      transformOrigin = 'top center'
     }
 
     // Center horizontally on the clicked element (absolute position)
@@ -77,13 +89,17 @@ const WordLearningPopup = ({
       left = 20 + (popupWidth / 2) + scrollX
     }
 
+    // Calculate available height accounting for safe areas
+    const availableHeight = viewportHeight - safeAreaTop - safeAreaBottom - gap * 2
+    const maxPopupHeight = Math.min(popupMaxHeight, availableHeight)
+
     return {
       position: 'absolute',
       top: `${top}px`,
       left: `${left}px`,
       transform: positionAbove ? 'translate(-50%, -100%)' : 'translateX(-50%)',
       transformOrigin,
-      maxHeight: `${Math.min(popupMaxHeight, viewportHeight - 40)}px`
+      maxHeight: `${maxPopupHeight}px`
     }
   }
 

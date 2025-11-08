@@ -88,7 +88,7 @@ const PostSettingsModal = ({ post, onClose, onNotInterested, onReport }) => {
       >
         {/* Modal */}
         <div
-          className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden animate-scaleIn"
+          className="bg-white rounded-lg shadow-xl max-w-md w-[calc(100%-2rem)] overflow-hidden animate-scaleIn"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

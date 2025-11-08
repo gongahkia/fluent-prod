@@ -450,7 +450,7 @@ function MainApp({
                 </button>
 
                 {showLanguageDropdown && (
-                  <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[150px]">
+                  <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[150px] max-w-[calc(100vw-2rem)]">
                     <button
                       onClick={() => handleLanguageChange("Japanese")}
                       className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
