@@ -183,7 +183,7 @@ const SavedPosts = ({ userProfile, onAddWordToDictionary, userDictionary }) => {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between pt-4">
                     <button
                       onClick={() => handleViewPost(post)}
                       className="flex items-center space-x-2 text-sm text-gray-600 hover:text-orange-600 transition-colors"

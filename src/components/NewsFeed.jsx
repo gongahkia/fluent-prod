@@ -6,6 +6,7 @@ import {
   Share,
   UserCheck,
   UserPlus,
+  MoreVertical,
 } from "lucide-react"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
@@ -15,6 +16,7 @@ import { savePost, getSavedPosts } from "../services/databaseService"
 import { useAuth } from "../contexts/AuthContext"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
+import PostSettingsModal from "./PostSettingsModal"
 import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
 import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
@@ -49,6 +51,8 @@ const NewsFeed = ({
   const [totalCachedPosts, setTotalCachedPosts] = useState(0)
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [settingsModalPost, setSettingsModalPost] = useState(null)
+  const [hiddenPosts, setHiddenPosts] = useState(new Set())
   const [isSearching, setIsSearching] = useState(false)
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
   const searchTimeoutRef = useRef(null)
@@ -663,6 +667,24 @@ const NewsFeed = ({
     }
   }
 
+  const handleOpenSettings = (post) => {
+    setSettingsModalPost(post)
+  }
+
+  const handleCloseSettings = () => {
+    setSettingsModalPost(null)
+  }
+
+  const handleNotInterested = (postId) => {
+    setHiddenPosts(prev => new Set([...prev, postId]))
+    setSettingsModalPost(null)
+  }
+
+  const handleReportPost = (postId) => {
+    console.log('Post reported:', postId)
+    // In a real app, this would send a report to the backend
+  }
+
   // Get actual comment count for each article
   const getCommentCount = (articleId) => {
     // Return 0 if no comment count available - no hardcoded values
@@ -875,19 +897,47 @@ const NewsFeed = ({
       {/* Posts - Unified Feed with Separator Lines */}
       {!loading && !error && (processedPosts.length > 0 || posts.length > 0) && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {(processedPosts.length > 0 ? processedPosts : posts).map((article, index) => (
+        {(processedPosts.length > 0 ? processedPosts : posts)
+          .filter(article => !hiddenPosts.has(article.id))
+          .map((article, index) => (
           <div key={article.id || article.url || `post-${index}`}>
             {/* Article Container - No borders, clean layout */}
             <div className="p-6">
-              {/* Top Row: @username and timestamp */}
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-gray-600 text-sm font-medium">
-                  @{article.author || 'user'}
-                </span>
-                <span className="text-gray-400 text-sm">•</span>
-                <span className="text-gray-500 text-sm">
-                  {article.time || new Date(article.publishedAt).toLocaleDateString()}
-                </span>
+              {/* Top Row: @username, timestamp, and action buttons */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 text-sm font-medium">
+                    @{article.author || 'user'}
+                  </span>
+                  <span className="text-gray-400 text-sm">•</span>
+                  <span className="text-gray-500 text-sm">
+                    {article.time || new Date(article.publishedAt).toLocaleDateString()}
+                  </span>
+                </div>
+                {/* Action buttons - right side */}
+                <div className="flex items-center space-x-2">
+                  {/* 3-dot menu */}
+                  <button
+                    onClick={() => handleOpenSettings(article)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Post options"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </button>
+                  {/* Save button */}
+                  <button
+                    onClick={() => handleSavePost(article)}
+                    disabled={savingPost === article.id}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                    title={savedPostIds.has(article.id) ? "Already saved" : "Save post"}
+                  >
+                    {savedPostIds.has(article.id) ? (
+                      <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
+                    ) : (
+                      <Bookmark className="w-5 h-5 text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Article Content - Enhanced typography and smooth expansion */}
@@ -953,8 +1003,8 @@ const NewsFeed = ({
                 )}
               </div>
 
-              {/* Bottom Row: View Comments (left) and Save + "Open in Reddit" (right) */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              {/* Bottom Row: View Comments (left) and "Open in Reddit" (right) */}
+              <div className="flex items-center justify-between pt-4">
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() => toggleComments(article.id)}
@@ -965,20 +1015,6 @@ const NewsFeed = ({
                   </button>
                 </div>
                 <div className="flex items-center space-x-3">
-                  {/* Save Post Button */}
-                  <button
-                    onClick={() => handleSavePost(article)}
-                    disabled={savingPost === article.id}
-                    className="flex items-center text-gray-600 hover:text-orange-600 transition-colors disabled:opacity-50"
-                    title={savedPostIds.has(article.id) ? "Already saved" : "Save post"}
-                  >
-                    {savedPostIds.has(article.id) ? (
-                      <Bookmark className="w-5 h-5 fill-current" />
-                    ) : (
-                      <Bookmark className="w-5 h-5" />
-                    )}
-                  </button>
-
                   {/* Open in Reddit */}
                   <a
                     href={article.externalUrl || article.url}
@@ -1033,6 +1069,16 @@ const NewsFeed = ({
             </div>
           </div>
         )}
+
+      {/* Post Settings Modal */}
+      {settingsModalPost && (
+        <PostSettingsModal
+          post={settingsModalPost}
+          onClose={handleCloseSettings}
+          onNotInterested={handleNotInterested}
+          onReport={handleReportPost}
+        />
+      )}
     </div>
   )
 }

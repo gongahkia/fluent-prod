@@ -2,12 +2,14 @@ import {
   X,
   Bookmark,
   MessageCircle,
+  MoreVertical,
 } from "lucide-react"
 import React, { useState, useEffect, useCallback } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import translationService from "../services/translationService"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
+import PostSettingsModal from "./PostSettingsModal"
 import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
 import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 
@@ -29,6 +31,7 @@ const SinglePostView = ({
   const [processedPost, setProcessedPost] = useState(null)
   const [isProcessing, setIsProcessing] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
 
   // Process post with mixed language content based on user level
   const processPostWithMixedLanguage = useCallback(async () => {
@@ -209,6 +212,25 @@ const SinglePostView = ({
     setIsFollowing(!isFollowing)
   }
 
+  const handleOpenSettings = () => {
+    setShowSettingsModal(true)
+  }
+
+  const handleCloseSettings = () => {
+    setShowSettingsModal(false)
+  }
+
+  const handleNotInterested = (postId) => {
+    // In SinglePostView, just close the modal and the post view
+    setShowSettingsModal(false)
+    onClose()
+  }
+
+  const handleReportPost = (postId) => {
+    console.log('Post reported:', postId)
+    // In a real app, this would send a report to the backend
+  }
+
   // Create renderClickableText function
   const renderClickableText = createRenderClickableText(
     translationStates,
@@ -257,17 +279,38 @@ const SinglePostView = ({
 
         {/* Post content */}
         <div className="p-6">
-          {/* Top Row: @username and timestamp - matching NewsFeed style */}
-          <div className="flex items-center space-x-2 mb-4">
-            <span className="text-gray-600 text-sm font-medium">
-              @{displayPost.author || 'user'}
-            </span>
-            <span className="text-gray-400 text-sm">•</span>
-            <span className="text-gray-500 text-sm">
-              {displayPost.time || (displayPost.publishedAt
-                ? new Date(displayPost.publishedAt).toLocaleDateString()
-                : 'Unknown date')}
-            </span>
+          {/* Top Row: @username, timestamp, and action buttons - matching NewsFeed style */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 text-sm font-medium">
+                @{displayPost.author || 'user'}
+              </span>
+              <span className="text-gray-400 text-sm">•</span>
+              <span className="text-gray-500 text-sm">
+                {displayPost.time || (displayPost.publishedAt
+                  ? new Date(displayPost.publishedAt).toLocaleDateString()
+                  : 'Unknown date')}
+              </span>
+            </div>
+            {/* Action buttons - right side */}
+            <div className="flex items-center space-x-2">
+              {/* 3-dot menu */}
+              <button
+                onClick={handleOpenSettings}
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Post options"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </button>
+              {/* Save button (already saved, filled) */}
+              <button
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Already saved"
+                disabled
+              >
+                <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
+              </button>
+            </div>
           </div>
 
           {/* Article Content - matching NewsFeed style */}
@@ -333,8 +376,8 @@ const SinglePostView = ({
             )}
           </div>
 
-          {/* Bottom Row: View Comments (left) and Bookmark + Reddit (right) - matching NewsFeed style */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          {/* Bottom Row: View Comments (left) and Reddit (right) - matching NewsFeed style */}
+          <div className="flex items-center justify-between pt-4">
             <div className="flex items-center space-x-4">
               <button
                 onClick={toggleComments}
@@ -345,15 +388,6 @@ const SinglePostView = ({
               </button>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Save Post Button (already saved, filled) */}
-              <button
-                className="flex items-center text-orange-600 transition-colors"
-                title="Already saved"
-                disabled
-              >
-                <Bookmark className="w-5 h-5 fill-current" />
-              </button>
-
               {/* Open in Reddit/External Link */}
               <a
                 href={displayPost.externalUrl || displayPost.url}
@@ -409,6 +443,16 @@ const SinglePostView = ({
               setIsTranslating(false)
             }}
             onAddToDictionary={handleAddToDictionary}
+          />
+        )}
+
+        {/* Post Settings Modal */}
+        {showSettingsModal && (
+          <PostSettingsModal
+            post={displayPost}
+            onClose={handleCloseSettings}
+            onNotInterested={handleNotInterested}
+            onReport={handleReportPost}
           />
         )}
       </div>
