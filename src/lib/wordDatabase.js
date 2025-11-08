@@ -265,12 +265,12 @@ export const addWordToDictionary = (
     if (!wordExists) {
       setUserDictionary((prev) => [...prev, wordToAdd])
       setFeedbackMessage({
-        icon: "📚",
+        icon: "",
         message: "Added to your dictionary!",
       })
     } else {
       setFeedbackMessage({
-        icon: "ℹ️",
+        icon: "",
         message: "Already in your dictionary",
       })
     }

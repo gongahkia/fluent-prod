@@ -240,7 +240,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                   key={`${keyPrefix}-vocab-${idx}`}
                   className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
                   onClick={(e) => handleWordClick(segment.trim(), false, processedText, e)}
-                  title={`📚 Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
+                  title={`Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
                   style={{ textDecoration: "none" }}
                 >
                   {segment}
@@ -279,8 +279,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
         const displayText = isShowingTargetLang ? (wordData.translation || wordData.original) : wordData.original
 
-        // Determine language flag
-        const targetLangFlag = wordData.showKorean ? '🇰🇷' : '🇯🇵'
+        // Determine language name
         const targetLangName = wordData.showKorean ? 'Korean' : 'Japanese'
 
         parts.push(
@@ -296,8 +295,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             }}
             title={
               isShowingTargetLang
-                ? `${targetLangFlag} ${targetLangName}: Click to see English "${wordData.original}"`
-                : `📚 English: Click to see ${targetLangName} "${wordData.translation || '...'}"`
+                ? `${targetLangName}: Click to see English "${wordData.original}"`
+                : `English: Click to see ${targetLangName} "${wordData.translation || '...'}"`
             }
             style={{ textDecoration: "none" }}
           >
@@ -367,7 +366,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                   onClick={(e) => handleWordClick(text, isTargetLanguage, text, e)}
                   title={
                     isTranslatedWord
-                      ? `🇯🇵 Japanese: Click to see English "${text}"`
+                      ? `Japanese: Click to see English "${text}"`
                       : `Click to learn: ${text}`
                   }
                   style={{ textDecoration: "none" }}

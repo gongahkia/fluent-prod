@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react"
+import { BookOpen, Check } from "lucide-react"
 import React from "react"
 import LoadingSpinner from "../ui/LoadingSpinner"
 import { PronunciationButton } from "../ui/PronunciationButton"
@@ -259,7 +259,7 @@ const WordLearningPopup = ({
                 </span>
                 {selectedWord.isVocabulary && (
                   <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
-                    📚 Vocabulary Word
+                    Vocabulary Word
                   </span>
                 )}
                 {selectedWord.wordType && (
@@ -317,7 +317,7 @@ const WordLearningPopup = ({
               return (
                 isInDictionary && (
                   <div className="mt-3 text-sm text-amber-600 flex items-center justify-center space-x-1">
-                    <span>✓</span>
+                    <Check className="w-4 h-4" />
                     <span>Already in your dictionary</span>
                   </div>
                 )

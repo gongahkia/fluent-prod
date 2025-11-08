@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { Link, Bot, X, RefreshCw, CheckCircle2 } from "lucide-react"
+import { Link, Bot, X, RefreshCw, CheckCircle2, Check } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { startRedditOAuth, syncRedditSubreddits, disconnectReddit, checkRedditStatus } from "@/services/redditService"
 
@@ -330,7 +330,7 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
               <ul className="space-y-2">
                 {showPopup.benefits.map((benefit, index) => (
                   <li key={index} className="flex items-start text-sm text-gray-600">
-                    <span className="text-amber-500 mr-2">✓</span>
+                    <Check className="w-4 h-4 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
                     <span>{benefit}</span>
                   </li>
                 ))}

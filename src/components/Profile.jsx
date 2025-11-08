@@ -1,8 +1,10 @@
 import {
   ArrowLeft,
   Camera,
+  Check,
   Globe,
   Link2,
+  LogOut,
   Save,
   Shield,
   User,
@@ -21,6 +23,7 @@ import {
   unfollowUser,
   blockUser
 } from "@/services/databaseService"
+import { signOutUser } from "@/services/authService"
 import {
   encryptCredentials,
   decryptCredentials
@@ -294,6 +297,25 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     }
   }
 
+  const handleLogout = async () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      try {
+        const result = await signOutUser()
+        if (result.success) {
+          // Clear local storage
+          localStorage.clear()
+          // Redirect will happen automatically via auth state change
+          window.location.href = '/'
+        } else {
+          alert('Failed to log out: ' + result.error)
+        }
+      } catch (error) {
+        console.error('Error logging out:', error)
+        alert('Failed to log out')
+      }
+    }
+  }
+
   const tabs = [
     { id: "general", label: "General", icon: User },
     { id: "learning", label: "Learning", icon: Globe },
@@ -432,6 +454,18 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 setShowFollowing={setShowFollowing}
               />
             )}
+          </div>
+
+          {/* Danger Zone */}
+          <div className="border-t border-gray-200 px-6 py-6 bg-gray-50">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Account Actions</h3>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium">Log Out</span>
+            </button>
           </div>
         </div>
       </div>
@@ -581,7 +615,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">✓</span>
+              <Check className="w-10 h-10 text-amber-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Settings Saved!

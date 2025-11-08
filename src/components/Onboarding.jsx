@@ -5,6 +5,7 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronUp,
+  Check,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -322,7 +323,6 @@ const Onboarding = ({ onComplete }) => {
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🇯🇵</span>
                     <div className="text-left">
                       <div className="font-medium">Japanese</div>
                       <div className="text-sm text-gray-500">日本語</div>
@@ -330,7 +330,7 @@ const Onboarding = ({ onComplete }) => {
                   </div>
                   {targetLanguage === "Japanese" && (
                     <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                      <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
                 </button>
@@ -351,7 +351,7 @@ const Onboarding = ({ onComplete }) => {
                   </div>
                   {targetLanguage === "Korean" && (
                     <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                      <Check className="w-4 h-4 text-white" />
                     </div>
                   )}
                 </button>

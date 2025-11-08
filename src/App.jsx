@@ -444,7 +444,6 @@ function MainApp({
                   className="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700"
                 >
                   <span>
-                    {userProfile?.targetLanguage === "Korean" ? "🇰🇷" : "🇯🇵"}{" "}
                     {userProfile?.targetLanguage || "Japanese"}
                   </span>
                   <ChevronDown className="w-4 h-4" />
@@ -499,7 +498,7 @@ function MainApp({
       >
         {/* Navigation Tabs - Hidden on mobile */}
         {!isMobile && (
-          <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+          <div className="sticky top-16 z-40 flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
             <button
               onClick={() => handleNavigation("feed")}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${

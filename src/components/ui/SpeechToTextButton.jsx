@@ -72,12 +72,7 @@ export function SpeechToTextButton({
       ? 'Mic Error'
       : 'Voice Input'
 
-  const languageLabel =
-    targetLanguage === 'Korean'
-      ? '🇰🇷'
-      : targetLanguage === 'Japanese'
-        ? '🇯🇵'
-        : ''
+  const languageLabel = ''
 
   return (
     <button

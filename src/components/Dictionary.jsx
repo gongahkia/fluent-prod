@@ -560,7 +560,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
                         </span>
                         {word.reviewData && word.reviewData.interval >= 21 && (
                           <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                            ✓ Mature
+                            Mature
                           </span>
                         )}
                       </div>

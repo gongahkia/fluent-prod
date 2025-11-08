@@ -475,9 +475,9 @@ const NewsFeed = ({
 
         if (!exists) {
           onAddWordToDictionary(wordToAdd)
-          showFeedback("Saved Word!", "📚")
+          showFeedback("Saved Word!", "")
         } else {
-          showFeedback("Already saved!", "📖")
+          showFeedback("Already saved!", "")
         }
       } else {
         // Japanese
@@ -511,16 +511,16 @@ const NewsFeed = ({
 
         if (!exists) {
           onAddWordToDictionary(wordToAdd)
-          showFeedback("Saved Word!", "📚")
+          showFeedback("Saved Word!", "")
         } else {
-          showFeedback("Already saved!", "📖")
+          showFeedback("Already saved!", "")
         }
       }
     }
   }
 
   const handleMastered = () => {
-    showFeedback("Sugoi!", "😊")
+    showFeedback("Sugoi!", "")
   }
 
   const handleSourceSubscribeToggle = (sourceName) => {
@@ -615,7 +615,7 @@ const NewsFeed = ({
 
       if (result.success) {
         setSavedPostIds(prev => new Set([...prev, article.id]))
-        showFeedback('Post saved! ✓', '📌')
+        showFeedback('Post saved!', '')
       } else {
         alert('Failed to save post: ' + result.error)
       }
@@ -638,7 +638,7 @@ const NewsFeed = ({
           title: shareTitle,
           url: shareUrl
         })
-        showFeedback('Post shared! ✓', '🔗')
+        showFeedback('Post shared!', '')
       } catch (error) {
         // User cancelled or error - ignore
         if (error.name !== 'AbortError') {
@@ -656,10 +656,10 @@ const NewsFeed = ({
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text)
-      showFeedback('Link copied to clipboard! ✓', '📋')
+      showFeedback('Link copied to clipboard!', '')
     } catch (error) {
       console.error('Failed to copy:', error)
-      showFeedback('Failed to copy link', '❌')
+      showFeedback('Failed to copy link', '')
     }
   }
 
@@ -1024,7 +1024,6 @@ const NewsFeed = ({
       {!loading && !error && (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
           <div className="text-center py-8 animate-fadeIn">
             <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
-              <span className="text-2xl">📚</span>
               <span className="font-medium">
                 No more posts, all {(processedPosts.length > 0 ? processedPosts : posts).length} from cache
               </span>

@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Globe, Lock, Mail, User } from "lucide-react"
+import { Check, Eye, EyeOff, Globe, Lock, Mail, User } from "lucide-react"
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { registerWithEmail, signInWithEmail, signInWithGoogle } from "@/services/authService"
@@ -481,7 +481,10 @@ const Auth = ({ onAuthComplete }) => {
             <div className="p-6 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 {hasScrolledTOS ? (
-                  <span className="text-amber-600 font-medium">✓ You have read the entire document</span>
+                  <span className="text-amber-600 font-medium flex items-center gap-1">
+                    <Check className="w-4 h-4" />
+                    You have read the entire document
+                  </span>
                 ) : (
                   <span className="text-orange-600">Please scroll to the bottom to continue</span>
                 )}
@@ -589,7 +592,10 @@ const Auth = ({ onAuthComplete }) => {
             <div className="p-6 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 {hasScrolledPrivacy ? (
-                  <span className="text-amber-600 font-medium">✓ You have read the entire document</span>
+                  <span className="text-amber-600 font-medium flex items-center gap-1">
+                    <Check className="w-4 h-4" />
+                    You have read the entire document
+                  </span>
                 ) : (
                   <span className="text-orange-600">Please scroll to the bottom to continue</span>
                 )}
