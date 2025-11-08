@@ -4,11 +4,12 @@
  * Uses Web Speech API via pronunciationService
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
 import pronunciationService from '@/services/pronunciationService';
+import Toast from './Toast';
 
 export function PronunciationButton({
   text,
@@ -23,6 +24,17 @@ export function PronunciationButton({
 }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if (isSpeaking) {
+        pronunciationService.stop();
+      }
+    };
+  }, [isSpeaking]);
 
   const handleSpeak = async (e) => {
     e.stopPropagation(); // Prevent triggering parent click handlers
@@ -39,13 +51,15 @@ export function PronunciationButton({
 
     // Check if text is provided
     if (!text || text.trim() === '') {
-      console.warn('No text provided for pronunciation');
+      setToastMessage('No text available for pronunciation');
+      setShowToast(true);
       return;
     }
 
     // Check browser support
     if (!pronunciationService.isSpeechSynthesisSupported()) {
-      console.error('Speech synthesis not supported in this browser');
+      setToastMessage('Speech synthesis not supported in this browser');
+      setShowToast(true);
       setError(true);
       return;
     }
@@ -61,12 +75,16 @@ export function PronunciationButton({
         },
         onError: (err) => {
           console.error('Pronunciation error:', err);
+          setToastMessage(`Pronunciation failed for ${language}`);
+          setShowToast(true);
           setError(true);
           setIsSpeaking(false);
         },
       });
     } catch (err) {
       console.error('Error during pronunciation:', err);
+      setToastMessage(`Pronunciation failed for ${language}`);
+      setShowToast(true);
       setError(true);
       setIsSpeaking(false);
     }
@@ -76,34 +94,48 @@ export function PronunciationButton({
   const Icon = error ? VolumeX : isSpeaking ? Loader2 : Volume2;
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleSpeak}
-      disabled={disabled || !text || text.trim() === ''}
-      className={cn(
-        'transition-all',
-        isSpeaking && 'text-primary',
-        error && 'text-destructive',
-        className
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleSpeak}
+        disabled={disabled}
+        className={cn(
+          'transition-all',
+          isSpeaking && 'text-primary',
+          error && 'text-destructive',
+          className
+        )}
+        title={
+          error
+            ? 'Click to retry pronunciation'
+            : isSpeaking
+              ? 'Stop pronunciation'
+              : 'Pronounce'
+        }
+        {...props}
+      >
+        <Icon
+          className={cn('size-4', isSpeaking && 'animate-spin')}
+          aria-hidden="true"
+        />
+        {showLabel && (
+          <span className="ml-1">{label || (isSpeaking ? 'Speaking...' : 'Speak')}</span>
+        )}
+      </Button>
+
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          icon="🔊"
+          onClose={() => {
+            setShowToast(false);
+            setError(false);
+          }}
+          duration={3000}
+        />
       )}
-      title={
-        error
-          ? 'Pronunciation not available'
-          : isSpeaking
-            ? 'Stop pronunciation'
-            : 'Pronounce'
-      }
-      {...props}
-    >
-      <Icon
-        className={cn('size-4', isSpeaking && 'animate-spin')}
-        aria-hidden="true"
-      />
-      {showLabel && (
-        <span className="ml-1">{label || (isSpeaking ? 'Speaking...' : 'Speak')}</span>
-      )}
-    </Button>
+    </>
   );
 }
 

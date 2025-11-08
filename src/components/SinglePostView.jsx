@@ -2,9 +2,6 @@ import {
   X,
   Bookmark,
   MessageCircle,
-  Share,
-  UserCheck,
-  UserPlus,
 } from "lucide-react"
 import React, { useState, useEffect, useCallback } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
@@ -260,170 +257,125 @@ const SinglePostView = ({
 
         {/* Post content */}
         <div className="p-6">
-          {/* Article Header */}
+          {/* Top Row: @username and timestamp - matching NewsFeed style */}
+          <div className="flex items-center space-x-2 mb-4">
+            <span className="text-gray-600 text-sm font-medium">
+              @{displayPost.author || 'user'}
+            </span>
+            <span className="text-gray-400 text-sm">•</span>
+            <span className="text-gray-500 text-sm">
+              {displayPost.time || (displayPost.publishedAt
+                ? new Date(displayPost.publishedAt).toLocaleDateString()
+                : 'Unknown date')}
+            </span>
+          </div>
+
+          {/* Article Content - matching NewsFeed style */}
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-orange-700">
-                    {displayPost.author?.charAt(0) || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-900">
-                      {displayPost.author || 'Unknown'}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {displayPost.source} •{" "}
-                    {displayPost.publishedAt
-                      ? new Date(displayPost.publishedAt).toLocaleDateString()
-                      : 'Unknown date'}
-                  </div>
-                </div>
-                <button
-                  onClick={handleFollowToggle}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    isFollowing
-                      ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                      : "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                  }`}
-                >
-                  {isFollowing ? (
-                    <>
-                      <UserCheck className="w-4 h-4" />
-                      <span>Following</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" />
-                      <span>Follow</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <a
-                  href={displayPost.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  title="See original post"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </a>
-                {displayPost.difficulty && (
-                  <span className={`${getLevelColor(displayPost.difficulty)} text-white px-2 py-1 rounded text-xs font-medium`}>
-                    {getLevelName(displayPost.difficulty)}
-                  </span>
-                )}
-                {displayPost.source && (
-                  <span
-                    className={`text-white px-2 py-1 rounded text-xs font-medium ${getSourceBadgeColor(displayPost.source)}`}
-                  >
-                    {displayPost.source}
-                  </span>
-                )}
-              </div>
-            </div>
+            {/* Combined Text Block with improved hierarchy */}
+            {(() => {
+              const titleText = displayPost.title || '';
+              const contentText = displayPost.content || '';
+              const combinedText = titleText + (titleText && contentText ? '. ' : '') + contentText;
+              const combinedId = `${displayPost.id}-combined`;
+              const shouldTruncate = shouldTruncateContent(combinedText);
+              const isExpanded = expandedPost;
 
-            {/* Article Content */}
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {renderClickableText(displayPost.title, `${displayPost.id}-title`)}
-              </h2>
-              <div className="text-gray-800 leading-relaxed mb-4 whitespace-pre-wrap">
-                {displayPost.content ? (
-                  <>
-                    {expandedPost || !shouldTruncateContent(displayPost.content) ? (
-                      <div>{parseMarkdownContent(displayPost.content, `${displayPost.id}-content`, renderClickableText)}</div>
-                    ) : (
-                      <div>{parseMarkdownContent(truncateContent(displayPost.content), `${displayPost.id}-content`, renderClickableText)}</div>
+              return (
+                <>
+                  <div
+                    className={`
+                      post-body
+                      ${!isExpanded && shouldTruncate ? 'post-content-truncated' : 'post-content-expanded'}
+                    `}
+                  >
+                    {/* Title portion with emphasis */}
+                    {titleText && (
+                      <span className="post-title">
+                        {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
+                      </span>
                     )}
-                    {shouldTruncateContent(displayPost.content) && (
-                      <button
-                        onClick={togglePostExpansion}
-                        className="text-orange-600 hover:text-orange-800 font-medium mt-2 inline-block"
+                    {/* Content portion */}
+                    {contentText && (
+                      <span>
+                        {titleText && '. '}
+                        {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
+                      </span>
+                    )}
+                    {!titleText && !contentText && parseMarkdownContent(combinedText, combinedId, renderClickableText)}
+                  </div>
+                  {shouldTruncate && (
+                    <button
+                      onClick={togglePostExpansion}
+                      className="text-orange-600 hover:text-orange-700 font-medium mt-3 inline-flex items-center space-x-1 transition-all duration-300 hover:translate-x-1"
+                    >
+                      <span>{isExpanded ? 'See Less' : 'See More'}</span>
+                      <svg
+                        className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        {expandedPost ? 'See Less' : 'See More'}
-                      </button>
-                    )}
-                  </>
-                ) : ""}
-              </div>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
+                </>
+              );
+            })()}
 
-              {displayPost.image && (
-                <img
-                  src={displayPost.image}
-                  alt={displayPost.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              )}
-            </div>
-
-            {/* Tags */}
-            {displayPost.tags && displayPost.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {displayPost.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            {displayPost.image && (
+              <img
+                src={displayPost.image}
+                alt={displayPost.title}
+                className="w-full h-64 object-cover rounded-lg mt-4 transition-all duration-300 hover:shadow-lg"
+              />
             )}
+          </div>
 
-            {/* Engagement Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="flex items-center space-x-6">
-                <button
-                  className="flex items-center space-x-2 text-orange-500 transition-colors"
-                  disabled
-                >
-                  <Bookmark className="w-5 h-5 fill-current" />
-                  <span className="text-sm font-medium">Saved</span>
-                </button>
-                <button
-                  onClick={toggleComments}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">
-                    {displayPost.comments || 0} comments
-                  </span>
-                </button>
-                <button
-                  onClick={() => onShare && onShare(displayPost)}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-amber-500 transition-colors"
-                >
-                  <Share className="w-5 h-5" />
-                  <span className="text-sm font-medium">Share</span>
-                </button>
-              </div>
+          {/* Bottom Row: View Comments (left) and Bookmark + Reddit (right) - matching NewsFeed style */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleComments}
+                className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>View Comments ({displayPost.comments || 0})</span>
+              </button>
+            </div>
+            <div className="flex items-center space-x-3">
+              {/* Save Post Button (already saved, filled) */}
+              <button
+                className="flex items-center text-orange-600 transition-colors"
+                title="Already saved"
+                disabled
+              >
+                <Bookmark className="w-5 h-5 fill-current" />
+              </button>
+
+              {/* Open in Reddit/External Link */}
+              <a
+                href={displayPost.externalUrl || displayPost.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                </svg>
+              </a>
+
+              {/* Remove from Saved - shown only if onRemove is provided */}
               {onRemove && (
                 <button
                   onClick={() => {
                     onRemove(displayPost.id)
                     onClose()
                   }}
-                  className="text-sm text-red-600 hover:text-red-700 transition-colors"
+                  className="text-sm text-red-600 hover:text-red-700 transition-colors ml-2"
                 >
-                  Remove from Saved
+                  Remove
                 </button>
               )}
             </div>

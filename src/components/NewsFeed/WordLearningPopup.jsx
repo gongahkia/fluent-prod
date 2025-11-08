@@ -45,36 +45,41 @@ const WordLearningPopup = ({
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
+    // Get scroll position
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop
+    const scrollX = window.pageXOffset || document.documentElement.scrollLeft
+
     let top, left
     let transformOrigin = 'top center'
     let positionAbove = false
 
+    // Calculate absolute position from viewport position + scroll
     // Position below the clicked element by default
-    top = elementRect.bottom + gap
+    top = elementRect.bottom + gap + scrollY
 
-    // If popup would go off bottom, position above instead
-    if (top + popupMaxHeight > viewportHeight - 20) {
-      top = elementRect.top - gap
+    // If popup would go off bottom of viewport, position above instead
+    if (elementRect.bottom + gap + popupMaxHeight > viewportHeight) {
+      top = elementRect.top - gap + scrollY
       transformOrigin = 'bottom center'
       positionAbove = true
     }
 
-    // Center horizontally on the clicked element
-    left = elementRect.left + (elementRect.width / 2)
+    // Center horizontally on the clicked element (absolute position)
+    left = elementRect.left + (elementRect.width / 2) + scrollX
 
     // Adjust if too far right
-    if (left + (popupWidth / 2) > viewportWidth - 20) {
-      left = viewportWidth - popupWidth - 20
+    if (elementRect.left + (popupWidth / 2) > viewportWidth - 20) {
+      left = viewportWidth - popupWidth - 20 + scrollX
     }
 
     // Adjust if too far left
-    if (left - (popupWidth / 2) < 20) {
-      left = 20 + (popupWidth / 2)
+    if (elementRect.left - (popupWidth / 2) < 20) {
+      left = 20 + (popupWidth / 2) + scrollX
     }
 
     return {
-      position: 'fixed',
-      top: `${Math.max(20, Math.min(top, viewportHeight - 20))}px`,
+      position: 'absolute',
+      top: `${top}px`,
       left: `${left}px`,
       transform: positionAbove ? 'translate(-50%, -100%)' : 'translateX(-50%)',
       transformOrigin,
