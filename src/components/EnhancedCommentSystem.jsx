@@ -220,9 +220,9 @@ const EnhancedCommentSystem = ({
 
       if (!isAlreadyInDictionary) {
         onAddWordToDictionary(wordToAdd)
-        showFeedback("Added to dictionary! ✓", "📚")
+        showFeedback("Saved Word!", "📚")
       } else {
-        showFeedback("Already in dictionary!", "📖")
+        showFeedback("Already saved!", "📖")
       }
     }
   }

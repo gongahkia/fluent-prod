@@ -344,7 +344,6 @@ const Onboarding = ({ onComplete }) => {
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🇰🇷</span>
                     <div className="text-left">
                       <div className="font-medium">Korean</div>
                       <div className="text-sm text-gray-500">한국어</div>

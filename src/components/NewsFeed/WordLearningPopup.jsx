@@ -290,7 +290,7 @@ const WordLearningPopup = ({
                 onClick={onAddToDictionary}
               >
                 <BookOpen className="w-4 h-4" />
-                <span>Add to My Dictionary</span>
+                <span>Save Word</span>
               </button>
             </div>
 

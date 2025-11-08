@@ -135,9 +135,9 @@ const SinglePostView = ({
 
         if (!exists) {
           onAddWordToDictionary(wordToAdd)
-          showFeedback("Added to dictionary! ✓", "📚")
+          showFeedback("Saved Word!", "📚")
         } else {
-          showFeedback("Already in dictionary!", "📖")
+          showFeedback("Already saved!", "📖")
         }
       } else {
         if (selectedWord.showJapaneseTranslation) {

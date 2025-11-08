@@ -388,7 +388,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             <span
               className="cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
               onClick={(e) => handleWordClick(segment, isTargetLanguage, segment, e)}
-              title={`🇰🇷 Korean: Click to see English "${segment}"`}
+              title={`Korean: Click to see English "${segment}"`}
               style={{ textDecoration: "none" }}
             >
               {segment}

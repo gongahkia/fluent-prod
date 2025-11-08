@@ -13,6 +13,8 @@ import { supabase } from '@/lib/supabase';
  */
 export const createUserProfile = async (userId, profileData) => {
   try {
+    const now = new Date().toISOString();
+
     const { data, error } = await supabase
       .from('users')
       .insert({
@@ -29,6 +31,8 @@ export const createUserProfile = async (userId, profileData) => {
         level: profileData.level || null,
         onboardingCompleted: profileData.onboardingCompleted || false,
         completedAt: profileData.completedAt || null,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();
@@ -36,7 +40,9 @@ export const createUserProfile = async (userId, profileData) => {
     if (error) throw error;
 
     // Create default settings
+    const settingsId = crypto.randomUUID();
     await supabase.from('user_settings').insert({
+      id: settingsId,
       userId,
       emailNotifications: profileData.settings?.notifications?.email ?? true,
       pushNotifications: profileData.settings?.notifications?.push ?? true,
@@ -51,6 +57,8 @@ export const createUserProfile = async (userId, profileData) => {
       dailyReading: profileData.settings?.goals?.dailyReading || 5,
       studyReminder: profileData.settings?.goals?.studyReminder ?? true,
       reminderTime: profileData.settings?.goals?.reminderTime || '18:00',
+      createdAt: now,
+      updatedAt: now,
     });
 
     return { success: true, data };
@@ -228,9 +236,13 @@ export const getUserCredentials = async (userId) => {
  */
 export const addWordToDictionary = async (userId, wordData) => {
   try {
+    const wordId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
     const { data, error } = await supabase
       .from('dictionary_words')
       .insert({
+        id: wordId,
         userId,
         language: wordData.targetLanguage || wordData.language,
         word: wordData.word || wordData.japanese || wordData.korean,
@@ -252,6 +264,9 @@ export const addWordToDictionary = async (userId, wordData) => {
         example: wordData.example,
         exampleEn: wordData.exampleEn,
         source: wordData.source || 'Fluent Post',
+        dateAdded: now,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();

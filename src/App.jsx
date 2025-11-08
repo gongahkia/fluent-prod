@@ -21,6 +21,7 @@ import {
   addWordToDictionary as addWordToDb,
   removeWordFromDictionary as removeWordFromDb,
   onDictionaryChange,
+  getUserDictionary,
   updateUserProfile,
 } from "./services/supabaseDatabaseService";
 import { signOutUser } from "./services/authService";
@@ -58,6 +59,17 @@ function App() {
   useEffect(() => {
     if (!currentUser || !userProfile?.targetLanguage) return;
 
+    // Initial fetch of dictionary
+    const loadDictionary = async () => {
+      const result = await getUserDictionary(currentUser.id, userProfile.targetLanguage);
+      if (result.success) {
+        setUserDictionary(result.data);
+      }
+    };
+
+    loadDictionary();
+
+    // Set up real-time listener
     const unsubscribe = onDictionaryChange(
       currentUser.id,
       (words) => {
@@ -211,6 +223,14 @@ function App() {
     if (result && !result.success && result.blocked) {
       setFirebaseError(result.errorInfo);
     }
+
+    // Manually refresh dictionary since realtime might not be enabled
+    if (result && result.success) {
+      const dictResult = await getUserDictionary(currentUser.id, targetLang);
+      if (dictResult.success) {
+        setUserDictionary(dictResult.data);
+      }
+    }
   };
 
   const removeWordFromDictionary = async (wordId) => {
@@ -219,7 +239,15 @@ function App() {
     // Remove from Supabase (will trigger real-time update)
     // Pass target language to remove from correct collection
     const targetLang = userProfile?.targetLanguage || "Japanese";
-    await removeWordFromDb(currentUser.id, wordId, targetLang);
+    const result = await removeWordFromDb(currentUser.id, wordId, targetLang);
+
+    // Manually refresh dictionary since realtime might not be enabled
+    if (result && result.success) {
+      const dictResult = await getUserDictionary(currentUser.id, targetLang);
+      if (dictResult.success) {
+        setUserDictionary(dictResult.data);
+      }
+    }
   };
 
   const handleNavigation = (view) => {
@@ -432,7 +460,7 @@ function MainApp({
                           : "text-gray-700"
                       }`}
                     >
-                      <span>🇯🇵 Japanese</span>
+                      <span>Japanese</span>
                     </button>
                     <button
                       onClick={() => handleLanguageChange("Korean")}
@@ -442,7 +470,7 @@ function MainApp({
                           : "text-gray-700"
                       }`}
                     >
-                      <span>🇰🇷 Korean</span>
+                      <span>Korean</span>
                     </button>
                   </div>
                 )}
@@ -490,7 +518,7 @@ function MainApp({
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Dictionary
+              Saved Words
             </button>
             <button
               onClick={() => handleNavigation("savedposts")}

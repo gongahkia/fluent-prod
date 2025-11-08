@@ -420,10 +420,15 @@ export const batchUpdateFlashcards = async (userId, updates) => {
  */
 export const savePost = async (userId, postData) => {
   try {
+    // Generate a UUID for the saved post
+    const savedPostId = crypto.randomUUID()
+    const now = new Date().toISOString()
+
     const { data, error } = await supabase
       .from('saved_posts')
       .insert({
-        userId,
+        id: savedPostId,
+        userId: userId,
         postId: postData.id,
         title: postData.title,
         content: postData.content,
@@ -433,6 +438,9 @@ export const savePost = async (userId, postData) => {
         source: postData.source || 'reddit',
         tags: postData.tags || [],
         difficulty: postData.difficulty,
+        savedAt: now,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single()

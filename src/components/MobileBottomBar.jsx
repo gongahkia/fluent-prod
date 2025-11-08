@@ -4,7 +4,7 @@ import { Home, BookOpen, User, Settings } from 'lucide-react'
 /**
  * Instagram-style bottom navigation bar for mobile devices
  * Only visible on screens < 768px
- * Shows: Feed, Dictionary (with flashcards), Profile, Settings
+ * Shows: Feed, Saved Words, Profile, Settings
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -17,7 +17,7 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
     },
     {
       id: 'dictionary',
-      label: 'Dictionary',
+      label: 'Saved Words',
       icon: BookOpen,
       activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'

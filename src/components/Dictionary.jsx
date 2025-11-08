@@ -7,16 +7,17 @@ import {
   FileText,
   Filter,
   Search,
+  Shuffle,
   Tag,
   Trash2,
   Upload,
 } from "lucide-react"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { getLanguageByName, getLevelColor, getLevelName } from "@config/languages"
 import { PronunciationButton } from "./ui/PronunciationButton"
 import { DictionaryListSkeleton } from "./ui/skeleton"
 
-const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile }) => {
+const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, onOpenPractice }) => {
   // Get language configuration
   const targetLanguage = userProfile?.targetLanguage || "Japanese"
   const languageConfig = getLanguageByName(targetLanguage)
@@ -37,6 +38,19 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
   const [showFilters, setShowFilters] = useState(false)
   const [editingWord, setEditingWord] = useState(null)
   const [editForm, setEditForm] = useState({})
+  const [showExportDropdown, setShowExportDropdown] = useState(false)
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportDropdown && !event.target.closest('.export-dropdown')) {
+        setShowExportDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportDropdown])
 
   // Get unique tags from dictionary
   const getAllTags = () => {
@@ -158,9 +172,10 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `-dictionary-${new Date().toISOString().split('T')[0]}.json`
+    link.download = `saved-words-${new Date().toISOString().split('T')[0]}.json`
     link.click()
     URL.revokeObjectURL(url)
+    setShowExportDropdown(false)
   }
 
   // Export as CSV
@@ -186,9 +201,33 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `-dictionary-${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `saved-words-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(url)
+    setShowExportDropdown(false)
+  }
+
+  // Export as TXT
+  const exportTXT = () => {
+    const lines = userDictionary.map(word => {
+      const wordText = word[langFields.word] || word.japanese || ''
+      const reading = word[langFields.reading] || word.hiragana || word.romanization || ''
+      const meaning = word[langFields.meaning] || word.english || ''
+      const example = word.example ? `\n  Example: ${word.example}` : ''
+      const exampleEn = word.exampleEn ? `\n  Translation: ${word.exampleEn}` : ''
+
+      return `${wordText} (${reading})\n  Meaning: ${meaning}${example}${exampleEn}\n`
+    })
+
+    const txt = lines.join('\n')
+    const blob = new Blob([txt], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `saved-words-${new Date().toISOString().split('T')[0]}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+    setShowExportDropdown(false)
   }
 
   const getStats = () => {
@@ -218,57 +257,60 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile })
             Saved Words
           </h1>
           <p className="text-sm text-gray-600">
-            {stats.total} words • {stats.mature} mature
+            {stats.total} words
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <button
-              onClick={exportCSV}
-              className="flex items-center gap-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              title="Export as CSV"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">CSV</span>
-            </button>
-            <button
-              onClick={exportDictionary}
-              className="flex items-center gap-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              title="Export as JSON"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">JSON</span>
-            </button>
-          </div>
-        </div>
+            {/* Export Dropdown */}
+            <div className="relative export-dropdown">
+              <button
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="flex items-center gap-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Export"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
 
-        {/* Statistics */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Vocabulary Statistics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-xs text-gray-600">Total</div>
+              {showExportDropdown && (
+                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                  <button
+                    onClick={exportCSV}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg"
+                  >
+                    <FileText className="w-4 h-4" />
+                    CSV
+                  </button>
+                  <button
+                    onClick={exportDictionary}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    JSON
+                  </button>
+                  <button
+                    onClick={exportTXT}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg"
+                  >
+                    <FileText className="w-4 h-4" />
+                    TXT
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-amber-600">{stats.byLevel[1]}</div>
-              <div className="text-xs text-gray-600">Beginner</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{stats.byLevel[2]}</div>
-              <div className="text-xs text-gray-600">Intermediate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{stats.byLevel[3]}</div>
-              <div className="text-xs text-gray-600">Advanced</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{stats.byLevel[4]}</div>
-              <div className="text-xs text-gray-600">Expert</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{stats.byLevel[5]}</div>
-              <div className="text-xs text-gray-600">Native</div>
-            </div>
+
+            {/* Practice Button */}
+            {onOpenPractice && (
+              <button
+                onClick={onOpenPractice}
+                className="flex items-center gap-1 px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                title="Practice Quiz"
+              >
+                <Shuffle className="w-4 h-4" />
+                <span className="hidden sm:inline">Practice</span>
+              </button>
+            )}
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   RotateCcw,
   Settings,
   Shuffle,
@@ -17,7 +18,7 @@ import {
 } from "@/services/databaseService"
 import { PronunciationButton } from "./ui/PronunciationButton"
 
-const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
+const Flashcards = ({ userDictionary, onUpdateWord, userProfile, onBack }) => {
   // Get language configuration
   const targetLanguage = userProfile?.targetLanguage || "Japanese"
   const languageConfig = getLanguageByName(targetLanguage)
@@ -317,10 +318,23 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Practice Quiz</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Test yourself on all your saved words
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+                title="Back to Saved Words"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Practice Quiz</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Test yourself on all your saved words
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Statistics */}
@@ -496,7 +510,7 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile }) => {
               <span className="text-sm">Reset</span>
             </button>
             <button
-              onClick={handleBackToStart}
+              onClick={onBack || handleBackToStart}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Exit Quiz
