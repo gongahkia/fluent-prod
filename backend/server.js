@@ -38,7 +38,7 @@ app.use(helmet({
 }))
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173']
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || ['http://localhost:5173']
 // Add localhost:3001 for admin dashboard
 allowedOrigins.push('http://localhost:3001')
 
@@ -50,13 +50,26 @@ app.use(cors({
       return
     }
 
-    if (allowedOrigins.includes(origin)) {
+    // Remove trailing slash from origin for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '')
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      const normalizedAllowed = allowedOrigin.replace(/\/$/, '')
+      return normalizedAllowed === normalizedOrigin
+    })
+
+    if (isAllowed) {
       callback(null, true)
     } else {
+      console.log(`❌ CORS blocked origin: ${origin}`)
+      console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`)
       callback(new Error('Not allowed by CORS'))
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
 }))
 
 // Compression middleware
