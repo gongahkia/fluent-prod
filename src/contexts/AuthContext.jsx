@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { onAuthStateChange } from '@/services/authService'
 import { getUserProfile, createUserProfile } from '@/services/supabaseDatabaseService'
 
@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const loadedUserIdRef = useRef(null)
 
   useEffect(() => {
     // Listen to authentication state changes
@@ -23,6 +24,15 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(user)
 
       if (user) {
+        // Only fetch profile if we haven't already loaded it for this user
+        // This prevents infinite re-renders from auth state changes
+        if (loadedUserIdRef.current === user.id) {
+          setLoading(false)
+          return
+        }
+
+        loadedUserIdRef.current = user.id
+
         // User is signed in, fetch their profile
         // Note: Supabase uses user.id instead of user.uid
         const profileResult = await getUserProfile(user.id)
@@ -104,6 +114,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         // User is signed out
         setUserProfile(null)
+        loadedUserIdRef.current = null
       }
 
       setLoading(false)
