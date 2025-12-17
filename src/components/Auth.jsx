@@ -20,6 +20,8 @@ const Auth = ({ onAuthComplete }) => {
   const [hasScrolledTOS, setHasScrolledTOS] = useState(false)
   const [hasScrolledPrivacy, setHasScrolledPrivacy] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false)
+  const [confirmationEmail, setConfirmationEmail] = useState("")
 
   const handleInputChange = (e) => {
     setFormData({
@@ -60,6 +62,14 @@ const Auth = ({ onAuthComplete }) => {
       }
 
       if (result.success) {
+        // For new users, show email confirmation popup
+        if (!isLogin && result.isNewUser) {
+          setConfirmationEmail(formData.email)
+          setShowEmailConfirmation(true)
+          setIsLoading(false)
+          return
+        }
+        
         onAuthComplete({
           email: result.user.email,
           name: result.user.displayName || formData.name || result.user.email.split("@")[0],
@@ -619,6 +629,38 @@ const Auth = ({ onAuthComplete }) => {
                   Accept
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Confirmation Modal */}
+      {showEmailConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-orange-100">
+                <Mail className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-center mb-2">Check Your Email</h3>
+              <p className="text-gray-600 text-center mb-4">
+                We've sent a confirmation email to:
+              </p>
+              <p className="text-orange-600 font-medium text-center mb-4">
+                {confirmationEmail}
+              </p>
+              <p className="text-gray-600 text-center text-sm mb-6">
+                Please click the confirmation link in the email to activate your account and start learning!
+              </p>
+              <button
+                onClick={() => {
+                  setShowEmailConfirmation(false)
+                  setConfirmationEmail("")
+                }}
+                className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+              >
+                Got it!
+              </button>
             </div>
           </div>
         </div>
