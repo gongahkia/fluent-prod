@@ -15,7 +15,7 @@ export const createUserProfile = async (userId, profileData) => {
   try {
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('users')
       .insert({
         id: userId,
@@ -33,15 +33,13 @@ export const createUserProfile = async (userId, profileData) => {
         completedAt: profileData.completedAt || null,
         createdAt: now,
         updatedAt: now,
-      })
-      .select()
-      .single();
+      });
 
     if (error) throw error;
 
     // Create default settings
     const settingsId = crypto.randomUUID();
-    await supabase.from('user_settings').insert({
+    const { error: settingsError } = await supabase.from('user_settings').insert({
       id: settingsId,
       userId,
       emailNotifications: profileData.settings?.notifications?.email ?? true,
@@ -61,7 +59,9 @@ export const createUserProfile = async (userId, profileData) => {
       updatedAt: now,
     });
 
-    return { success: true, data };
+    if (settingsError) throw settingsError;
+
+    return { success: true, data: profileData };
   } catch (error) {
     console.error('Error creating user profile:', error);
     return { success: false, error: error.message };
