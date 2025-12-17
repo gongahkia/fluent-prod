@@ -881,36 +881,46 @@ export async function searchUsers(searchQuery, limit = 20) {
  */
 export async function savePostsToCache(cacheKey, posts) {
   try {
-    // Use a transaction to ensure atomicity
+    // Use a transaction with extended timeout for large batches
     await prisma.$transaction(async (tx) => {
       // Delete existing cache entries for this key
       await tx.newsCache.deleteMany({
         where: { cacheKey },
       });
 
-      // Create new cache entries using individual creates to handle potential conflicts
-      for (const post of posts) {
-        await tx.newsCache.create({
-          data: {
-            cacheKey,
-            postId: post.id,
-            title: post.title,
-            content: post.content,
-            url: post.url,
-            author: post.author,
-            publishedAt: new Date(post.publishedAt),
-            source: post.source || 'reddit',
-            tags: post.tags || [],
-            difficulty: post.difficulty,
-            targetLang: post.targetLang,
-            translatedTitle: post.translatedTitle || null,
-            translatedContent: post.translatedContent || null,
-            originalTitle: post.originalTitle,
-            originalContent: post.originalContent,
-            version: '1.0',
-          },
+      // Batch posts into chunks of 50 to avoid transaction timeouts
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < posts.length; i += BATCH_SIZE) {
+        const batch = posts.slice(i, i + BATCH_SIZE);
+        const batchData = batch.map(post => ({
+          cacheKey,
+          postId: post.id,
+          title: post.title,
+          content: post.content,
+          url: post.url,
+          author: post.author,
+          publishedAt: new Date(post.publishedAt),
+          source: post.source || 'reddit',
+          tags: post.tags || [],
+          difficulty: post.difficulty,
+          targetLang: post.targetLang,
+          translatedTitle: post.translatedTitle || null,
+          translatedContent: post.translatedContent || null,
+          originalTitle: post.originalTitle,
+          originalContent: post.originalContent,
+          version: '1.0',
+        }));
+
+        // Use createMany for bulk insert (much faster)
+        await tx.newsCache.createMany({
+          data: batchData,
+          skipDuplicates: true,
         });
+
+        console.log(`  ✓ Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(posts.length / BATCH_SIZE)} (${batch.length} posts)`);
       }
+    }, {
+      timeout: 60000, // 60 second timeout for large batches
     });
 
     return { success: true };

@@ -1,0 +1,297 @@
+/**
+ * One-time Showcase Post Seeding Script
+ * Fetches 3-5 posts from 47 different subreddits to populate the database
+ * with a diverse selection of content for demo purposes.
+ * 
+ * Run with: node backend/seed-showcase-posts.js
+ */
+
+import axios from 'axios'
+import { uploadPostsToStorage, downloadPostsFromStorage } from './services/storageService.js'
+import { createMixedLanguageContent } from './services/translationService.js'
+import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
+import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
+
+// Configuration
+const POSTS_PER_SUBREDDIT = 4 // Fetch 4 posts from each subreddit
+const CONCURRENCY_LIMIT = 5 // Process 5 posts in parallel
+const TARGET_LANG = 'ja' // Target language: Japanese
+const CACHE_FILE = 'posts-japan.json' // Store in posts-japan cache
+
+// 47 Subreddits to scrape (Japanese + General interest)
+const SHOWCASE_SUBREDDITS = [
+  // Japanese-focused subreddits
+  'newsokur',
+  'lowlevelaware',
+  'JapanNews',
+  'japanpics',
+  'JapanArt',
+  'JapanPlaces',
+  'RideItJapan',
+  'japanparents',
+  'BakaNewsJP',
+  'Anime',
+  'JDorama',
+  'JapaneseMusic',
+  'JPop',
+  'Otaku',
+  'JapanLife',
+  'JapanResidents',
+  'MovingToJapan',
+  'JapanFinance',
+  'TeachingInJapan',
+  'ALTinginJapan',
+  'JETProgramme',
+  'JapanTravel',
+  'OsakaTravel',
+  'KyotoTravel',
+  
+  // General interest subreddits
+  'movies',
+  'Music',
+  'television',
+  'anime',
+  'manga',
+  'NetflixBestOf',
+  'mlb',
+  'hockey',
+  'mma',
+  'formula1',
+  'Boxing',
+  'running',
+  'cricket',
+  'malefashionadvice',
+  'streetwear',
+  'femalefashionadvice',
+  'frugalmalefashion',
+  'Sneakers',
+  'womensstreetwear',
+  'Cooking',
+  'AskCulinary',
+  'FoodPorn',
+  'KitchenConfidential',
+  'EatCheapAndHealthy',
+  'Sushi',
+  'JapaneseFood'
+]
+
+/**
+ * Normalize Reddit post to standard format
+ */
+function normalizeRedditPost(post) {
+  const rawTitle = post.title || 'No title'
+  const rawContent = post.selftext || ''
+
+  const plaintextTitle = stripMarkdownToPlaintext(rawTitle)
+  const plaintextContent = stripMarkdownToPlaintext(rawContent)
+
+  const combinedPlaintext = `${plaintextTitle} ${plaintextContent}`.trim()
+  const difficulty = calculateEnglishDifficulty(combinedPlaintext)
+
+  const uniqueRedditId = `reddit_${post.subreddit}_${post.id}`
+
+  return {
+    id: uniqueRedditId,
+    title: plaintextTitle,
+    content: plaintextContent,
+    url: `https://www.reddit.com${post.permalink}`,
+    author: post.author || 'deleted',
+    publishedAt: new Date(post.created_utc * 1000),
+    image: null,
+    tags: ['reddit', post.subreddit],
+    source: 'reddit',
+    difficulty: difficulty
+  }
+}
+
+/**
+ * Fetch posts from a single subreddit
+ */
+async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
+  try {
+    console.log(`  🔍 Fetching from r/${subreddit}...`)
+    
+    const url = `https://www.reddit.com/r/${subreddit}.json`
+    const { data } = await axios.get(url, {
+      params: { limit: limit * 2 }, // Fetch extra in case some are filtered
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9'
+      },
+      timeout: 15000
+    })
+
+    const posts = (data?.data?.children || [])
+      .map((child) => child.data)
+      .filter((post) => !post.stickied && (post.selftext?.length > 20 || post.title))
+      .slice(0, limit)
+      .map(post => normalizeRedditPost(post))
+
+    console.log(`    ✅ Got ${posts.length} posts from r/${subreddit}`)
+    return { subreddit, posts, success: true }
+  } catch (error) {
+    console.warn(`    ⚠️  Failed to fetch r/${subreddit}: ${error.message}`)
+    return { subreddit, posts: [], success: false, error: error.message }
+  }
+}
+
+/**
+ * Process a single post with mixed language content
+ */
+async function processPostWithMixedLanguage(post, targetLang) {
+  const assignedLevel = post.difficulty
+
+  try {
+    const titleResult = post.title
+      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
+      : null
+
+    const contentResult = post.content
+      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
+      : null
+
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: titleResult,
+      translatedContent: contentResult,
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  } catch (error) {
+    console.warn(`    ⚠️  Translation failed for post: ${error.message}`)
+    return {
+      ...post,
+      targetLang,
+      translatedTitle: null,
+      translatedContent: null,
+      originalTitle: post.title,
+      originalContent: post.content
+    }
+  }
+}
+
+/**
+ * Process all posts with mixed language (parallel)
+ */
+async function processAllPosts(posts, targetLang) {
+  console.log(`\n🔄 Processing ${posts.length} posts with translations...`)
+  
+  const processedPosts = []
+  const chunks = chunkArray(posts, CONCURRENCY_LIMIT)
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]
+    console.log(`  📦 Processing chunk ${i + 1}/${chunks.length} (${chunk.length} posts)...`)
+
+    try {
+      const chunkResults = await Promise.all(
+        chunk.map(post => processPostWithMixedLanguage(post, targetLang))
+      )
+      processedPosts.push(...chunkResults)
+      console.log(`    ✓ Chunk ${i + 1} completed`)
+    } catch (error) {
+      console.error(`    ❌ Chunk ${i + 1} failed: ${error.message}`)
+      processedPosts.push(...chunk) // Add unprocessed posts
+    }
+  }
+
+  console.log(`✅ Processed ${processedPosts.length} posts`)
+  return processedPosts
+}
+
+/**
+ * Main seeding function
+ */
+async function seedShowcasePosts() {
+  console.log('🚀 Starting showcase post seeding...\n')
+  console.log(`📋 Target: ${SHOWCASE_SUBREDDITS.length} subreddits × ${POSTS_PER_SUBREDDIT} posts = ~${SHOWCASE_SUBREDDITS.length * POSTS_PER_SUBREDDIT} posts\n`)
+
+  const startTime = Date.now()
+
+  // Step 1: Download existing posts
+  console.log('📥 Step 1: Loading existing posts from Supabase...')
+  const existingPosts = await downloadPostsFromStorage(CACHE_FILE)
+  console.log(`  ✅ Found ${existingPosts.length} existing posts\n`)
+
+  // Step 2: Fetch from all subreddits
+  console.log('🔍 Step 2: Fetching posts from subreddits...')
+  const results = []
+  
+  for (let i = 0; i < SHOWCASE_SUBREDDITS.length; i++) {
+    const subreddit = SHOWCASE_SUBREDDITS[i]
+    const progress = `[${i + 1}/${SHOWCASE_SUBREDDITS.length}]`
+    console.log(`${progress} Fetching r/${subreddit}`)
+    
+    const result = await fetchFromSubreddit(subreddit)
+    results.push(result)
+    
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+
+  // Collect all fetched posts
+  const allNewPosts = results.flatMap(r => r.posts)
+  const successfulSubs = results.filter(r => r.success).length
+  const failedSubs = results.filter(r => !r.success)
+
+  console.log(`\n📊 Fetch Summary:`)
+  console.log(`  ✅ Successful: ${successfulSubs}/${SHOWCASE_SUBREDDITS.length} subreddits`)
+  console.log(`  ❌ Failed: ${failedSubs.length} subreddits`)
+  if (failedSubs.length > 0) {
+    console.log(`  Failed subreddits: ${failedSubs.map(f => f.subreddit).join(', ')}`)
+  }
+  console.log(`  📄 Total new posts fetched: ${allNewPosts.length}`)
+
+  if (allNewPosts.length === 0) {
+    console.log('\n❌ No posts fetched. Exiting.')
+    return
+  }
+
+  // Step 3: Process posts with translations
+  const processedPosts = await processAllPosts(allNewPosts, TARGET_LANG)
+
+  // Step 4: Merge with existing posts (avoid duplicates)
+  console.log('\n🔀 Step 3: Merging with existing posts...')
+  const existingIds = new Set(existingPosts.map(p => p.id))
+  const newUniquePosts = processedPosts.filter(p => !existingIds.has(p.id))
+  
+  console.log(`  ℹ️  Skipped ${processedPosts.length - newUniquePosts.length} duplicate posts`)
+  console.log(`  ✅ Adding ${newUniquePosts.length} new unique posts`)
+
+  const mergedPosts = [...existingPosts, ...newUniquePosts]
+
+  // Step 5: Upload to Supabase
+  console.log(`\n📤 Step 4: Uploading ${mergedPosts.length} total posts to Supabase...`)
+  const uploadSuccess = await uploadPostsToStorage(CACHE_FILE, mergedPosts)
+
+  if (uploadSuccess) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2)
+    console.log(`\n✅ SUCCESS! Seeding completed in ${duration}s`)
+    console.log(`\n📊 Final Summary:`)
+    console.log(`  📄 Posts before: ${existingPosts.length}`)
+    console.log(`  ➕ Posts added: ${newUniquePosts.length}`)
+    console.log(`  📄 Total posts now: ${mergedPosts.length}`)
+  } else {
+    console.log('\n❌ Failed to upload posts to Supabase')
+    process.exit(1)
+  }
+}
+
+// Run the seeding
+console.log('═'.repeat(60))
+console.log('   SHOWCASE POST SEEDING - ONE TIME POPULATION')
+console.log('═'.repeat(60))
+console.log('')
+
+seedShowcasePosts()
+  .then(() => {
+    console.log('\n✅ All done!')
+    process.exit(0)
+  })
+  .catch((error) => {
+    console.error('\n❌ Seeding failed:', error)
+    console.error(error.stack)
+    process.exit(1)
+  })
