@@ -39,6 +39,29 @@ function App() {
   const [firebaseError, setFirebaseError] = useState(null);
   const isMobile = useIsMobile();
 
+  // Check for stale session on mount and refresh if needed
+  useEffect(() => {
+    const checkAndRefreshSession = async () => {
+      const { supabase } = await import('./lib/supabaseClient');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Check if session is expired or about to expire
+        const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+        const now = Date.now();
+        const timeUntilExpiry = expiresAt - now;
+        
+        // If session expired or expires in less than 5 minutes, refresh it
+        if (timeUntilExpiry < 5 * 60 * 1000) {
+          console.log('Session expired or expiring soon, refreshing...');
+          await supabase.auth.refreshSession();
+        }
+      }
+    };
+    
+    checkAndRefreshSession();
+  }, []);
+
   // Handle loading screen completion
   const handleLoadingComplete = () => {
     setShowLoadingScreen(false);
