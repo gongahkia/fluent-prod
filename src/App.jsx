@@ -150,12 +150,24 @@ function App() {
 
       if (result.success) {
         console.log('Onboarding profile saved successfully');
-        // Force update the userProfile state with merged data
-        setUserProfile((prev) => ({ 
-          ...prev, 
-          ...profileWithFlag,
-          email: currentUser.email // Ensure email is preserved
-        }));
+        
+        // Re-fetch the profile from database to ensure we have the latest data
+        const { getUserProfile } = await import('./services/supabaseDatabaseService');
+        const refreshedProfile = await getUserProfile(currentUser.id);
+        
+        if (refreshedProfile.success) {
+          console.log('Profile refreshed after onboarding:', refreshedProfile.data);
+          setUserProfile(refreshedProfile.data);
+        } else {
+          // Fallback to manual state update if re-fetch fails
+          console.warn('Failed to refresh profile, using manual update');
+          setUserProfile((prev) => ({ 
+            ...prev, 
+            ...profileWithFlag,
+            email: currentUser.email
+          }));
+        }
+        
         setShowOnboarding(false);
         // Show loading screen after onboarding completion
         setShowPostOnboardingLoading(true);
