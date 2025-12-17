@@ -95,31 +95,30 @@ function App() {
 
   // Check if user needs onboarding
   useEffect(() => {
-    if (currentUser && userProfile) {
-      // FIXED: More robust check for onboarding completion
-      // Check if onboardingCompleted flag exists, or if essential onboarding fields are present
-      const hasCompletedOnboarding =
-        userProfile.onboardingCompleted === true ||
-        (userProfile.level &&
-         userProfile.targetLanguage &&
-         userProfile.nativeLanguages &&
-         userProfile.nativeLanguages.length > 0);
+    // Only run if we have both user and profile loaded
+    if (!currentUser || !userProfile) {
+      return;
+    }
 
-      const shouldShowOnboarding = !hasCompletedOnboarding;
+    // FIXED: More robust check for onboarding completion
+    // Check if onboardingCompleted flag exists, or if essential onboarding fields are present
+    const hasCompletedOnboarding =
+      userProfile.onboardingCompleted === true ||
+      (userProfile.level &&
+       userProfile.targetLanguage &&
+       userProfile.nativeLanguages &&
+       userProfile.nativeLanguages.length > 0);
 
-      console.log('Onboarding check:', {
-        onboardingCompleted: userProfile.onboardingCompleted,
-        level: userProfile.level,
-        targetLanguage: userProfile.targetLanguage,
-        nativeLanguages: userProfile.nativeLanguages,
-        hasCompletedOnboarding,
-        willShowOnboarding: shouldShowOnboarding
+    const shouldShowOnboarding = !hasCompletedOnboarding;
+
+    // Only update state if it actually needs to change (prevents infinite loop)
+    if (showOnboarding !== shouldShowOnboarding) {
+      console.log('Onboarding status changed:', {
+        from: showOnboarding,
+        to: shouldShowOnboarding,
+        hasCompletedOnboarding
       });
-
-      // Only update state if it actually needs to change (prevents infinite loop)
-      if (showOnboarding !== shouldShowOnboarding) {
-        setShowOnboarding(shouldShowOnboarding);
-      }
+      setShowOnboarding(shouldShowOnboarding);
     }
   }, [currentUser, userProfile, showOnboarding]);
 

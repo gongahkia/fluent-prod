@@ -108,8 +108,26 @@ export const AuthProvider = ({ children }) => {
             }
           }
 
-          await createUserProfile(user.id, defaultProfile)
-          setUserProfile(defaultProfile)
+          const createResult = await createUserProfile(user.id, defaultProfile)
+          if (createResult.success) {
+            setUserProfile(defaultProfile)
+          } else {
+            // Profile creation failed (possibly duplicate)
+            // Try to fetch existing profile again
+            console.warn('Profile creation failed, attempting to fetch existing profile:', createResult.error)
+            const retryResult = await getUserProfile(user.id)
+            if (retryResult.success) {
+              console.log('Successfully fetched existing profile on retry')
+              setUserProfile(retryResult.data)
+            } else {
+              // Still failed - set a minimal profile to prevent infinite loops
+              console.error('Failed to fetch or create profile, using minimal profile')
+              setUserProfile({
+                ...defaultProfile,
+                onboardingCompleted: false // Explicitly set to false
+              })
+            }
+          }
         }
       } else {
         // User is signed out
