@@ -108,8 +108,10 @@ export const AuthProvider = ({ children }) => {
             }
           }
 
+          console.log('Creating new user profile for:', user.id, user.email)
           const createResult = await createUserProfile(user.id, defaultProfile)
           if (createResult.success) {
+            console.log('User profile created successfully')
             setUserProfile(defaultProfile)
           } else {
             // Profile creation failed (possibly duplicate)

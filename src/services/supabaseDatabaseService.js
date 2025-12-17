@@ -140,10 +140,11 @@ export const updateUserProfile = async (userId, updates) => {
 
     // Only update if there are fields to update
     if (Object.keys(profileUpdates).length > 0) {
+      // Use upsert instead of update to handle cases where profile doesn't exist yet
+      // This ensures profile is created if missing (e.g., after email confirmation with stale session)
       const { error: profileError } = await supabase
         .from('users')
-        .update(profileUpdates)
-        .eq('id', userId);
+        .upsert({ id: userId, ...profileUpdates }, { onConflict: 'id' })
 
       if (profileError) throw profileError;
     }
@@ -173,10 +174,10 @@ export const updateUserProfile = async (userId, updates) => {
         }
       });
 
+      // Use upsert for settings as well to ensure they're created if missing
       const { error: settingsError } = await supabase
         .from('user_settings')
-        .update(settingsUpdate)
-        .eq('userId', userId);
+        .upsert({ userId, ...settingsUpdate }, { onConflict: 'userId' })
 
       if (settingsError) throw settingsError;
     }

@@ -144,12 +144,18 @@ function App() {
 
       console.log('Saving onboarding profile:', profileWithFlag);
 
-      // Update user profile in Supabase
+      // CRITICAL FIX: Use upsert instead of update to handle cases where profile doesn't exist yet
+      // This can happen if user confirms email and gets redirected with a stale session
       const result = await updateUserProfile(currentUser.id, profileWithFlag);
 
       if (result.success) {
         console.log('Onboarding profile saved successfully');
-        setUserProfile((prev) => ({ ...prev, ...profileWithFlag }));
+        // Force update the userProfile state with merged data
+        setUserProfile((prev) => ({ 
+          ...prev, 
+          ...profileWithFlag,
+          email: currentUser.email // Ensure email is preserved
+        }));
         setShowOnboarding(false);
         // Show loading screen after onboarding completion
         setShowPostOnboardingLoading(true);
