@@ -140,13 +140,29 @@ export const updateUserProfile = async (userId, updates) => {
 
     // Only update if there are fields to update
     if (Object.keys(profileUpdates).length > 0) {
-      // Use upsert instead of update to handle cases where profile doesn't exist yet
-      // This ensures profile is created if missing (e.g., after email confirmation with stale session)
-      const { error: profileError } = await supabase
+      // First check if profile exists
+      const { data: existingProfile } = await supabase
         .from('users')
-        .upsert({ id: userId, ...profileUpdates }, { onConflict: 'id' })
+        .select('id, email, name')
+        .eq('id', userId)
+        .maybeSingle();
 
-      if (profileError) throw profileError;
+      if (existingProfile) {
+        // Profile exists, just update it
+        const { error: profileError } = await supabase
+          .from('users')
+          .update(profileUpdates)
+          .eq('id', userId);
+
+        if (profileError) throw profileError;
+      } else {
+        // Profile doesn't exist, we need to create it with required fields
+        // This can happen after email confirmation with stale session
+        console.warn('Profile does not exist during update, cannot create without email. userId:', userId);
+        // We can't create the profile here because we don't have the email
+        // This should be handled by createUserProfile in AuthContext
+        throw new Error('Profile does not exist. Please complete onboarding first.');
+      }
     }
 
     // Update settings if provided
