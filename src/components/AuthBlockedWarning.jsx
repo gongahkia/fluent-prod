@@ -2,9 +2,9 @@ import { AlertCircle, Shield, X } from 'lucide-react'
 import React, { useState } from 'react'
 
 /**
- * Component to display when Firebase is blocked by ad blocker or browser
+ * Component to display when authentication services are blocked by ad blocker or browser
  */
-const FirebaseBlockedWarning = ({ onDismiss, errorInfo }) => {
+const AuthBlockedWarning = ({ onDismiss, errorInfo }) => {
   const [dismissed, setDismissed] = useState(false)
 
   if (dismissed) return null
@@ -16,7 +16,7 @@ const FirebaseBlockedWarning = ({ onDismiss, errorInfo }) => {
 
   const defaultErrorInfo = {
     title: 'Connection Blocked',
-    message: 'Firebase requests are being blocked. This is usually caused by ad blockers or browser privacy settings.',
+    message: 'Authentication requests are being blocked. This is usually caused by ad blockers or browser privacy settings.',
     suggestions: [
       'Disable ad blockers for this website',
       'Check browser privacy/tracking protection settings',
@@ -81,4 +81,4 @@ const FirebaseBlockedWarning = ({ onDismiss, errorInfo }) => {
   )
 }
 
-export default FirebaseBlockedWarning
+export default AuthBlockedWarning

@@ -1,6 +1,6 @@
 /**
  * Prisma Database Service
- * Replaces Firebase Firestore with PostgreSQL via Prisma ORM
+ * PostgreSQL database operations via Prisma ORM
  * Provides all CRUD operations for the Fluent application
  */
 

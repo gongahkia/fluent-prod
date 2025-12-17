@@ -16,10 +16,7 @@ router.post('/', async (req, res, next) => {
       search = null,
       offset = 0,
       userLevel = null,
-      targetLang = 'ja',
-      // API credentials from frontend
-      instagramUsername = null,
-      instagramPassword = null
+      targetLang = 'ja'
     } = req.body
 
     const result = await fetchNews({
@@ -30,9 +27,7 @@ router.post('/', async (req, res, next) => {
       searchQuery: search,
       offset,
       userLevel,
-      targetLang,
-      instagramUsername,
-      instagramPassword
+      targetLang
     })
 
     res.json(result)
@@ -70,25 +65,7 @@ router.get('/', async (req, res, next) => {
   }
 })
 
-// POST /api/news/sources - Get available news sources with credentials
-router.post('/sources', async (req, res, next) => {
-  try {
-    const {
-      instagramUsername = null,
-      instagramPassword = null
-    } = req.body
-
-    const sources = getAvailableSources({
-      instagramUsername,
-      instagramPassword
-    })
-    res.json({ sources })
-  } catch (error) {
-    next(error)
-  }
-})
-
-// GET /api/news/sources - Get available news sources (no credentials)
+// GET /api/news/sources - Get available news sources
 router.get('/sources', async (req, res, next) => {
   try {
     const sources = getAvailableSources()

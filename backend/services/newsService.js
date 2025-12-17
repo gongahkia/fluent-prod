@@ -1,7 +1,5 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
-// Instagram imports removed - Reddit only policy
-// import { IgApiClient } from 'instagram-private-api'
 import { downloadPostsFromStorage } from './storageService.js'
 import { stripMarkdownToPlaintext } from '../utils/textUtils.js'
 import { calculateEnglishDifficulty } from '../utils/difficultyUtils.js'
@@ -18,20 +16,18 @@ setInterval(() => {
   cacheMetrics.logStats('News Cache')
 }, 3600000)
 
-// API Configuration - REDDIT ONLY
-// Instagram is disabled to ensure only Reddit posts are cached
+// API Configuration - Reddit only
 const API_CONFIG = {
   reddit: {
     name: 'Reddit',
     baseUrl: 'https://www.reddit.com',
     enabled: true
   }
-  // Instagram removed - Reddit only policy
 }
 
 // Note: stripMarkdownToPlaintext and calculateEnglishDifficulty are now imported from utils
 
-// Utility functions - REDDIT ONLY
+// Utility functions
 const normalizePost = (post, source) => {
   // Only accept Reddit posts
   if (source !== 'reddit') {
@@ -71,7 +67,7 @@ const normalizePost = (post, source) => {
   }
 }
 
-// Fetch posts from Firebase Storage (pre-cached)
+// Fetch posts from Supabase (pre-cached)
 async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null, offset = 0, userLevel = null, targetLang = 'ja') {
   try {
     // Determine which cached file to use based on query
@@ -91,7 +87,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
 
     console.log(`📥 Reading cached posts from ${fileName} (offset: ${offset}, limit: ${limit}, level: ${userLevel}, lang: ${targetLang})`)
 
-    // Download posts from Firebase Storage
+    // Download posts from Supabase
     let posts = await downloadPostsFromStorage(fileName)
 
     if (!posts || posts.length === 0) {
@@ -193,7 +189,7 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
       hasMore: (offset + paginatedPosts.length) < posts.length
     }
   } catch (error) {
-    console.error('Firebase Storage read error:', {
+    console.error('Supabase read error:', {
       message: error.message,
       query,
       searchQuery
@@ -201,18 +197,6 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
     return { posts: [], totalCount: 0, hasMore: false }
   }
 }
-
-// INSTAGRAM DISABLED - REDDIT ONLY POLICY
-// These functions are kept for reference but are not used
-// The codebase only supports Reddit to ensure consistent post quality and caching
-
-/*
-async function fetchInstagramPosts(query = 'japan', limit = 10, searchQuery = null, username = null, password = null) {
-  // DISABLED - Reddit only
-  console.warn('Instagram posts are disabled. Only Reddit is supported.')
-  return []
-}
-*/
 
 // Main export function
 export async function fetchNews(options = {}) {
@@ -224,10 +208,7 @@ export async function fetchNews(options = {}) {
     searchQuery = null,
     offset = 0,
     userLevel = null,
-    targetLang = 'ja',
-    // API credentials from sessionStorage
-    instagramUsername = null,
-    instagramPassword = null
+    targetLang = 'ja'
   } = options
 
   const cacheKey = `news:${sources.join(',')}:${query}:${limit}:${offset}:${userLevel || 'none'}:${targetLang}:${searchQuery || 'default'}`
@@ -240,7 +221,7 @@ export async function fetchNews(options = {}) {
 
   cacheMetrics.recordMiss()
 
-  // REDDIT ONLY - Filter out any non-Reddit sources
+  // Filter out any non-Reddit sources
   const availableSources = sources.filter((source) => {
     if (source === 'reddit') return true
     // Reject all other sources
@@ -266,7 +247,7 @@ export async function fetchNews(options = {}) {
   // For Reddit (main source), use the pagination data
   const redditResult = results.find(r => r.posts !== undefined) || { posts: [], totalCount: 0, hasMore: false }
 
-  // For other sources (Instagram), get just the posts
+  // Get any other posts (currently none)
   const otherPosts = results
     .filter(r => Array.isArray(r))
     .flat()
@@ -298,8 +279,7 @@ export async function fetchNews(options = {}) {
   return result
 }
 
-export function getAvailableSources(credentials = {}) {
-  // REDDIT ONLY - Ignore any credentials for other sources
+export function getAvailableSources() {
   return Object.entries(API_CONFIG).map(([id, config]) => ({
     id,
     name: config.name,

@@ -4,7 +4,7 @@ import crypto from 'crypto'
  * Backend Encryption Service
  *
  * Uses Node.js crypto module (AES-256-GCM) to encrypt sensitive data server-side.
- * This is used for storing OAuth tokens and API keys in Firebase.
+ * This is used for storing OAuth tokens and API keys in the database.
  *
  * IMPORTANT SECURITY NOTES:
  * - Encryption key MUST be set in environment variable ENCRYPTION_KEY

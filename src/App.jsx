@@ -8,7 +8,7 @@ import Onboarding from "./components/Onboarding";
 import PublicProfile from "./components/PublicProfile";
 import Settings from "./components/Settings";
 import SavedPosts from "./components/SavedPosts";
-import FirebaseBlockedWarning from "./components/FirebaseBlockedWarning";
+import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import RedditCallback from "./pages/RedditCallback";
 import LoadingScreen from "./components/ui/LoadingScreen";
@@ -372,9 +372,9 @@ function MainApp({
           />
         )}
 
-        {/* Firebase Blocked Warning */}
+        {/* Auth Blocked Warning */}
         {firebaseError && (
-          <FirebaseBlockedWarning
+          <AuthBlockedWarning
             errorInfo={firebaseError}
             onDismiss={() => setFirebaseError(null)}
           />
@@ -402,9 +402,9 @@ function MainApp({
           />
         )}
 
-        {/* Firebase Blocked Warning */}
+        {/* Auth Blocked Warning */}
         {firebaseError && (
-          <FirebaseBlockedWarning
+          <AuthBlockedWarning
             errorInfo={firebaseError}
             onDismiss={() => setFirebaseError(null)}
           />
@@ -569,7 +569,7 @@ function MainApp({
 
       {/* Firebase Blocked Warning */}
       {firebaseError && (
-        <FirebaseBlockedWarning
+        <AuthBlockedWarning
           errorInfo={firebaseError}
           onDismiss={() => setFirebaseError(null)}
         />

@@ -5,17 +5,6 @@ const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
 
 /**
- * Get API credentials from sessionStorage
- * @returns {Object} API credentials
- */
-function getApiCredentials() {
-  return {
-    instagramUsername: sessionStorage.getItem('instagramUsername') || null,
-    instagramPassword: sessionStorage.getItem('instagramPassword') || null
-  }
-}
-
-/**
  * Fetch news posts from backend API
  * @param {Object} options - Fetch options
  * @param {Array<string>} options.sources - News sources to fetch from
@@ -39,9 +28,6 @@ export async function fetchPosts(options = {}) {
     targetLang = 'ja'
   } = options
 
-  // Get credentials from sessionStorage
-  const credentials = getApiCredentials()
-
   const body = {
     sources,
     query,
@@ -50,8 +36,7 @@ export async function fetchPosts(options = {}) {
     search: searchQuery && searchQuery.trim().length > 0 ? searchQuery.trim() : null,
     offset,
     userLevel,
-    targetLang,
-    ...credentials
+    targetLang
   }
 
   try {
@@ -84,15 +69,8 @@ export async function fetchPosts(options = {}) {
  */
 export async function checkApiConfiguration() {
   try {
-    // Get credentials from sessionStorage
-    const credentials = getApiCredentials()
-
     const response = await fetch(`${API_BASE_URL}/api/news/sources`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(credentials)
+      method: 'GET'
     })
 
     if (!response.ok) {
