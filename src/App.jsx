@@ -105,18 +105,23 @@ function App() {
          userProfile.nativeLanguages &&
          userProfile.nativeLanguages.length > 0);
 
+      const shouldShowOnboarding = !hasCompletedOnboarding;
+
       console.log('Onboarding check:', {
         onboardingCompleted: userProfile.onboardingCompleted,
         level: userProfile.level,
         targetLanguage: userProfile.targetLanguage,
         nativeLanguages: userProfile.nativeLanguages,
         hasCompletedOnboarding,
-        willShowOnboarding: !hasCompletedOnboarding
+        willShowOnboarding: shouldShowOnboarding
       });
 
-      setShowOnboarding(!hasCompletedOnboarding);
+      // Only update state if it actually needs to change (prevents infinite loop)
+      if (showOnboarding !== shouldShowOnboarding) {
+        setShowOnboarding(shouldShowOnboarding);
+      }
     }
-  }, [currentUser, userProfile]);
+  }, [currentUser, userProfile, showOnboarding]);
 
   const handleAuthComplete = (authData) => {
     // Auth state is now managed by AuthContext
