@@ -42,7 +42,7 @@ function App() {
   // Check for stale session on mount and refresh if needed
   useEffect(() => {
     const checkAndRefreshSession = async () => {
-      const { supabase } = await import('./lib/supabaseClient');
+      const { supabase } = await import('./lib/supabase');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
