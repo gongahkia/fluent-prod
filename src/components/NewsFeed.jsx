@@ -242,9 +242,9 @@ const NewsFeed = ({
             break;
         }
 
-        // Load all 25 posts immediately from cache
-        const initialPostLimit = 25;
-        const loadMorePostLimit = 0; // Disabled - show all posts at once
+        // Load 50 posts initially, then 25 more each time
+        const initialPostLimit = 50;
+        const loadMorePostLimit = 25;
 
         const currentOffset = isLoadMore ? offset : 0;
 

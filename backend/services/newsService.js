@@ -173,8 +173,28 @@ async function fetchRedditPosts(query = 'japan', limit = 10, searchQuery = null,
       console.log(`🔍 Filtered to ${posts.length} posts matching "${searchQuery}"`)
     }
 
-    // Shuffle posts for variety (unless searching) - only on first load (offset = 0)
-    if (!searchQuery && offset === 0) {
+    // Helper function to check if text contains Japanese characters
+    const hasJapanese = (text) => {
+      if (!text) return false
+      // Match hiragana, katakana, and kanji
+      return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
+    }
+
+    // Sort posts: prioritize those with Japanese content if target language is Japanese
+    if (targetLang === 'ja' && !searchQuery) {
+      posts = posts.sort((a, b) => {
+        const aHasJapanese = hasJapanese(a.title) || hasJapanese(a.content)
+        const bHasJapanese = hasJapanese(b.title) || hasJapanese(b.content)
+        
+        if (aHasJapanese && !bHasJapanese) return -1
+        if (!aHasJapanese && bHasJapanese) return 1
+        return 0 // Keep original order for posts in same category
+      })
+      console.log(`🇯🇵 Prioritized posts with Japanese content`)
+    }
+
+    // Shuffle posts within their priority groups for variety (unless searching) - only on first load (offset = 0)
+    if (!searchQuery && offset === 0 && targetLang !== 'ja') {
       posts = posts.sort(() => Math.random() - 0.5)
     }
 
