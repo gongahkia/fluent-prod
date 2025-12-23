@@ -8,7 +8,7 @@
 
 import axios from 'axios'
 import { uploadPostsToStorage, downloadPostsFromStorage } from './services/storageService.js'
-import { createMixedLanguageContent } from './services/translationService.js'
+import { createMixedLanguageContent, translateText, containsJapanese } from './services/translationService.js'
 import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
 import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
 
@@ -137,22 +137,127 @@ async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
 }
 
 /**
+ * Inject Japanese content into a post if it doesn't have any
+ * Randomly translates either the longest sentence or 5-10 random words
+ */
+async function injectJapaneseIfNeeded(post) {
+  const combinedText = `${post.title} ${post.content}`
+  
+  // Check if post already has Japanese content
+  if (containsJapanese(combinedText)) {
+    return post // Already has Japanese, no need to inject
+  }
+
+  console.log(`    🔧 Injecting Japanese into post without Japanese content...`)
+
+  // Helper: Extract sentences from text
+  const extractSentences = (text) => {
+    if (!text) return []
+    return text.match(/[^.!?]+[.!?]+/g)?.map(s => s.trim()).filter(s => s.length > 10) || []
+  }
+
+  // Helper: Extract words from text (alphanumeric words only)
+  const extractWords = (text) => {
+    if (!text) return []
+    return text.match(/\b[a-zA-Z]{3,}\b/g) || []
+  }
+
+  // Randomly choose: 0 = translate sentence, 1 = translate words
+  const translateType = Math.random() < 0.5 ? 'sentence' : 'words'
+  
+  let modifiedPost = { ...post }
+
+  if (translateType === 'sentence') {
+    // Translate the longest sentence
+    const sentences = extractSentences(post.content || post.title)
+    if (sentences.length > 0) {
+      // Find longest sentence
+      const longestSentence = sentences.reduce((a, b) => a.length > b.length ? a : b)
+      
+      try {
+        const result = await translateText(longestSentence, 'en', 'ja')
+        if (result.translation && result.translation !== longestSentence) {
+          // Replace the longest sentence with its Japanese translation
+          if (post.content && post.content.includes(longestSentence)) {
+            modifiedPost.content = post.content.replace(longestSentence, result.translation)
+            console.log(`      ✓ Replaced sentence with Japanese translation`)
+          } else if (post.title && post.title.includes(longestSentence)) {
+            modifiedPost.title = post.title.replace(longestSentence, result.translation)
+            console.log(`      ✓ Replaced title sentence with Japanese translation`)
+          }
+        }
+      } catch (error) {
+        console.warn(`      ⚠️  Sentence translation failed: ${error.message}`)
+      }
+    }
+  } else {
+    // Translate 5-10 random words
+    const words = extractWords(post.content || post.title)
+    if (words.length > 0) {
+      // Pick 5-10 unique random words
+      const numWords = Math.min(words.length, Math.floor(Math.random() * 6) + 5) // 5-10
+      const shuffled = [...new Set(words)].sort(() => Math.random() - 0.5)
+      const selectedWords = shuffled.slice(0, numWords)
+      
+      try {
+        // Translate each word
+        const translations = await Promise.all(
+          selectedWords.map(async word => {
+            const result = await translateText(word, 'en', 'ja')
+            return { original: word, translated: result.translation }
+          })
+        )
+        
+        // Replace words in content/title
+        let contentModified = post.content
+        let titleModified = post.title
+        
+        translations.forEach(({ original, translated }) => {
+          if (translated && translated !== original) {
+            // Use word boundary regex to replace whole words only
+            const regex = new RegExp(`\\b${original}\\b`, 'gi')
+            if (contentModified) {
+              contentModified = contentModified.replace(regex, translated)
+            }
+            if (titleModified) {
+              titleModified = titleModified.replace(regex, translated)
+            }
+          }
+        })
+        
+        modifiedPost.content = contentModified
+        modifiedPost.title = titleModified
+        console.log(`      ✓ Replaced ${translations.length} words with Japanese translations`)
+      } catch (error) {
+        console.warn(`      ⚠️  Word translation failed: ${error.message}`)
+      }
+    }
+  }
+
+  return modifiedPost
+}
+
+/**
  * Process a single post with mixed language content
  */
 async function processPostWithMixedLanguage(post, targetLang) {
   const assignedLevel = post.difficulty
 
+  // STEP 1: Inject Japanese content if post doesn't have any
+  const postWithJapanese = await injectJapaneseIfNeeded(post)
+
   try {
-    const titleResult = post.title
-      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
+    // STEP 2: Create mixed language content with the post (now potentially with Japanese)
+    const titleResult = postWithJapanese.title
+      ? await createMixedLanguageContent(postWithJapanese.title, assignedLevel, targetLang, 'en')
       : null
 
-    const contentResult = post.content
-      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
+    const contentResult = postWithJapanese.content
+      ? await createMixedLanguageContent(postWithJapanese.content, assignedLevel, targetLang, 'en')
       : null
 
     return {
-      ...post,
+      ...postWithJapanese,
       targetLang,
       translatedTitle: titleResult,
       translatedContent: contentResult,
@@ -162,7 +267,7 @@ async function processPostWithMixedLanguage(post, targetLang) {
   } catch (error) {
     console.warn(`    ⚠️  Translation failed for post: ${error.message}`)
     return {
-      ...post,
+      ...postWithJapanese,
       targetLang,
       translatedTitle: null,
       translatedContent: null,
