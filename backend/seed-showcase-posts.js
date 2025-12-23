@@ -357,27 +357,22 @@ async function seedShowcasePosts() {
   // Step 3: Process posts with translations
   const processedPosts = await processAllPosts(allNewPosts, TARGET_LANG)
 
-  // Step 4: Merge with existing posts (avoid duplicates)
-  console.log('\n🔀 Step 3: Merging with existing posts...')
-  const existingIds = new Set(existingPosts.map(p => p.id))
-  const newUniquePosts = processedPosts.filter(p => !existingIds.has(p.id))
-  
-  console.log(`  ℹ️  Skipped ${processedPosts.length - newUniquePosts.length} duplicate posts`)
-  console.log(`  ✅ Adding ${newUniquePosts.length} new unique posts`)
+  // Step 4: Replace all existing posts with new ones
+  console.log('\n🔄 Step 3: Replacing existing posts with new posts...')
+  console.log(`  ℹ️  Old posts: ${existingPosts.length}`)
+  console.log(`  ✅ New posts: ${processedPosts.length}`)
 
-  const mergedPosts = [...existingPosts, ...newUniquePosts]
-
-  // Step 5: Upload to Supabase
-  console.log(`\n📤 Step 4: Uploading ${mergedPosts.length} total posts to Supabase...`)
-  const uploadSuccess = await uploadPostsToStorage(CACHE_FILE, mergedPosts)
+  // Step 5: Upload to Supabase (replacing old data)
+  console.log(`\n📤 Step 4: Uploading ${processedPosts.length} posts to Supabase (replacing existing)...`)
+  const uploadSuccess = await uploadPostsToStorage(CACHE_FILE, processedPosts)
 
   if (uploadSuccess) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2)
     console.log(`\n✅ SUCCESS! Seeding completed in ${duration}s`)
     console.log(`\n📊 Final Summary:`)
     console.log(`  📄 Posts before: ${existingPosts.length}`)
-    console.log(`  ➕ Posts added: ${newUniquePosts.length}`)
-    console.log(`  📄 Total posts now: ${mergedPosts.length}`)
+    console.log(`  🔄 Posts replaced with: ${processedPosts.length}`)
+    console.log(`  📄 Total posts now: ${processedPosts.length}`)
   } else {
     console.log('\n❌ Failed to upload posts to Supabase')
     process.exit(1)
