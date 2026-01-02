@@ -16,7 +16,7 @@ import {
   getFlashcardProgress,
   migrateFlashcardData,
   saveFlashcardProgress,
-} from "@/services/databaseService"
+} from "@/services/firebaseDatabaseService"
 import { PronunciationButton } from "./ui/PronunciationButton"
 
 const Flashcards = ({ userDictionary, onUpdateWord, userProfile, onBack }) => {

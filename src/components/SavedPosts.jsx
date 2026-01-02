@@ -1,7 +1,7 @@
 import { Bookmark, Trash2, ExternalLink } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { getSavedPosts, removeSavedPost } from "@/services/databaseService"
+import { getSavedPosts, removeSavedPost } from "@/services/firebaseDatabaseService"
 import { useAuth } from "@/contexts/AuthContext"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import SinglePostView from "./SinglePostView"

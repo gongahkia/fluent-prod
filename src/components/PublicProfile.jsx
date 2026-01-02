@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import {
   getUserFollowers,
   getUserFollowing,
-} from "@/services/databaseService"
+} from "@/services/firebaseDatabaseService"
 
 const PublicProfile = ({ userProfile, onBack, onNavigateToSettings }) => {
   const { currentUser } = useAuth()

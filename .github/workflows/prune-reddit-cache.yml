@@ -1,0 +1,40 @@
+name: Prune Reddit Cache (max 500)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'cache/news-cache.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  prune-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend deps
+        run: pnpm -C backend install --frozen-lockfile
+
+      - name: Prune cache
+        env:
+          CACHE_PATH: cache/news-cache.txt
+          MAX_ROWS: '500'
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: node backend/prune-news-cache.js
+
+      - name: Commit pruned cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cache/news-cache.txt
+          git diff --staged --quiet || git commit -m "chore(cache): prune reddit cache"
+          git push

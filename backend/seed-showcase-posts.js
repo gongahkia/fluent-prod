@@ -1,25 +1,97 @@
 /**
- * One-time Showcase Post Seeding Script
- * Fetches 3-5 posts from 47 different subreddits to populate the database
- * with a diverse selection of content for demo purposes.
- * 
- * Run with: node backend/seed-showcase-posts.js
+ * Reddit Scrape + Translate Cache Script
+ *
+ * Produces a single newline-delimited JSON (NDJSON) text file under repo `cache/`.
+ * Each line is one "row" (post) and includes a stable `postHash` for referencing.
+ *
+ * This script is designed to be run locally or via GitHub Actions.
+ *
+ * Run examples:
+ *   node backend/seed-showcase-posts.js
+ *   node backend/seed-showcase-posts.js --preset showcase --targetLang ja --maxNewPosts 200
+ *   node backend/seed-showcase-posts.js --subreddits movies,Music --postsPerSubreddit 5
  */
 
 import axios from 'axios'
-import { uploadPostsToStorage, downloadPostsFromStorage } from './services/storageService.js'
+import crypto from 'crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import { createMixedLanguageContent, translateText, containsJapanese } from './services/translationService.js'
 import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
 import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
 
-// Configuration
-const POSTS_PER_SUBREDDIT = 4 // Fetch 4 posts from each subreddit
-const CONCURRENCY_LIMIT = 5 // Process 5 posts in parallel
-const TARGET_LANG = 'ja' // Target language: Japanese
-const CACHE_FILE = 'posts-japan.json' // Store in posts-japan cache
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const REPO_ROOT = join(__dirname, '..')
+const CACHE_DIR = join(REPO_ROOT, 'cache')
 
-// 47 Subreddits to scrape (Japanese + General interest)
-const SHOWCASE_SUBREDDITS = [
+function parseArgs(argv) {
+  const args = {}
+  for (let i = 0; i < argv.length; i++) {
+    const raw = argv[i]
+    if (!raw.startsWith('--')) continue
+    const key = raw.slice(2)
+    const next = argv[i + 1]
+    if (!next || next.startsWith('--')) {
+      args[key] = true
+    } else {
+      args[key] = next
+      i++
+    }
+  }
+  return args
+}
+
+function toInt(value, fallback) {
+  const n = Number.parseInt(String(value), 10)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function sha256Hex(input) {
+  return crypto.createHash('sha256').update(input).digest('hex')
+}
+
+function stablePostHash(sourceId) {
+  // Stable reference hash: derived from immutable source id.
+  return sha256Hex(String(sourceId))
+}
+
+function rowIntegrityHash(row) {
+  const copy = { ...row }
+  delete copy.rowHash
+  return sha256Hex(JSON.stringify(copy))
+}
+
+function readNdjson(filePath) {
+  if (!existsSync(filePath)) return []
+  const raw = readFileSync(filePath, 'utf-8')
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const rows = []
+  for (const line of lines) {
+    try {
+      rows.push(JSON.parse(line))
+    } catch {
+      // Ignore malformed lines
+    }
+  }
+  return rows
+}
+
+function writeNdjson(filePath, rows) {
+  if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true })
+  const body = rows.map((r) => JSON.stringify(r)).join('\n') + (rows.length ? '\n' : '')
+  writeFileSync(filePath, body, 'utf-8')
+}
+
+// Presets
+const PRESETS = {
+  showcase: {
+    postsPerSubreddit: 4,
+    concurrencyLimit: 5,
+    targetLang: 'ja',
+    outFile: 'news-cache.txt',
+    subreddits: [
   // Japanese-focused subreddits
   'newsokur',
   'lowlevelaware',
@@ -73,7 +145,27 @@ const SHOWCASE_SUBREDDITS = [
   'EatCheapAndHealthy',
   'Sushi',
   'JapaneseFood'
-]
+    ]
+  }
+}
+
+// Config (swappable via args/env)
+const argv = parseArgs(process.argv.slice(2))
+const presetName = String(argv.preset || process.env.CACHE_PRESET || 'showcase')
+const preset = PRESETS[presetName] || PRESETS.showcase
+
+const POSTS_PER_SUBREDDIT = toInt(argv.postsPerSubreddit || process.env.POSTS_PER_SUBREDDIT, preset.postsPerSubreddit)
+const CONCURRENCY_LIMIT = toInt(argv.concurrencyLimit || process.env.CONCURRENCY_LIMIT, preset.concurrencyLimit)
+const TARGET_LANG = String(argv.targetLang || process.env.TARGET_LANG || preset.targetLang)
+const OUT_FILE = String(argv.outFile || process.env.OUT_FILE || preset.outFile)
+const MAX_NEW_POSTS = toInt(argv.maxNewPosts || process.env.MAX_NEW_POSTS, 200)
+
+const subredditsArg = argv.subreddits || process.env.SUBREDDITS
+const SUBREDDITS = subredditsArg
+  ? String(subredditsArg).split(',').map((s) => s.trim()).filter(Boolean)
+  : preset.subreddits
+
+const OUT_PATH = join(CACHE_DIR, OUT_FILE)
 
 /**
  * Normalize Reddit post to standard format
@@ -100,6 +192,7 @@ function normalizeRedditPost(post) {
     image: null,
     tags: ['reddit', post.subreddit],
     source: 'reddit',
+    subreddit: post.subreddit,
     difficulty: difficulty
   }
 }
@@ -306,92 +399,118 @@ async function processAllPosts(posts, targetLang) {
   return processedPosts
 }
 
-/**
- * Main seeding function
- */
-async function seedShowcasePosts() {
-  console.log('🚀 Starting showcase post seeding...\n')
-  console.log(`📋 Target: ${SHOWCASE_SUBREDDITS.length} subreddits × ${POSTS_PER_SUBREDDIT} posts = ~${SHOWCASE_SUBREDDITS.length * POSTS_PER_SUBREDDIT} posts\n`)
+function toRow(post) {
+  const sourceId = post.id
+  const postHash = stablePostHash(sourceId)
+  const row = {
+    schemaVersion: 1,
+    postHash,
+    sourceId,
+    source: post.source || 'reddit',
+    subreddit: post.subreddit || null,
+    url: post.url,
+    author: post.author,
+    publishedAt: post.publishedAt instanceof Date ? post.publishedAt.toISOString() : String(post.publishedAt),
+    difficulty: post.difficulty,
+    targetLang: post.targetLang,
+    title: post.title,
+    content: post.content,
+    translatedTitle: post.translatedTitle,
+    translatedContent: post.translatedContent,
+    createdAt: new Date().toISOString(),
+  }
+  row.rowHash = rowIntegrityHash(row)
+  return row
+}
+
+function sortNewestFirst(a, b) {
+  const ta = Date.parse(a?.publishedAt || '') || 0
+  const tb = Date.parse(b?.publishedAt || '') || 0
+  return tb - ta
+}
+
+async function run() {
+  console.log('═'.repeat(60))
+  console.log('   REDDIT SCRAPE + TRANSLATE → CACHE (NDJSON)')
+  console.log('═'.repeat(60))
+  console.log('')
+
+  console.log(`Preset: ${presetName}`)
+  console.log(`Subreddits: ${SUBREDDITS.length}`)
+  console.log(`postsPerSubreddit: ${POSTS_PER_SUBREDDIT}`)
+  console.log(`targetLang: ${TARGET_LANG}`)
+  console.log(`out: ${OUT_PATH}`)
 
   const startTime = Date.now()
 
-  // Step 1: Download existing posts
-  console.log('📥 Step 1: Loading existing posts from Supabase...')
-  const existingPosts = await downloadPostsFromStorage(CACHE_FILE)
-  console.log(`  ✅ Found ${existingPosts.length} existing posts\n`)
+  console.log('\n📥 Loading existing cache rows (if any)...')
+  const existingRows = readNdjson(OUT_PATH)
+  console.log(`  ✅ Found ${existingRows.length} existing rows`)
 
-  // Step 2: Fetch from all subreddits
-  console.log('🔍 Step 2: Fetching posts from subreddits...')
+  console.log('\n🔍 Fetching posts from subreddits...')
   const results = []
-  
-  for (let i = 0; i < SHOWCASE_SUBREDDITS.length; i++) {
-    const subreddit = SHOWCASE_SUBREDDITS[i]
-    const progress = `[${i + 1}/${SHOWCASE_SUBREDDITS.length}]`
+  for (let i = 0; i < SUBREDDITS.length; i++) {
+    const subreddit = SUBREDDITS[i]
+    const progress = `[${i + 1}/${SUBREDDITS.length}]`
     console.log(`${progress} Fetching r/${subreddit}`)
-    
+
     const result = await fetchFromSubreddit(subreddit)
     results.push(result)
-    
+
     // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 
-  // Collect all fetched posts
-  const allNewPosts = results.flatMap(r => r.posts)
-  const successfulSubs = results.filter(r => r.success).length
-  const failedSubs = results.filter(r => !r.success)
+  const allFetched = results.flatMap((r) => r.posts)
+  const successfulSubs = results.filter((r) => r.success).length
+  const failedSubs = results.filter((r) => !r.success)
 
   console.log(`\n📊 Fetch Summary:`)
-  console.log(`  ✅ Successful: ${successfulSubs}/${SHOWCASE_SUBREDDITS.length} subreddits`)
+  console.log(`  ✅ Successful: ${successfulSubs}/${SUBREDDITS.length} subreddits`)
   console.log(`  ❌ Failed: ${failedSubs.length} subreddits`)
   if (failedSubs.length > 0) {
-    console.log(`  Failed subreddits: ${failedSubs.map(f => f.subreddit).join(', ')}`)
+    console.log(`  Failed subreddits: ${failedSubs.map((f) => f.subreddit).join(', ')}`)
   }
-  console.log(`  📄 Total new posts fetched: ${allNewPosts.length}`)
+  console.log(`  📄 Total posts fetched: ${allFetched.length}`)
 
-  if (allNewPosts.length === 0) {
+  if (allFetched.length === 0) {
     console.log('\n❌ No posts fetched. Exiting.')
     return
   }
 
-  // Step 3: Process posts with translations
-  const processedPosts = await processAllPosts(allNewPosts, TARGET_LANG)
+  const limitedFetched = allFetched.slice(0, MAX_NEW_POSTS)
+  console.log(`\n✂️  Limiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
 
-  // Step 4: Replace all existing posts with new ones
-  console.log('\n🔄 Step 3: Replacing existing posts with new posts...')
-  console.log(`  ℹ️  Old posts: ${existingPosts.length}`)
-  console.log(`  ✅ New posts: ${processedPosts.length}`)
+  console.log('\n🔄 Translating + generating mixed-language content...')
+  const processedPosts = await processAllPosts(limitedFetched, TARGET_LANG)
+  const newRows = processedPosts.map(toRow)
 
-  // Step 5: Upload to Supabase (replacing old data)
-  console.log(`\n📤 Step 4: Uploading ${processedPosts.length} posts to Supabase (replacing existing)...`)
-  const uploadSuccess = await uploadPostsToStorage(CACHE_FILE, processedPosts)
-
-  if (uploadSuccess) {
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-    console.log(`\n✅ SUCCESS! Seeding completed in ${duration}s`)
-    console.log(`\n📊 Final Summary:`)
-    console.log(`  📄 Posts before: ${existingPosts.length}`)
-    console.log(`  🔄 Posts replaced with: ${processedPosts.length}`)
-    console.log(`  📄 Total posts now: ${processedPosts.length}`)
-  } else {
-    console.log('\n❌ Failed to upload posts to Supabase')
-    process.exit(1)
+  // Merge + de-dupe by stable postHash
+  const byHash = new Map()
+  for (const row of existingRows) {
+    const key = row?.postHash
+    if (key) byHash.set(key, row)
   }
+  for (const row of newRows) {
+    byHash.set(row.postHash, row)
+  }
+
+  const merged = [...byHash.values()].sort(sortNewestFirst)
+
+  console.log(`\n💾 Writing cache file...`)
+  writeNdjson(OUT_PATH, merged)
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2)
+  console.log(`\n✅ Done in ${duration}s`)
+  console.log(`  Existing rows: ${existingRows.length}`)
+  console.log(`  New rows: ${newRows.length}`)
+  console.log(`  Total rows now: ${merged.length}`)
 }
 
-// Run the seeding
-console.log('═'.repeat(60))
-console.log('   SHOWCASE POST SEEDING - ONE TIME POPULATION')
-console.log('═'.repeat(60))
-console.log('')
-
-seedShowcasePosts()
-  .then(() => {
-    console.log('\n✅ All done!')
-    process.exit(0)
-  })
+run()
+  .then(() => process.exit(0))
   .catch((error) => {
-    console.error('\n❌ Seeding failed:', error)
+    console.error('\n❌ Cache generation failed:', error)
     console.error(error.stack)
     process.exit(1)
   })

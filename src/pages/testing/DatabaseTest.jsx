@@ -10,7 +10,7 @@ import {
   savePost,
   getSavedPosts,
   removeSavedPost
-} from '@/services/supabaseDatabaseService';
+} from '@/services/firebaseDatabaseService';
 
 export default function DatabaseTest() {
   const { currentUser, loading } = useAuth();

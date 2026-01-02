@@ -1,0 +1,40 @@
+name: Update Reddit Cache (NDJSON)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1' # weekly Mondays 03:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  update-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend deps
+        run: pnpm -C backend install --frozen-lockfile
+
+      - name: Generate cache
+        env:
+          CACHE_PRESET: showcase
+          TARGET_LANG: ja
+          MAX_NEW_POSTS: '200'
+          OUT_FILE: news-cache.txt
+        run: node backend/seed-showcase-posts.js
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cache/news-cache.txt
+          git diff --staged --quiet || git commit -m "chore(cache): update reddit cache"
+          git push

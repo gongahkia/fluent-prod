@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { onAuthStateChange } from '@/services/authService'
-import { getUserProfile, createUserProfile } from '@/services/supabaseDatabaseService'
+import { getUserProfile, createUserProfile } from '@/services/firebaseDatabaseService'
 
 const AuthContext = createContext({})
 
@@ -21,6 +21,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Listen to authentication state changes
     const unsubscribe = onAuthStateChange(async (user) => {
+      // Firebase uses user.uid; the existing app uses currentUser.id in many places.
+      // Attach id for compatibility.
+      if (user && !user.id) {
+        // eslint-disable-next-line no-param-reassign
+        user.id = user.uid
+      }
+
       setCurrentUser(user)
 
       if (user) {
@@ -34,7 +41,6 @@ export const AuthProvider = ({ children }) => {
         loadedUserIdRef.current = user.id
 
         // User is signed in, fetch their profile
-        // Note: Supabase uses user.id instead of user.uid
         const profileResult = await getUserProfile(user.id)
 
         if (profileResult.success) {

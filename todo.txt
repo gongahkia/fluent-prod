@@ -1,6 +1,0 @@
-remove the backend
-create github action that populates the text file daily
-create github action that performs ci/cd on the text file and maintains at most 500 rows within it
-make the translation hot and in-the-moment
-then when the frontend loads in it processes the text file in localstorage before rendering each post
-have optimisations after that

@@ -23,7 +23,7 @@ import {
   onDictionaryChange,
   getUserDictionary,
   updateUserProfile,
-} from "./services/supabaseDatabaseService";
+} from "./services/firebaseDatabaseService";
 import { signOutUser } from "./services/authService";
 import "./App.css";
 
@@ -39,28 +39,7 @@ function App() {
   const [firebaseError, setFirebaseError] = useState(null);
   const isMobile = useIsMobile();
 
-  // Check for stale session on mount and refresh if needed
-  useEffect(() => {
-    const checkAndRefreshSession = async () => {
-      const { supabase } = await import('./lib/supabase');
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Check if session is expired or about to expire
-        const expiresAt = session.expires_at * 1000; // Convert to milliseconds
-        const now = Date.now();
-        const timeUntilExpiry = expiresAt - now;
-        
-        // If session expired or expires in less than 5 minutes, refresh it
-        if (timeUntilExpiry < 5 * 60 * 1000) {
-          console.log('Session expired or expiring soon, refreshing...');
-          await supabase.auth.refreshSession();
-        }
-      }
-    };
-    
-    checkAndRefreshSession();
-  }, []);
+  // Firebase ID tokens auto-refresh; no explicit session refresh needed.
 
   // Handle loading screen completion
   const handleLoadingComplete = () => {
@@ -175,7 +154,7 @@ function App() {
         console.log('Onboarding profile saved successfully');
         
         // Re-fetch the profile from database to ensure we have the latest data
-        const { getUserProfile } = await import('./services/supabaseDatabaseService');
+        const { getUserProfile } = await import('./services/firebaseDatabaseService');
         const refreshedProfile = await getUserProfile(currentUser.id);
         
         if (refreshedProfile.success) {
