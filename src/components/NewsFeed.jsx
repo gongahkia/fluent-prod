@@ -69,7 +69,7 @@ const NewsFeed = ({
       try {
         const result = await getSavedPosts(currentUser.id)
         if (result.success) {
-          const savedIds = new Set(result.data.map(post => post.postId))
+          const savedIds = new Set(result.data.map(post => post.postHash || post.postId || post.id))
           setSavedPostIds(savedIds)
         }
       } catch (error) {
@@ -81,6 +81,11 @@ const NewsFeed = ({
   }, [currentUser])
 
   useEffect(() => {
+    if (import.meta.env.VITE_NEWS_MODE === 'cache') {
+      // No backend in cache mode
+      return
+    }
+
     const loadApiStatus = async (retryCount = 0) => {
       const MAX_RETRIES = 3
       const RETRY_DELAY = 2000 // 2 seconds
@@ -606,6 +611,8 @@ const NewsFeed = ({
     try {
       const postData = {
         id: article.id,
+        postHash: article.postHash || article.id,
+        postId: article.postHash || article.id,
         title: article.title,
         content: article.content,
         author: article.author,

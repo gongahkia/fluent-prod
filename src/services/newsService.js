@@ -1,7 +1,9 @@
 // News Service
 // Supports two modes:
 // - API mode: calls backend (/api/news)
-// - Cache mode: reads prebuilt JSON from /public/cache (or GitHub raw)
+// - Cache mode: reads prebuilt NDJSON from GitHub raw (or /public/cache)
+
+import { loadNdjsonCache } from './cacheNdjsonService'
 
 const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache'
 
@@ -10,20 +12,18 @@ const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
   ? 'http://localhost:3001'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
 
-// Cache base URL:
-// - If VITE_GITHUB_CACHE_BASE_URL is set, fetch directly from GitHub raw
-// - Otherwise use same-origin /cache (served from public/cache)
-const CACHE_BASE_URL = (import.meta.env.VITE_GITHUB_CACHE_BASE_URL || '/cache').replace(/\/$/, '')
+// NDJSON cache URL:
+// Prefer a direct GitHub Raw URL via VITE_GITHUB_CACHE_NDJSON_URL.
+// Fallbacks:
+// - if VITE_GITHUB_CACHE_BASE_URL is set, use `${base}/news-cache.txt`
+// - else use same-origin `/cache/news-cache.txt` (served from public/cache)
+const CACHE_NDJSON_URL = (() => {
+  const direct = import.meta.env.VITE_GITHUB_CACHE_NDJSON_URL
+  if (direct) return direct
 
-function getCacheFileName(query) {
-  switch ((query || 'japan').toLowerCase()) {
-    case 'korea':
-      return 'posts-korea.json'
-    case 'japan':
-    default:
-      return 'posts-japan.json'
-  }
-}
+  const base = (import.meta.env.VITE_GITHUB_CACHE_BASE_URL || '/cache').replace(/\/$/, '')
+  return `${base}/news-cache.txt`
+})()
 
 function hasJapanese(text) {
   if (!text) return false
@@ -32,7 +32,6 @@ function hasJapanese(text) {
 
 async function fetchPostsFromCache(options = {}) {
   const {
-    query = 'japan',
     limit = 10,
     shuffle = true,
     searchQuery = null,
@@ -41,16 +40,46 @@ async function fetchPostsFromCache(options = {}) {
     targetLang = 'ja'
   } = options
 
-  const fileName = getCacheFileName(query)
-  const url = `${CACHE_BASE_URL}/${fileName}`
+  const { rows, sha256, url } = await loadNdjsonCache(CACHE_NDJSON_URL, { revalidate: offset === 0 })
 
-  const response = await fetch(url, { method: 'GET' })
-  if (!response.ok) {
-    throw new Error(`Failed to fetch cache file: ${response.status} ${response.statusText}`)
-  }
+  // Map rows → posts with stable ids
+  let posts = (Array.isArray(rows) ? rows : []).map((row) => {
+    const postHash = row?.postHash || row?.id
+    const translatedTitle = row?.translatedTitle
+    const translatedContent = row?.translatedContent
 
-  const raw = await response.json()
-  let posts = Array.isArray(raw) ? raw : []
+    // Ensure title/content are strings for the renderer.
+    // The app expects JSON-as-string for mixed-language rendering.
+    const toRenderable = (value, fallback) => {
+      if (value == null) return fallback
+      if (typeof value === 'string') return value
+      try {
+        return JSON.stringify(value)
+      } catch {
+        return fallback
+      }
+    }
+
+    return {
+      id: postHash,
+      postHash,
+      sourceId: row?.sourceId,
+      title: toRenderable(translatedTitle, row?.title || ''),
+      content: toRenderable(translatedContent, row?.content || ''),
+      originalTitle: row?.title || '',
+      originalContent: row?.content || '',
+      author: row?.author || 'deleted',
+      url: row?.url,
+      source: row?.source || 'reddit',
+      tags: ['reddit', row?.subreddit].filter(Boolean),
+      subreddit: row?.subreddit || null,
+      difficulty: row?.difficulty,
+      targetLang: row?.targetLang || targetLang,
+      publishedAt: row?.publishedAt,
+      isMixedLanguage: Boolean(translatedTitle || translatedContent),
+      userLevel: row?.difficulty,
+    }
+  })
 
   // Filter by difficulty level (userLevel ± 1)
   if (userLevel && userLevel >= 1 && userLevel <= 5) {
@@ -141,7 +170,7 @@ async function fetchPostsFromCache(options = {}) {
       offset,
       userLevel,
       targetLang,
-      cacheFile: fileName,
+      cacheSha256: sha256,
       cacheUrl: url
     }
   }

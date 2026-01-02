@@ -1,3 +1,4 @@
+prune the entire repository to remove files unnecessary for my new workflow
 test the entire workflow, actions and all
 make translation logic better and prevent eggrigious errors
 optimise fluent for a mobile browser view instead of a web view
