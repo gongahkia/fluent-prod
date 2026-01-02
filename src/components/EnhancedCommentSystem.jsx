@@ -84,7 +84,7 @@ const EnhancedCommentSystem = ({
         setAiSuggestions(data.suggestions)
         setAiModel(data.model || 'Gemini 2.0 Flash (Free)')
       } else {
-        console.warn('⚠️ No suggestions in response, using fallbacks')
+        console.warn('No suggestions in response, using fallbacks')
         // Fallback suggestions based on target language
         const fallbackSuggestions = targetLanguage === 'Korean' ? [
           {
@@ -109,7 +109,7 @@ const EnhancedCommentSystem = ({
         setAiModel('Gemini 2.0 Flash (Free)')
       }
     } catch (error) {
-      console.error('❌ Failed to fetch AI suggestions:', error)
+      console.error('Failed to fetch AI suggestions:', error)
       // Fallback suggestions based on target language
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
       const fallbackSuggestions = targetLanguage === 'Korean' ? [

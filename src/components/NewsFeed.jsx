@@ -97,7 +97,7 @@ const NewsFeed = ({
           statusMap[source.id] = source
         })
         setApiStatus(statusMap)
-        console.log('✅ API configuration loaded successfully:', statusMap)
+        console.log('API configuration loaded successfully:', statusMap)
       } catch (error) {
         console.error(`Failed to load API status (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, error)
 
@@ -136,7 +136,7 @@ const NewsFeed = ({
       const alreadyProcessed = postsToProcess.some(post => post.isMixedLanguage === true)
       
       if (alreadyProcessed) {
-        console.log('✅ Using pre-processed posts from backend cache')
+        console.log('Using pre-processed posts from backend cache')
         setProcessingPosts(false)
         setMinPostsLoaded(true)
         return postsToProcess
@@ -149,7 +149,7 @@ const NewsFeed = ({
         return postsToProcess
       }
 
-      console.warn('⚠️ Posts not pre-processed by backend, processing on frontend (slower)')
+      console.warn('Posts not pre-processed by backend, processing on frontend (slower)')
       setProcessingPosts(true)
       const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
 
@@ -413,13 +413,13 @@ const NewsFeed = ({
       }
       // Log language change for debugging
       if (currentDeps.targetLanguage !== prevDeps.targetLanguage && prevDeps.targetLanguage) {
-        console.log(`🌐 Language changed: ${prevDeps.targetLanguage} → ${currentDeps.targetLanguage}`)
+        console.log(`Language changed: ${prevDeps.targetLanguage} -> ${currentDeps.targetLanguage}`)
         // Clear posts immediately on language change for better UX
         setPosts([])
         setProcessedPosts([])
       }
       
-      console.log('🔄 Dependencies changed, reloading posts:', {
+      console.log('Dependencies changed, reloading posts:', {
         targetLanguage: currentDeps.targetLanguage,
         learningLevel: currentDeps.learningLevel
       })

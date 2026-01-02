@@ -44,6 +44,11 @@ function parseNdjson(text) {
 export async function loadNdjsonCache(url, { revalidate = true } = {}) {
   if (!url) throw new Error('Missing cache URL')
 
+  const isDev = Boolean(globalThis?.location?.hostname === 'localhost' || globalThis?.location?.hostname === '127.0.0.1')
+  if (isDev) {
+    console.log('[NDJSON] load start', { url, revalidate })
+  }
+
   // If we already loaded this URL and caller doesn't want revalidation, return in-memory.
   if (!revalidate && inMemory.url === url && Array.isArray(inMemory.rows)) {
     return { url, sha256: inMemory.sha256, rows: inMemory.rows, changed: false }
@@ -52,6 +57,9 @@ export async function loadNdjsonCache(url, { revalidate = true } = {}) {
   // Always fetch to compute the current hash (GitHub raw can change).
   const response = await fetch(url, { method: 'GET' })
   if (!response.ok) {
+    if (isDev) {
+      console.log('[NDJSON] fetch failed', { url, status: response.status, statusText: response.statusText })
+    }
     throw new Error(`Failed to fetch cache: ${response.status} ${response.statusText}`)
   }
 
@@ -72,6 +80,15 @@ export async function loadNdjsonCache(url, { revalidate = true } = {}) {
   })()
 
   const rows = parseNdjson(text)
+
+  if (isDev) {
+    console.log('[NDJSON] load ok', {
+      url,
+      bytes: text.length,
+      rows: rows.length,
+      sha256,
+    })
+  }
 
   inMemory = {
     url,

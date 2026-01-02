@@ -19,7 +19,7 @@ async function main() {
     entries = await fs.readdir(sourceDir, { withFileTypes: true })
   } catch (err) {
     if (err && err.code === 'ENOENT') {
-      console.log('ℹ️  No cache/ directory found; skipping sync.')
+      console.log('No cache/ directory found; skipping sync.')
       return
     }
     throw err
@@ -35,10 +35,10 @@ async function main() {
     await fs.copyFile(src, dst)
   }
 
-  console.log(`✅ Synced ${cacheFiles.length} cache files -> public/cache/`)
+  console.log(`Synced ${cacheFiles.length} cache files -> public/cache/`)
 }
 
 main().catch((err) => {
-  console.error('❌ Cache sync failed:', err)
+  console.error('Cache sync failed:', err)
   process.exitCode = 1
 })
