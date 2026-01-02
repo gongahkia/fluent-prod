@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Auth from "./components/Auth";
@@ -32,7 +32,7 @@ function App() {
   const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
   const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'explore', 'profile', 'settings', 'dictionary', or 'savedposts'
+  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'settings', 'dictionary', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([]);
   const [firebaseError, setFirebaseError] = useState(null);
   const [toastState, setToastState] = useState(null);
@@ -277,7 +277,8 @@ function App() {
   };
 
   const handleNavigation = (view) => {
-    setCurrentView(view);
+    // Explore removed; keep any legacy navigation safe.
+    setCurrentView(view === 'explore' ? 'feed' : view);
   };
 
   // Language switching removed (Japanese-only).
@@ -354,6 +355,16 @@ function MainApp({
   removeWordFromDictionary,
   setFirebaseError,
 }) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [feedSearchQuery, setFeedSearchQuery] = useState("")
+
+  // Close search when navigating away from the feed
+  useEffect(() => {
+    if (currentView !== 'feed') {
+      setIsSearchOpen(false)
+      setFeedSearchQuery("")
+    }
+  }, [currentView])
   // Show authentication if not authenticated
   if (!currentUser) {
     return <Auth onAuthComplete={handleAuthComplete} />;
@@ -435,6 +446,42 @@ function MainApp({
             </div>
 
             <div className="flex items-center space-x-4">
+              {currentView === 'feed' && (
+                <div className="flex items-center gap-2">
+                  {!isSearchOpen ? (
+                    <button
+                      type="button"
+                      className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      aria-label="Search"
+                      onClick={() => setIsSearchOpen(true)}
+                    >
+                      <Search className="w-5 h-5 text-gray-700" />
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={feedSearchQuery}
+                        onChange={(e) => setFeedSearchQuery(e.target.value)}
+                        autoFocus
+                        placeholder="Search posts, @username, r/subreddit"
+                        className="h-9 w-56 sm:w-72 md:w-96 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus-visible:border-orange-300 focus-visible:ring-2 focus-visible:ring-orange-100"
+                      />
+                      <button
+                        type="button"
+                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                        aria-label="Close search"
+                        onClick={() => {
+                          setIsSearchOpen(false)
+                          setFeedSearchQuery("")
+                        }}
+                      >
+                        <X className="w-5 h-5 text-gray-700" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-700">
                 <span>{userProfile?.targetLanguage || "Japanese"}</span>
                 <ChevronDown className="w-4 h-4 opacity-0" aria-hidden="true" />
@@ -456,17 +503,7 @@ function MainApp({
             userProfile={userProfile}
             onAddWordToDictionary={addWordToDictionary}
             userDictionary={userDictionary}
-            viewMode="feed"
-          />
-        )}
-
-        {currentView === "explore" && (
-          <NewsFeed
-            selectedCountry="Japan"
-            userProfile={userProfile}
-            onAddWordToDictionary={addWordToDictionary}
-            userDictionary={userDictionary}
-            viewMode="explore"
+            searchQuery={feedSearchQuery}
           />
         )}
 

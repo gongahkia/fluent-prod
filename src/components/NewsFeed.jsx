@@ -20,18 +20,15 @@ import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/rend
 import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import { FeedSkeleton } from "./ui/skeleton"
-import subredditsConfig from "@config/subreddits.json"
+import Fuse from "fuse.js"
 
 const NewsFeed = ({
   selectedCountry,
   userProfile,
   onAddWordToDictionary,
   userDictionary,
-  viewMode = "feed",
+  searchQuery = "",
 }) => {
-  const shouldShowSearch = viewMode === "explore"
-  const shouldFilterByInterests = viewMode === "feed"
-
   const { currentUser } = useAuth()
   const [showComments, setShowComments] = useState({})
   const [selectedWord, setSelectedWord] = useState(null)
@@ -51,59 +48,47 @@ const NewsFeed = ({
   const [offset, setOffset] = useState(0)
   const [totalCachedPosts, setTotalCachedPosts] = useState(0)
 
-  const [searchQuery, setSearchQuery] = useState("")
   const [settingsModalPost, setSettingsModalPost] = useState(null)
   const [hiddenPosts, setHiddenPosts] = useState(new Set())
-  const [isSearching, setIsSearching] = useState(false)
-  const [activeSearchQuery, setActiveSearchQuery] = useState("")
-  const searchTimeoutRef = useRef(null)
   const [expandedPosts, setExpandedPosts] = useState({})
   const [savedPostIds, setSavedPostIds] = useState(new Set())
   const [savingPost, setSavingPost] = useState(null)
 
-  const interestSubreddits = useMemo(() => {
-    const selectedTags = Array.isArray(userProfile?.selectedTags) ? userProfile.selectedTags : []
-    if (selectedTags.length > 0) {
-      return new Set(selectedTags.map((s) => String(s).toLowerCase()))
-    }
-
-    const interests = Array.isArray(userProfile?.interests) ? userProfile.interests : []
-    const selectedFromChildren = interests
-      .filter((i) => typeof i === "string" && i.includes("/"))
-      .map((i) => i.split("/")[1])
-      .filter(Boolean)
-
-    if (selectedFromChildren.length > 0) {
-      return new Set(selectedFromChildren.map((s) => String(s).toLowerCase()))
-    }
-
-    const selectedCategories = interests
-      .filter((i) => typeof i === "string" && !i.includes("/"))
-      .map((i) => String(i))
-
-    if (selectedCategories.length > 0) {
-      const categories = subredditsConfig?.interestCategories?.japanese || []
-      const matched = categories.filter((c) => selectedCategories.includes(c?.name))
-      const subs = matched.flatMap((c) => (Array.isArray(c?.subreddits) ? c.subreddits : []))
-      if (subs.length > 0) {
-        return new Set(subs.map((s) => String(s).toLowerCase()))
-      }
-    }
-
-    return new Set()
-  }, [userProfile?.selectedTags, userProfile?.interests])
-
   const displayedPosts = useMemo(() => {
     const unhidden = posts.filter((article) => !hiddenPosts.has(article.id))
+    const raw = String(searchQuery || "").trim()
+    if (!raw) return unhidden
 
-    if (!shouldFilterByInterests) return unhidden
-    if (interestSubreddits.size === 0) return []
+    const lowered = raw.toLowerCase()
 
-    return unhidden.filter((article) => {
-      const subreddit = String(article.subreddit || "").toLowerCase()
-      return subreddit && interestSubreddits.has(subreddit)
+    // Special-case: @username and r/subreddit searches
+    if (lowered.startsWith("@")) {
+      const q = lowered.slice(1).trim()
+      if (!q) return unhidden
+      return unhidden.filter((p) => String(p.author || "").toLowerCase().includes(q))
+    }
+    if (lowered.startsWith("r/")) {
+      const q = lowered.slice(2).trim()
+      if (!q) return unhidden
+      return unhidden.filter((p) => String(p.subreddit || "").toLowerCase().includes(q))
+    }
+
+    const fuse = new Fuse(unhidden, {
+      includeScore: true,
+      shouldSort: true,
+      threshold: 0.35,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+      keys: [
+        { name: "title", weight: 0.5 },
+        { name: "content", weight: 0.3 },
+        { name: "author", weight: 0.15 },
+        { name: "subreddit", weight: 0.05 },
+      ],
     })
-  }, [posts, hiddenPosts, shouldFilterByInterests, interestSubreddits])
+
+    return fuse.search(raw).map((r) => r.item)
+  }, [posts, hiddenPosts, searchQuery])
 
   // Check API configuration on component mount
   // Load saved posts on mount

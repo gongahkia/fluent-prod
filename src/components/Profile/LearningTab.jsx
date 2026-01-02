@@ -18,10 +18,9 @@ const LearningTab = ({ formData, handleInputChange }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
               <option value="English">English</option>
-              <option value="Spanish">Spanish</option>
-              <option value="French">French</option>
-              <option value="German">German</option>
-              <option value="Chinese">Chinese</option>
+              <option value="Chinese" disabled>Chinese</option>
+              <option value="Bahasa Indonesia" disabled>Bahasa Indonesia</option>
+              <option value="Japanese" disabled>Japanese</option>
             </select>
           </div>
           <div>
@@ -34,13 +33,10 @@ const LearningTab = ({ formData, handleInputChange }) => {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
+              <option value="English" disabled>English</option>
+              <option value="Chinese" disabled>Chinese</option>
+              <option value="Bahasa Indonesia" disabled>Bahasa Indonesia</option>
               <option value="Japanese">Japanese</option>
-              <option value="Chinese" disabled>
-                Chinese (Coming soon)
-              </option>
-              <option value="Spanish" disabled>
-                Spanish (Coming soon)
-              </option>
             </select>
           </div>
         </div>
