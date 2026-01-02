@@ -32,11 +32,7 @@ export const handleWordClick = async (
   // Auto-detect if word is in target language or English if not specified
   let isTargetLang = isJapanese
   if (isTargetLang === null) {
-    if (targetLanguage === 'Korean') {
-      isTargetLang = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(word)
-    } else {
-      isTargetLang = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word)
-    }
+    isTargetLang = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(word)
   }
 
   // Clean the word (remove punctuation)
@@ -54,7 +50,7 @@ export const handleWordClick = async (
       pronunciation,
       contextTranslationResult
 
-    const langCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
+    const langCode = 'ja'
 
     if (isTargetLang) {
       // Target language to English
@@ -110,16 +106,10 @@ export const handleWordClick = async (
       postHash: contextPostHash,
     }
 
-    if (targetLanguage === 'Korean') {
-      wordData.korean = isTargetLang ? cleanWord : translation
-      wordData.romanization = pronunciation
-      wordData.showKoreanTranslation = !isTargetLang
-    } else {
-      wordData.japanese = isTargetLang ? cleanWord : translation
-      wordData.hiragana = pronunciation
-      wordData.isJapanese = isTargetLang
-      wordData.showJapaneseTranslation = !isTargetLang
-    }
+    wordData.japanese = isTargetLang ? cleanWord : translation
+    wordData.hiragana = pronunciation
+    wordData.isJapanese = isTargetLang
+    wordData.showJapaneseTranslation = !isTargetLang
 
     setSelectedWord(wordData)
   } catch (error) {
@@ -138,16 +128,10 @@ export const handleWordClick = async (
       postHash: contextPostHash,
     }
 
-    if (targetLanguage === 'Korean') {
-      errorData.korean = isTargetLang ? cleanWord : "Translation failed"
-      errorData.romanization = "Translation service unavailable"
-      errorData.showKoreanTranslation = !isTargetLang
-    } else {
-      errorData.japanese = isTargetLang ? cleanWord : "Translation failed"
-      errorData.hiragana = "Translation service unavailable"
-      errorData.isJapanese = isTargetLang
-      errorData.showJapaneseTranslation = !isTargetLang
-    }
+    errorData.japanese = isTargetLang ? cleanWord : "Translation failed"
+    errorData.hiragana = "Translation service unavailable"
+    errorData.isJapanese = isTargetLang
+    errorData.showJapaneseTranslation = !isTargetLang
 
     setSelectedWord(errorData)
   } finally {

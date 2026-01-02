@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { createMixedLanguageContent, containsJapanese, containsKorean } from './services/translationService.js'
+import { createMixedLanguageContent, containsJapanese } from './services/translationService.js'
 import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
 import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
 
@@ -121,7 +121,11 @@ const TARGET_LANG = String(argv.targetLang || process.env.TARGET_LANG || preset.
 const OUT_FILE = String(argv.outFile || process.env.OUT_FILE || preset.outFile)
 const MAX_NEW_POSTS = toInt(argv.maxNewPosts || process.env.MAX_NEW_POSTS, 200)
 
-const queryKey = String(argv.query || process.env.QUERY || (TARGET_LANG === 'ko' ? 'korea' : 'japan'))
+if (TARGET_LANG !== 'ja') {
+  throw new Error(`Only Japanese is supported (targetLang must be 'ja'; got ${TARGET_LANG}).`)
+}
+
+const queryKey = String(argv.query || process.env.QUERY || 'japan')
 
 const subredditsArg = argv.subreddits || process.env.SUBREDDITS
 const SUBREDDITS = subredditsArg
@@ -196,7 +200,6 @@ async function fetchRedditListing(subreddit, limit) {
 
 function hasTargetLanguageContent(text, targetLang) {
   if (!text) return false
-  if (targetLang === 'ko') return containsKorean(text)
   if (targetLang === 'ja') return containsJapanese(text)
   // Fallback: for unsupported target languages, don't filter.
   return true

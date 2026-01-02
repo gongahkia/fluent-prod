@@ -15,16 +15,6 @@ const GeneralTab = ({ formData, handleInputChange }) => {
       "japanmemes",
       "shibuya",
       "harajuku"
-    ],
-    Korean: [
-      "hanguk",
-      "kpop",
-      "korea",
-      "korean",
-      "southkorea",
-      "seoul",
-      "koreanews",
-      "koreamemes"
     ]
   }
 
@@ -166,8 +156,7 @@ const GeneralTab = ({ formData, handleInputChange }) => {
 
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
           <p className="text-sm text-orange-800">
-            <strong>Currently showing:</strong> r/{formData.targetLanguage === 'Japanese' ? 'japan' : 'korea'} subreddits.
-            Change your learning language in the Learning tab to see different options.
+            <strong>Currently showing:</strong> r/japan subreddits.
           </p>
         </div>
 

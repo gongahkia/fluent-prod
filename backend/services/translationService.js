@@ -304,7 +304,7 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
   // userLevel is intentionally ignored (cache always precomputes everything).
   const toLang = sourceLang || 'en'
 
-  // Validate translation pair (e.g., ja-en, ko-en)
+  // Validate translation pair (e.g., ja-en)
   if (!isTranslationPairSupported(targetLang, toLang)) {
     throw new Error(`Translation pair ${targetLang}-${toLang} is not supported`)
   }
@@ -355,7 +355,6 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
       targetLanguage: targetLang
     }
 
-    if (targetLang === 'ko') metadataEntry.showKorean = true
     if (targetLang === 'ja') metadataEntry.showJapanese = true
 
     wordMetadata.push(metadataEntry)
@@ -390,18 +389,6 @@ async function extractTargetLanguageTokenOccurrences(text, targetLang) {
       .filter((t) => t.token && containsJapanese(t.token))
       .filter((t) => !excludedPos.has(t.pos))
       .filter((t) => t.end > t.start)
-  }
-
-  if (targetLang === 'ko') {
-    const out = []
-    const re = /[\uAC00-\uD7AF]+/g
-    for (const match of text.matchAll(re)) {
-      const token = match[0]
-      const start = match.index ?? -1
-      if (start < 0) continue
-      out.push({ token, start, end: start + token.length })
-    }
-    return out
   }
 
   return []
@@ -446,9 +433,7 @@ async function processSentenceForMixedContent(sentence, translationPercentage, s
       }
 
       // Add appropriate flag based on target language
-      if (targetLang === 'ko') {
-        metadataEntry.showKorean = true
-      } else if (targetLang === 'ja') {
+      if (targetLang === 'ja') {
         metadataEntry.showJapanese = true
       }
 
@@ -516,11 +501,6 @@ async function selectWordsForTranslation(words, percentage) {
 // Language detection helpers - now use mappings
 export function containsJapanese(text) {
   const regex = new RegExp(translationMappings.languages.ja.characterRanges.regex)
-  return regex.test(text)
-}
-
-export function containsKorean(text) {
-  const regex = new RegExp(translationMappings.languages.ko.characterRanges.regex)
   return regex.test(text)
 }
 

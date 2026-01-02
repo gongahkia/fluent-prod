@@ -129,7 +129,6 @@ export async function createVocabularyWord(word, type = 'unknown', context = '',
     english: cleanWord,
     translation: translation.translation,
     japanese: targetLang === 'ja' ? translation.translation : undefined,
-    korean: targetLang === 'ko' ? translation.translation : undefined,
     type: type,
     level: wordDifficulty, // Use calculated word difficulty instead of type-based
     pronunciation: '', // Could be enhanced with pronunciation API

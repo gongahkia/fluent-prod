@@ -152,7 +152,7 @@ const NewsFeed = ({
 
       console.warn('Posts not pre-processed by backend, processing on frontend (slower)')
       setProcessingPosts(true)
-      const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
+      const targetLangCode = 'ja'
 
       // Process posts asynchronously
       const processPromises = postsToProcess.map(async (post, index) => {
@@ -251,19 +251,8 @@ const NewsFeed = ({
           })
         }
 
-        // Determine query based on target language
-        let defaultQuery;
-        switch (userProfile?.targetLanguage) {
-          case 'Korean':
-            defaultQuery = 'korea';
-            break;
-          case 'Japanese':
-            defaultQuery = 'japan';
-            break;
-          default:
-            defaultQuery = 'japan'; // Fallback to japan for now
-            break;
-        }
+        // Japanese-only
+        const defaultQuery = 'japan'
 
         // Load 50 posts initially, then 25 more each time
         const initialPostLimit = 50;
@@ -272,7 +261,7 @@ const NewsFeed = ({
         const currentOffset = isLoadMore ? offset : 0;
 
         // Determine target language code
-        const targetLangCode = userProfile?.targetLanguage === 'Korean' ? 'ko' : 'ja';
+        const targetLangCode = 'ja';
 
         const result = await fetchPosts({
           sources: enabledSources,
@@ -487,84 +476,42 @@ const NewsFeed = ({
 
   const handleAddToDictionary = () => {
     if (selectedWord) {
-      const targetLang = userProfile?.targetLanguage || 'Japanese'
       let wordToAdd
 
-      if (targetLang === 'Korean') {
-        if (selectedWord.showKoreanTranslation) {
-          // English word - add the Korean translation to dictionary
-          wordToAdd = {
-            korean: selectedWord.english, // Korean translation
-            romanization: selectedWord.romanization,
-            english: selectedWord.korean, // Original English word
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-            postHash: selectedWord.postHash || null,
-          }
-        } else {
-          // Korean word - add normally
-          wordToAdd = {
-            korean: selectedWord.korean,
-            romanization: selectedWord.romanization,
-            english: selectedWord.english,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-            postHash: selectedWord.postHash || null,
-          }
-        }
-
-        const exists = userDictionary.some(
-          (word) => word.korean === wordToAdd.korean
-        )
-
-        if (!exists) {
-          onAddWordToDictionary(wordToAdd)
-          showFeedback("Saved Word!", "")
-        } else {
-          showFeedback("Already saved!", "")
+      // Japanese-only
+      if (selectedWord.showJapaneseTranslation) {
+        // English word - add the Japanese translation to dictionary
+        wordToAdd = {
+          japanese: selectedWord.english,
+          hiragana: selectedWord.hiragana,
+          english: selectedWord.japanese,
+          level: selectedWord.level,
+          example: selectedWord.example,
+          exampleEn: selectedWord.exampleEn,
+          source: "Fluent Post",
+          postHash: selectedWord.postHash || null,
         }
       } else {
-        // Japanese
-        if (selectedWord.showJapaneseTranslation) {
-          // English word - add the Japanese translation to dictionary
-          wordToAdd = {
-            japanese: selectedWord.english, // Japanese translation
-            hiragana: selectedWord.hiragana, // Katakana pronunciation
-            english: selectedWord.japanese, // Original English word
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-            postHash: selectedWord.postHash || null,
-          }
-        } else {
-          // Japanese word - add normally
-          wordToAdd = {
-            japanese: selectedWord.japanese,
-            hiragana: selectedWord.hiragana,
-            english: selectedWord.english,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-            postHash: selectedWord.postHash || null,
-          }
+        // Japanese word - add normally
+        wordToAdd = {
+          japanese: selectedWord.japanese,
+          hiragana: selectedWord.hiragana,
+          english: selectedWord.english,
+          level: selectedWord.level,
+          example: selectedWord.example,
+          exampleEn: selectedWord.exampleEn,
+          source: "Fluent Post",
+          postHash: selectedWord.postHash || null,
         }
+      }
 
-        const exists = userDictionary.some(
-          (word) => word.japanese === wordToAdd.japanese
-        )
+      const exists = userDictionary.some((word) => word.japanese === wordToAdd.japanese)
 
-        if (!exists) {
-          onAddWordToDictionary(wordToAdd)
-          showFeedback("Saved Word!", "")
-        } else {
-          showFeedback("Already saved!", "")
-        }
+      if (!exists) {
+        onAddWordToDictionary(wordToAdd)
+        showFeedback("Saved Word!", "")
+      } else {
+        showFeedback("Already saved!", "")
       }
     }
   }

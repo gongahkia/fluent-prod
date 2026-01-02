@@ -1,7 +1,7 @@
 /**
  * SpeechToTextButton Component
  * Button for speech-to-text transcription in comment sections
- * Supports Japanese and Korean based on user's target language
+ * Supports Japanese speech input
  */
 
 import React, { useState } from 'react'

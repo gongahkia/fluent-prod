@@ -228,18 +228,9 @@ class TranslationService {
   }
 
   /**
-   * Check if text contains Korean characters
-   * @param {string} text - Text to check
-   * @returns {boolean} True if text contains Korean
-   */
-  containsKorean(text) {
-    return this.containsLanguageCharacters(text, 'ko')
-  }
-
-  /**
    * Check if text contains target language characters
    * @param {string} text - Text to check
-   * @param {string} languageCode - Language code (ja, ko, etc.)
+   * @param {string} languageCode - Language code (e.g. ja)
    * @returns {boolean} True if text contains target language
    */
   containsTargetLanguage(text, languageCode) {

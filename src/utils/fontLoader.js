@@ -30,7 +30,7 @@ export function generateGoogleFontsUrl() {
 
 /**
  * Generates font stack string from configuration
- * @param {string} stackName - Name of the font stack (sans, japanese, korean)
+ * @param {string} stackName - Name of the font stack (sans, japanese)
  * @returns {string} Font stack string
  */
 export function getFontStack(stackName = 'sans') {
@@ -73,7 +73,7 @@ export function getFontConfig() {
 
 /**
  * Gets language-specific font information
- * @param {string} langCode - Language code (ja, ko)
+ * @param {string} langCode - Language code (ja)
  * @returns {object|null} Language font configuration
  */
 export function getLanguageFont(langCode) {
@@ -129,14 +129,12 @@ export function injectPreconnect() {
 export function applyFontVariables() {
   const sans = getFontStack('sans');
   const japanese = getFontStack('japanese');
-  const korean = getFontStack('korean');
 
   const style = document.createElement('style');
   style.textContent = `
     :root {
       --font-sans: ${sans};
       --font-japanese: ${japanese};
-      --font-korean: ${korean};
     }
   `;
   document.head.appendChild(style);

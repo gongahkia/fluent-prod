@@ -86,16 +86,7 @@ const EnhancedCommentSystem = ({
       } else {
         console.warn('No suggestions in response, using fallbacks')
         // Fallback suggestions based on target language
-        const fallbackSuggestions = targetLanguage === 'Korean' ? [
-          {
-            text: 'This is interesting! 더 알고 싶어요.',
-            translation: 'I want to know more.'
-          },
-          {
-            text: 'Great post! 한국어 공부에 도움이 돼요.',
-            translation: 'This helps with studying Korean.'
-          }
-        ] : [
+        const fallbackSuggestions = [
           {
             text: 'This is interesting! もっと知りたいです。',
             translation: 'I want to know more.'
@@ -111,17 +102,7 @@ const EnhancedCommentSystem = ({
     } catch (error) {
       console.error('Failed to fetch AI suggestions:', error)
       // Fallback suggestions based on target language
-      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
-      const fallbackSuggestions = targetLanguage === 'Korean' ? [
-        {
-          text: 'This looks amazing! 어디예요?',
-          translation: 'Where is this?'
-        },
-        {
-          text: 'Thanks for sharing! 공부가 돼요.',
-          translation: 'This is educational.'
-        }
-      ] : [
+      const fallbackSuggestions = [
         {
           text: 'This looks amazing! どこですか？',
           translation: 'Where is this?'
@@ -194,28 +175,15 @@ const EnhancedCommentSystem = ({
 
   const handleAddToDictionary = () => {
     if (selectedWord) {
-      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
-
-      const wordToAdd = targetLanguage === 'Korean'
-        ? {
-            korean: selectedWord.korean,
-            romanization: selectedWord.romanization,
-            english: selectedWord.english,
-            level: selectedWord.level,
-          }
-        : {
-            japanese: selectedWord.japanese,
-            hiragana: selectedWord.hiragana,
-            english: selectedWord.english,
-            level: selectedWord.level,
-          }
+      const wordToAdd = {
+        japanese: selectedWord.japanese,
+        hiragana: selectedWord.hiragana,
+        english: selectedWord.english,
+        level: selectedWord.level,
+      }
 
       const isAlreadyInDictionary = userDictionary.some((item) => {
-        if (targetLanguage === 'Korean') {
-          return item.korean === wordToAdd.korean || item.english === wordToAdd.english
-        } else {
-          return item.japanese === wordToAdd.japanese || item.english === wordToAdd.english
-        }
+        return item.japanese === wordToAdd.japanese || item.english === wordToAdd.english
       })
 
       if (!isAlreadyInDictionary) {
@@ -288,7 +256,6 @@ const EnhancedCommentSystem = ({
       }
 
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment)
-      const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
@@ -315,21 +282,6 @@ const EnhancedCommentSystem = ({
                 </span>
               )
             })}
-          </span>
-        )
-      } else if (hasKorean) {
-        // Korean is target language if user is learning Korean
-        const isTargetLanguage = userProfile?.targetLanguage === 'Korean'
-        return (
-          <span key={segmentIndex}>
-            <span
-              className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-              onClick={() => handleWordClick(segment.trim(), isTargetLanguage, text)}
-              title={`Click to translate: ${segment.trim()}`}
-              style={{ textDecoration: "none" }}
-            >
-              {segment}
-            </span>
           </span>
         )
       } else if (hasEnglish) {

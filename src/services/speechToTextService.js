@@ -1,7 +1,7 @@
 /**
  * Speech-to-Text Service
  * Handles speech recognition using Web Speech API
- * Supports Japanese and Korean language detection for language learning
+ * Supports Japanese speech recognition for language learning
  */
 
 class SpeechToTextService {
@@ -46,22 +46,20 @@ class SpeechToTextService {
 
   /**
    * Get language code for Web Speech API based on target language
-   * @param {string} targetLanguage - Target language (Japanese, Korean)
-   * @returns {string} Language code (ja-JP, ko-KR)
+   * @param {string} targetLanguage - Target language (Japanese)
+   * @returns {string} Language code (ja-JP)
    */
   getLanguageCode(targetLanguage) {
     const languageMap = {
       Japanese: 'ja-JP',
-      Korean: 'ko-KR',
       ja: 'ja-JP',
-      ko: 'ko-KR',
     }
     return languageMap[targetLanguage] || 'ja-JP'
   }
 
   /**
    * Start listening for speech in the specified language
-   * @param {string} targetLanguage - Language to listen for (Japanese or Korean)
+    * @param {string} targetLanguage - Language to listen for (Japanese)
    * @param {Object} callbacks - Event callbacks
    * @param {Function} callbacks.onResult - Called with transcribed text
    * @param {Function} callbacks.onStart - Called when listening starts

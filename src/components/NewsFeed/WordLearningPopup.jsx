@@ -131,78 +131,7 @@ const WordLearningPopup = ({
           <div className="text-center">
             {/* Word Display - handles both target language and English words bidirectionally */}
             <div className="mb-4">
-              {userProfile?.targetLanguage === 'Korean' ? (
-                // Korean mode
-                selectedWord.showKoreanTranslation ? (
-                  // English word clicked -> show Korean translation
-                  <>
-                    <div className="text-sm text-gray-500 mb-1">
-                      English word:
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {selectedWord.english}
-                      </div>
-                      <PronunciationButton
-                        text={selectedWord.english}
-                        language="English"
-                      />
-                    </div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Korean translation:
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <div className="text-3xl font-bold text-gray-900">
-                        {selectedWord.korean}
-                      </div>
-                      <PronunciationButton
-                        text={selectedWord.korean}
-                        language="Korean"
-                      />
-                    </div>
-                    {selectedWord.romanization && (
-                      <div className="text-lg text-gray-600 mb-2">
-                        {selectedWord.romanization}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  // Korean word clicked -> show English translation
-                  <>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Korean word:
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <div className="text-3xl font-bold text-gray-900">
-                        {selectedWord.korean}
-                      </div>
-                      <PronunciationButton
-                        text={selectedWord.korean}
-                        language="Korean"
-                      />
-                    </div>
-                    {selectedWord.romanization && selectedWord.romanization !== selectedWord.korean && (
-                      <div className="text-lg text-gray-600 mb-2">
-                        {selectedWord.romanization}
-                      </div>
-                    )}
-                    <div className="text-sm text-gray-500 mb-1">
-                      English translation:
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="text-2xl font-bold text-amber-600">
-                        {selectedWord.english}
-                      </div>
-                      <PronunciationButton
-                        text={selectedWord.english}
-                        language="English"
-                      />
-                    </div>
-                  </>
-                )
-              ) : (
-                // Japanese mode
-                selectedWord.showJapaneseTranslation ? (
+              {selectedWord.showJapaneseTranslation ? (
                   // English word clicked -> show Japanese translation
                   <>
                     <div className="text-sm text-gray-500 mb-1">
@@ -267,7 +196,7 @@ const WordLearningPopup = ({
                     </div>
                   </>
                 )
-              )}
+              }
             </div>
 
             {/* Level Badge */}
@@ -317,23 +246,12 @@ const WordLearningPopup = ({
 
             {/* Dictionary Status */}
             {(() => {
-              let wordToCheck, isInDictionary;
-
-              if (userProfile?.targetLanguage === 'Korean') {
-                wordToCheck = selectedWord.showKoreanTranslation
-                  ? selectedWord.english
-                  : selectedWord.korean
-                isInDictionary = userDictionary.some(
-                  (word) => word.korean === wordToCheck
-                )
-              } else {
-                wordToCheck = selectedWord.showJapaneseTranslation
-                  ? selectedWord.english
-                  : selectedWord.japanese
-                isInDictionary = userDictionary.some(
-                  (word) => word.japanese === wordToCheck
-                )
-              }
+              const wordToCheck = selectedWord.showJapaneseTranslation
+                ? selectedWord.english
+                : selectedWord.japanese
+              const isInDictionary = userDictionary.some(
+                (word) => word.japanese === wordToCheck
+              )
 
               return (
                 isInDictionary && (

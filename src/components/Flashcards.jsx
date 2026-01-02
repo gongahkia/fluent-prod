@@ -138,9 +138,9 @@ const Flashcards = ({ userDictionary, onUpdateWord, userProfile, onBack }) => {
 
     return userDictionary.map((word) => ({
       id: word.id,
-      word: word[langFields.word] || word.japanese || word.korean || "",
+      word: word[langFields.word] || word.japanese || "",
       reading:
-        word[langFields.reading] || word.hiragana || word.romanization || "",
+        word[langFields.reading] || word.hiragana || "",
       meaning: word[langFields.meaning] || word.english || "",
       example: word.example,
       exampleTranslation: word.exampleEn,

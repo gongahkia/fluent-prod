@@ -1,21 +1,6 @@
 {
   "description": "Configuration for Reddit subreddits to fetch posts from for each language/query",
   "queries": {
-    "korea": {
-      "language": "Korean",
-      "targetLang": "ko",
-      "subreddits": [
-        "hanguk",
-        "kpop",
-        "korea",
-        "korean",
-        "southkorea",
-        "seoul",
-        "koreanews",
-        "koreamemes"
-      ],
-      "description": "Korean language and culture subreddits"
-    },
     "japan": {
       "language": "Japanese",
       "targetLang": "ja",
@@ -41,33 +26,6 @@
     }
   },
   "interestCategories": {
-    "korean": [
-      {
-        "name": "r/korea",
-        "displayName": "Korea",
-        "subreddits": ["korea", "southkorea", "seoul", "hanguk"]
-      },
-      {
-        "name": "r/kpop",
-        "displayName": "K-Pop",
-        "subreddits": ["kpop"]
-      },
-      {
-        "name": "r/korean",
-        "displayName": "Korean Language",
-        "subreddits": ["korean"]
-      },
-      {
-        "name": "r/koreanews",
-        "displayName": "Korean News",
-        "subreddits": ["koreanews"]
-      },
-      {
-        "name": "r/koreamemes",
-        "displayName": "Korean Memes",
-        "subreddits": ["koreamemes"]
-      }
-    ],
     "japanese": [
       {
         "name": "r/japan",

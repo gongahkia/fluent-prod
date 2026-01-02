@@ -42,7 +42,7 @@ const SinglePostView = ({
     }
 
     setIsProcessing(true)
-    const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
+    const targetLangCode = 'ja'
 
     try {
       // Check if post already contains target language
@@ -103,75 +103,38 @@ const SinglePostView = ({
 
   const handleAddToDictionary = () => {
     if (selectedWord) {
-      const targetLang = userProfile?.targetLanguage || 'Japanese'
       let wordToAdd
 
-      if (targetLang === 'Korean') {
-        if (selectedWord.showKoreanTranslation) {
-          wordToAdd = {
-            korean: selectedWord.english,
-            romanization: selectedWord.romanization,
-            english: selectedWord.korean,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-          }
-        } else {
-          wordToAdd = {
-            korean: selectedWord.korean,
-            romanization: selectedWord.romanization,
-            english: selectedWord.english,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-          }
-        }
-
-        const exists = userDictionary.some(
-          (word) => word.korean === wordToAdd.korean
-        )
-
-        if (!exists) {
-          onAddWordToDictionary(wordToAdd)
-          showFeedback("Saved Word!", "")
-        } else {
-          showFeedback("Already saved!", "")
+      // Japanese-only
+      if (selectedWord.showJapaneseTranslation) {
+        wordToAdd = {
+          japanese: selectedWord.english,
+          hiragana: selectedWord.hiragana,
+          english: selectedWord.japanese,
+          level: selectedWord.level,
+          example: selectedWord.example,
+          exampleEn: selectedWord.exampleEn,
+          source: "Fluent Post",
         }
       } else {
-        if (selectedWord.showJapaneseTranslation) {
-          wordToAdd = {
-            japanese: selectedWord.english,
-            hiragana: selectedWord.hiragana,
-            english: selectedWord.japanese,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-          }
-        } else {
-          wordToAdd = {
-            japanese: selectedWord.japanese,
-            hiragana: selectedWord.hiragana,
-            english: selectedWord.english,
-            level: selectedWord.level,
-            example: selectedWord.example,
-            exampleEn: selectedWord.exampleEn,
-            source: "Fluent Post",
-          }
+        wordToAdd = {
+          japanese: selectedWord.japanese,
+          hiragana: selectedWord.hiragana,
+          english: selectedWord.english,
+          level: selectedWord.level,
+          example: selectedWord.example,
+          exampleEn: selectedWord.exampleEn,
+          source: "Fluent Post",
         }
+      }
 
-        const exists = userDictionary.some(
-          (word) => word.japanese === wordToAdd.japanese
-        )
+      const exists = userDictionary.some((word) => word.japanese === wordToAdd.japanese)
 
-        if (!exists) {
-          onAddWordToDictionary(wordToAdd)
-          showFeedback("Added to dictionary!", "")
-        } else {
-          showFeedback("Already in dictionary!", "")
-        }
+      if (!exists) {
+        onAddWordToDictionary(wordToAdd)
+        showFeedback("Added to dictionary!", "")
+      } else {
+        showFeedback("Already in dictionary!", "")
       }
     }
   }

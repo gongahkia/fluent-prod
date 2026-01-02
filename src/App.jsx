@@ -31,7 +31,6 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'settings', 'dictionary', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([]);
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
 
   // Firebase ID tokens auto-refresh; no explicit session refresh needed.
@@ -78,17 +77,21 @@ function App() {
     return () => unsubscribe();
   }, [currentUser, userProfile?.targetLanguage]);
 
-  // Close language dropdown when clicking outside
+  // Ensure target language is Japanese-only.
+  // Migrates any legacy profiles that may still have a different target language.
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showLanguageDropdown && !event.target.closest(".language-dropdown")) {
-        setShowLanguageDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showLanguageDropdown]);
+    if (!currentUser || !userProfile) return;
+    if (userProfile.targetLanguage && userProfile.targetLanguage !== 'Japanese') {
+      (async () => {
+        try {
+          await updateUserProfile(currentUser.id, { targetLanguage: 'Japanese' });
+          setUserProfile((prev) => ({ ...prev, targetLanguage: 'Japanese' }));
+        } catch (error) {
+          console.error('Error enforcing Japanese targetLanguage:', error);
+        }
+      })();
+    }
+  }, [currentUser, userProfile, setUserProfile]);
 
   // Check if user needs onboarding
   useEffect(() => {
@@ -193,8 +196,8 @@ function App() {
   const addWordToDictionary = async (wordData) => {
     if (!currentUser) return;
 
-    // Determine target language
-    const targetLang = userProfile?.targetLanguage || "Japanese";
+    // Japanese-only
+    const targetLang = "Japanese";
 
     // Create word object based on language
     const newWord = {
@@ -209,30 +212,14 @@ function App() {
     };
 
     // Add language-specific fields
-    if (targetLang === "Japanese") {
-      newWord.japanese = wordData.japanese || wordData.word;
-      newWord.hiragana =
-        wordData.hiragana || wordData.reading || wordData.japanese;
-      if (!wordData.example) {
-        newWord.example = `${newWord.japanese}の例文です。`;
-      }
-      // Check if word already exists
-      const exists = userDictionary.some(
-        (word) => word.japanese === newWord.japanese,
-      );
-      if (exists) return;
-    } else if (targetLang === "Korean") {
-      newWord.korean = wordData.korean || wordData.word;
-      newWord.romanization = wordData.romanization || wordData.reading || "";
-      if (!wordData.example) {
-        newWord.example = `${newWord.korean}의 예문입니다.`;
-      }
-      // Check if word already exists
-      const exists = userDictionary.some(
-        (word) => word.korean === newWord.korean,
-      );
-      if (exists) return;
+    newWord.japanese = wordData.japanese || wordData.word;
+    newWord.hiragana = wordData.hiragana || wordData.reading || wordData.japanese;
+    if (!wordData.example) {
+      newWord.example = `${newWord.japanese}の例文です。`;
     }
+    // Check if word already exists
+    const exists = userDictionary.some((word) => word.japanese === newWord.japanese);
+    if (exists) return;
 
     // Add to Firebase (Firestore)
     // The targetLanguage in newWord will be used to determine the correct collection
@@ -273,17 +260,7 @@ function App() {
     setCurrentView(view);
   };
 
-  const handleLanguageChange = async (newLanguage) => {
-    if (!currentUser) return;
-
-    try {
-      await updateUserProfile(currentUser.id, { targetLanguage: newLanguage });
-      setUserProfile((prev) => ({ ...prev, targetLanguage: newLanguage }));
-      setShowLanguageDropdown(false);
-    } catch (error) {
-      console.error("Error updating language:", error);
-    }
-  };
+  // Language switching removed (Japanese-only).
 
   // Show loading screen on initial app load
   if (showLoadingScreen) {
@@ -339,11 +316,8 @@ function MainApp({
   showOnboarding,
   currentView,
   userDictionary,
-  showLanguageDropdown,
   firebaseError,
-  setShowLanguageDropdown,
   setCurrentView,
-  handleLanguageChange,
   handleNavigation,
   handleLogout,
   handleAuthComplete,
@@ -434,42 +408,9 @@ function MainApp({
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Language Dropdown */}
-              <div className="relative language-dropdown">
-                <button
-                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-700"
-                >
-                  <span>
-                    {userProfile?.targetLanguage || "Japanese"}
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                {showLanguageDropdown && (
-                  <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[150px] max-w-[calc(100vw-2rem)]">
-                    <button
-                      onClick={() => handleLanguageChange("Japanese")}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
-                        userProfile?.targetLanguage === "Japanese"
-                          ? "bg-gray-50 text-gray-900 font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <span>Japanese</span>
-                    </button>
-                    <button
-                      onClick={() => handleLanguageChange("Korean")}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors flex items-center space-x-2 ${
-                        userProfile?.targetLanguage === "Korean"
-                          ? "bg-gray-50 text-gray-900 font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <span>Korean</span>
-                    </button>
-                  </div>
-                )}
+              <div className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-700">
+                <span>{userProfile?.targetLanguage || "Japanese"}</span>
+                <ChevronDown className="w-4 h-4 opacity-0" aria-hidden="true" />
               </div>
 
             </div>

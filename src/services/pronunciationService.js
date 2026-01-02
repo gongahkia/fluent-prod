@@ -1,7 +1,7 @@
 /**
  * Pronunciation Service
  * Handles text-to-speech functionality using Web Speech API
- * Supports Japanese, Korean, and English pronunciation
+ * Supports Japanese and English pronunciation
  */
 
 class PronunciationService {
@@ -44,16 +44,14 @@ class PronunciationService {
 
   /**
    * Get language code for Web Speech API
-   * @param {string} language - Language name (Japanese, Korean, English)
-   * @returns {string} Language code (ja-JP, ko-KR, en-US)
+   * @param {string} language - Language name (Japanese, English)
+   * @returns {string} Language code (ja-JP, en-US)
    */
   getLanguageCode(language) {
     const languageMap = {
       Japanese: 'ja-JP',
-      Korean: 'ko-KR',
       English: 'en-US',
       ja: 'ja-JP',
-      ko: 'ko-KR',
       en: 'en-US',
     };
     return languageMap[language] || 'en-US';
@@ -61,7 +59,7 @@ class PronunciationService {
 
   /**
    * Get best available voice for a language
-   * @param {string} languageCode - Language code (ja-JP, ko-KR, en-US)
+    * @param {string} languageCode - Language code (ja-JP, en-US)
    * @returns {SpeechSynthesisVoice|null}
    */
   getVoiceForLanguage(languageCode) {
@@ -87,7 +85,7 @@ class PronunciationService {
   /**
    * Pronounce text in the specified language
    * @param {string} text - Text to pronounce
-   * @param {string} language - Language (Japanese, Korean, English)
+    * @param {string} language - Language (Japanese, English)
    * @param {Object} options - Additional options
    * @param {number} options.rate - Speech rate (0.1 to 10, default 1)
    * @param {number} options.pitch - Speech pitch (0 to 2, default 1)

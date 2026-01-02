@@ -22,7 +22,6 @@ const LearningTab = ({ formData, handleInputChange }) => {
               <option value="French">French</option>
               <option value="German">German</option>
               <option value="Chinese">Chinese</option>
-              <option value="Korean">Korean</option>
             </select>
           </div>
           <div>
@@ -36,7 +35,6 @@ const LearningTab = ({ formData, handleInputChange }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
               <option value="Japanese">Japanese</option>
-              <option value="Korean">Korean</option>
               <option value="Chinese" disabled>
                 Chinese (Coming soon)
               </option>

@@ -136,7 +136,7 @@ async function fetchPostsFromCache(options = {}) {
  * @param {boolean} options.shuffle - Whether to shuffle results
  * @param {number} options.offset - Offset for pagination (default: 0)
  * @param {number} options.userLevel - User's learning level (1-5)
- * @param {string} options.targetLang - Target language code ('ja' or 'ko')
+ * @param {string} options.targetLang - Target language code (e.g. 'ja')
  * @returns {Promise<Object>} Posts and metadata
  */
 export async function fetchPosts(options = {}) {

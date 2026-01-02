@@ -36,16 +36,12 @@ const CollectionWordsModal = ({
       .filter((word) => {
         // Search across all fields
         const japanese = word.japanese || ""
-        const korean = word.korean || ""
         const hiragana = word.hiragana || ""
-        const romanization = word.romanization || ""
         const english = word.english || ""
 
         return (
           japanese.toLowerCase().includes(query) ||
-          korean.toLowerCase().includes(query) ||
           hiragana.toLowerCase().includes(query) ||
-          romanization.toLowerCase().includes(query) ||
           english.toLowerCase().includes(query)
         )
       })
@@ -66,8 +62,8 @@ const CollectionWordsModal = ({
 
   // Helper to display word fields
   const getWordDisplay = (word) => {
-    const targetWord = word.japanese || word.korean || ""
-    const reading = word.hiragana || word.romanization || ""
+    const targetWord = word.japanese || ""
+    const reading = word.hiragana || ""
     const meaning = word.english || ""
 
     return { targetWord, reading, meaning }

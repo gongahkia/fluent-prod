@@ -241,7 +241,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
             if (vocabData && isValidVocabularyWord(cleanWord)) {
               // This is a vocabulary word - make it clickable
-              const targetLangName = targetLanguage === 'Korean' ? 'Korean' : 'Japanese'
+              const targetLangName = 'Japanese'
 
               return (
                 <span
@@ -282,16 +282,16 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const isToggled = stateKey ? translationStates[stateKey] : false
 
         // Determine what to show based on marker semantics:
-        // wordData.showJapanese/showKorean indicates this marker is a TARGET-LANGUAGE token.
+        // wordData.showJapanese indicates this marker is a TARGET-LANGUAGE token.
         // By default show the target-language token; toggling reveals the English translation.
-        const showTargetLang = wordData.showJapanese || wordData.showKorean
+        const showTargetLang = Boolean(wordData.showJapanese)
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
         const displayText = isShowingTargetLang
           ? wordData.original
           : (wordData.translation || wordData.original)
 
         // Determine language name
-        const targetLangName = wordData.showKorean ? 'Korean' : 'Japanese'
+        const targetLangName = 'Japanese'
 
         parts.push(
           <span
@@ -346,7 +346,6 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
         segment
       )
-      const hasKorean = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(segment)
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
@@ -386,23 +385,6 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                 </span>
               )
             })}
-          </span>
-        )
-      } else if (hasKorean) {
-        // Korean text - make it clickable
-        // Korean is target language if user is learning Korean
-        const isTargetLanguage = targetLanguage === 'Korean'
-
-        return (
-          <span key={segmentIndex}>
-            <span
-              className="cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
-              onClick={(e) => handleWordClick(segment, isTargetLanguage, { text: segment, postHash: postId, postId }, e)}
-              title={`Korean: Click to see English "${segment}"`}
-              style={{ textDecoration: "none" }}
-            >
-              {segment}
-            </span>
           </span>
         )
       } else if (hasEnglish) {

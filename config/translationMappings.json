@@ -26,21 +26,6 @@
         "scriptName": "hiragana/kanji",
         "scriptLabel": "Reading"
       }
-    },
-    "ko": {
-      "code": "ko",
-      "name": "Korean",
-      "nativeName": "한국어",
-      "flag": "🇰🇷",
-      "characterRanges": {
-        "regex": "[\\uAC00-\\uD7AF\\u1100-\\u11FF\\u3130-\\u318F]",
-        "description": "Hangul syllables and Jamo"
-      },
-      "writingSystem": {
-        "hasScript": true,
-        "scriptName": "hangul",
-        "scriptLabel": "Romanization"
-      }
     }
   },
   "translationPairs": {
@@ -60,38 +45,7 @@
       "apiProviders": ["lingva", "mymemory", "libretranslate"],
       "priority": 1
     },
-    "en-ko": {
-      "from": "en",
-      "to": "ko",
-      "enabled": true,
-      "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
-      "priority": 1
-    },
-    "ko-en": {
-      "from": "ko",
-      "to": "en",
-      "enabled": true,
-      "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
-      "priority": 1
-    },
-    "ja-ko": {
-      "from": "ja",
-      "to": "ko",
-      "enabled": true,
-      "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
-      "priority": 2
-    },
-    "ko-ja": {
-      "from": "ko",
-      "to": "ja",
-      "enabled": true,
-      "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
-      "priority": 2
-    }
+    
   },
   "apiEndpoints": {
     "lingva": {
@@ -159,13 +113,6 @@
       "meaning": "english",
       "exampleSentence": "example",
       "exampleTranslation": "exampleEn"
-    },
-    "ko": {
-      "word": "korean",
-      "reading": "romanization",
-      "meaning": "english",
-      "exampleSentence": "example",
-      "exampleTranslation": "exampleEn"
     }
   },
   "uiLabels": {
@@ -175,13 +122,6 @@
       "wordLabel": "Japanese",
       "readingLabel": "Reading (Hiragana)",
       "learningMessage": "Learning Japanese"
-    },
-    "ko": {
-      "dictionary": "My Korean Dictionary",
-      "flashcards": "Korean Flashcards",
-      "wordLabel": "Korean",
-      "readingLabel": "Romanization",
-      "learningMessage": "Learning Korean"
     }
   }
 }

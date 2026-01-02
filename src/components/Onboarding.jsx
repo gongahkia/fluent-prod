@@ -17,7 +17,7 @@ const interestCategoriesData = subredditsConfig?.interestCategories || {};
 const Onboarding = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [nativeLanguages, setNativeLanguages] = useState([]);
-  const [targetLanguage, setTargetLanguage] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState("Japanese");
   const [translationLevel, setTranslationLevel] = useState(1);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const [selectedInterests, setSelectedInterests] = useState([]);
@@ -81,66 +81,8 @@ const Onboarding = ({ onComplete }) => {
     },
   ];
 
-  const koreanPostLevels = [
-    {
-      level: 1,
-      name: "Beginner",
-      author: "Minji Kim",
-      location: "Seoul, South Korea",
-      time: "2 hours ago",
-      content:
-        "I went to the 마트 today. I bought 사과 and 빵. The store clerk was very friendly.",
-      image:
-        "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400&h=200&fit=crop", // Modern mart/supermarket
-    },
-    {
-      level: 2,
-      name: "Intermediate",
-      author: "Minji Kim",
-      location: "Seoul, South Korea",
-      time: "2 hours ago",
-      content:
-        "This morning, I visited a 카페 near my house. I ordered 커피 and 케이크. The atmosphere was nice, and I talked with my 친구.",
-      image:
-        "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=400&h=200&fit=crop", // Korean style cafe
-    },
-    {
-      level: 3,
-      name: "Advanced",
-      author: "Minji Kim",
-      location: "Seoul, South Korea",
-      time: "2 hours ago",
-      content:
-        "On Sunday, I went to the 공원 with my 가족. We saw many 벚꽃 and took pictures. My 어머니 made 도시락, and we ate together under the 나무. It was a 즐거운 day.",
-      image:
-        "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=400&h=200&fit=crop", // Cherry blossom park
-    },
-    {
-      level: 4,
-      name: "Expert",
-      author: "Minji Kim",
-      location: "Seoul, South Korea",
-      time: "2 hours ago",
-      content:
-        "Last week, I attended a 한국어 공부 모임 at the 도서관. The 선생님 explained 문법 and 발음 in detail. After the lesson, I discussed 한국 문화 and 역사 with other 참가자들. It was very 재미있었습니다.",
-      image:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop", // Library/study environment
-    },
-    {
-      level: 5,
-      name: "Native",
-      author: "Minji Kim",
-      location: "Seoul, South Korea",
-      time: "2 hours ago",
-      content:
-        "최근에 저는 현대 한국 문학에 관심이 있습니다. 한강의 소설을 읽고 있는데, 그녀의 독특한 표현과 깊은 의미를 이해하는 것이 어렵습니다. Last week, I joined a 독서 모임 and we discussed the book's 주제 and 상징.",
-      image:
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=200&fit=crop", // Korean books/literature
-    },
-  ];
-
   const getCurrentPostLevels = () => {
-    return targetLanguage === "Korean" ? koreanPostLevels : japanesePostLevels;
+    return japanesePostLevels;
   };
 
   const goToPrevious = () => {
@@ -266,8 +208,7 @@ const Onboarding = ({ onComplete }) => {
               Welcome to Fluent!
             </h2>
             <p className="text-gray-600 mb-8">
-              Discover authentic content from around the world. Start with
-              Japanese or Korean!
+              Discover authentic content from around the world.
             </p>
 
             <div className="text-left mb-8">
@@ -331,27 +272,6 @@ const Onboarding = ({ onComplete }) => {
                     </div>
                   </div>
                   {targetLanguage === "Japanese" && (
-                    <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setTargetLanguage("Korean")}
-                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
-                    targetLanguage === "Korean"
-                      ? "border-orange-600 bg-orange-50 text-orange-700"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="text-left">
-                      <div className="font-medium">Korean</div>
-                      <div className="text-sm text-gray-500">한국어</div>
-                    </div>
-                  </div>
-                  {targetLanguage === "Korean" && (
                     <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
                       <Check className="w-4 h-4 text-white" />
                     </div>
@@ -426,7 +346,7 @@ const Onboarding = ({ onComplete }) => {
                           <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                             <span className="text-sm font-medium text-orange-700">
                               {/* FIXED: Dynamic initials */}
-                              {targetLanguage === "Korean" ? "MK" : "YT"}
+                              {"YT"}
                             </span>
                           </div>
                           <div>
@@ -496,7 +416,7 @@ const Onboarding = ({ onComplete }) => {
               <div className="flex flex-wrap gap-2">
                 {/* Get interest categories based on target language */}
                 {(() => {
-                  const languageKey = targetLanguage === "Korean" ? "korean" : "japanese";
+                  const languageKey = "japanese";
                   const categories = interestCategoriesData[languageKey] || [];
 
                   // Flatten categories and their children into a single array for rendering
