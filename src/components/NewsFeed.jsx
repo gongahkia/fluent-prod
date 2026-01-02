@@ -8,7 +8,7 @@ import {
   UserPlus,
   MoreVertical,
 } from "lucide-react"
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import translationService from "../services/translationService"
@@ -21,13 +21,18 @@ import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/rend
 import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import { FeedSkeleton } from "./ui/skeleton"
+import subredditsConfig from "@config/subreddits.json"
 
 const NewsFeed = ({
   selectedCountry,
   userProfile,
   onAddWordToDictionary,
   userDictionary,
+  viewMode = "feed",
 }) => {
+  const shouldShowSearch = viewMode === "explore"
+  const shouldFilterByInterests = viewMode === "feed"
+
   const { currentUser } = useAuth()
   const [showComments, setShowComments] = useState({})
   const [selectedWord, setSelectedWord] = useState(null)
@@ -59,6 +64,51 @@ const NewsFeed = ({
   const [expandedPosts, setExpandedPosts] = useState({})
   const [savedPostIds, setSavedPostIds] = useState(new Set())
   const [savingPost, setSavingPost] = useState(null)
+
+  const interestSubreddits = useMemo(() => {
+    const selectedTags = Array.isArray(userProfile?.selectedTags) ? userProfile.selectedTags : []
+    if (selectedTags.length > 0) {
+      return new Set(selectedTags.map((s) => String(s).toLowerCase()))
+    }
+
+    const interests = Array.isArray(userProfile?.interests) ? userProfile.interests : []
+    const selectedFromChildren = interests
+      .filter((i) => typeof i === "string" && i.includes("/"))
+      .map((i) => i.split("/")[1])
+      .filter(Boolean)
+
+    if (selectedFromChildren.length > 0) {
+      return new Set(selectedFromChildren.map((s) => String(s).toLowerCase()))
+    }
+
+    const selectedCategories = interests
+      .filter((i) => typeof i === "string" && !i.includes("/"))
+      .map((i) => String(i))
+
+    if (selectedCategories.length > 0) {
+      const categories = subredditsConfig?.interestCategories?.japanese || []
+      const matched = categories.filter((c) => selectedCategories.includes(c?.name))
+      const subs = matched.flatMap((c) => (Array.isArray(c?.subreddits) ? c.subreddits : []))
+      if (subs.length > 0) {
+        return new Set(subs.map((s) => String(s).toLowerCase()))
+      }
+    }
+
+    return new Set()
+  }, [userProfile?.selectedTags, userProfile?.interests])
+
+  const displayedPosts = useMemo(() => {
+    const base = processedPosts.length > 0 ? processedPosts : posts
+    const unhidden = base.filter((article) => !hiddenPosts.has(article.id))
+
+    if (!shouldFilterByInterests) return unhidden
+    if (interestSubreddits.size === 0) return []
+
+    return unhidden.filter((article) => {
+      const subreddit = String(article.subreddit || "").toLowerCase()
+      return subreddit && interestSubreddits.has(subreddit)
+    })
+  }, [processedPosts, posts, hiddenPosts, shouldFilterByInterests, interestSubreddits])
 
   // Check API configuration on component mount
   // Load saved posts on mount
@@ -752,22 +802,24 @@ const NewsFeed = ({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 
         {/* Search Bar */}
-        <div className="mt-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search anything..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-            {isSearching && (
-              <div className="absolute right-3 top-2.5">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
-              </div>
-            )}
+        {shouldShowSearch && (
+          <div className="mt-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search anything..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-2.5">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Settings Panel */}
         {showSettings && (
@@ -864,12 +916,20 @@ const NewsFeed = ({
         <FeedSkeleton count={5} />
       )}
 
+      {/* Feed-only: require onboarding interests */}
+      {!loading && !error && shouldFilterByInterests && interestSubreddits.size === 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+          <div className="text-gray-900 font-medium mb-1">No interests selected</div>
+          <div className="text-gray-600 text-sm">
+            Your feed only shows posts from subreddits you selected during onboarding.
+          </div>
+        </div>
+      )}
+
       {/* Posts - Unified Feed with Separator Lines */}
-      {!loading && !error && (processedPosts.length > 0 || posts.length > 0) && (
+      {!loading && !error && displayedPosts.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {(processedPosts.length > 0 ? processedPosts : posts)
-          .filter(article => !hiddenPosts.has(article.id))
-          .map((article, index) => (
+        {displayedPosts.map((article, index) => (
           <div key={article.id || article.url || `post-${index}`}>
             {/* Article Container - No borders, clean layout */}
             <div className="p-6">
@@ -1015,7 +1075,7 @@ const NewsFeed = ({
             )}
 
             {/* Separator Line between posts (not after last post) */}
-            {index < (processedPosts.length > 0 ? processedPosts : posts).length - 1 && (
+            {index < displayedPosts.length - 1 && (
               <div className="border-b border-gray-200"></div>
             )}
           </div>
@@ -1027,14 +1087,14 @@ const NewsFeed = ({
       {/* Loading More indicator - DISABLED: All posts shown at once */}
 
       {/* No more posts message */}
-      {!loading && !error && (processedPosts.length > 0 ? processedPosts : posts).length > 0 && (
+      {!loading && !error && displayedPosts.length > 0 && (
           <div className="text-center py-8 animate-fadeIn">
             <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
               <span className="font-medium">
                 No more posts.
               </span>
               <span className="text-sm text-gray-400">
-                All {(processedPosts.length > 0 ? processedPosts : posts).length} posts have been loaded.
+                All {displayedPosts.length} posts have been loaded.
               </span>
             </div>
           </div>

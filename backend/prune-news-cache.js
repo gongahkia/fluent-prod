@@ -15,6 +15,21 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
+function readJson(filePath) {
+  if (!existsSync(filePath)) return null
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+function getAllowedSubreddits(configJson) {
+  const subs = configJson?.queries?.japan?.subreddits
+  if (!Array.isArray(subs)) return new Set()
+  return new Set(subs.map((s) => String(s).trim()).filter(Boolean))
+}
+
 function sha256Hex(input) {
   return crypto.createHash('sha256').update(input).digest('hex')
 }
@@ -82,6 +97,11 @@ async function run() {
   const __filename = fileURLToPath(import.meta.url)
   const __dirname = dirname(__filename)
 
+  const subredditsConfigPath = join(__dirname, '../config/subreddits.json')
+  const subredditsConfig = readJson(subredditsConfigPath)
+  const allowedSubreddits = getAllowedSubreddits(subredditsConfig)
+  const enforceAllowlist = (process.env.ENFORCE_SUBREDDIT_ALLOWLIST || '1') !== '0'
+
   const defaultCachePath = join(__dirname, '../cache/news-cache.txt')
   const cachePath = process.env.CACHE_PATH || defaultCachePath
   const maxRows = Number.parseInt(process.env.MAX_ROWS || '500', 10)
@@ -89,7 +109,20 @@ async function run() {
   console.log(`Cache: ${cachePath}`)
   console.log(`Max rows: ${maxRows}`)
 
-  const rows = readNdjson(cachePath).filter((r) => r && typeof r === 'object')
+  if (enforceAllowlist) {
+    console.log(`Subreddit allowlist: ${allowedSubreddits.size} subs (${subredditsConfigPath})`)
+  }
+
+  const rowsRaw = readNdjson(cachePath).filter((r) => r && typeof r === 'object')
+  const rows = enforceAllowlist && allowedSubreddits.size
+    ? rowsRaw.filter((r) => allowedSubreddits.has(String(r?.subreddit || '').trim()))
+    : rowsRaw
+
+  if (enforceAllowlist && allowedSubreddits.size) {
+    const removed = rowsRaw.length - rows.length
+    console.log(`Removed by allowlist: ${removed}`)
+  }
+
   console.log(`Loaded rows: ${rows.length}`)
 
   // De-dupe by postHash if present
