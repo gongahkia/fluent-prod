@@ -12,7 +12,6 @@ import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import LoadingScreen from "./components/ui/LoadingScreen";
 import { FluentLogo } from "./components/ui/FluentLogo";
-import { useIsMobile } from "./hooks/use-mobile";
 import { useAuth } from "./contexts/AuthContext";
 import {
   addWordToDictionary as addWordToDb,
@@ -34,7 +33,6 @@ function App() {
   const [userDictionary, setUserDictionary] = useState([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
-  const isMobile = useIsMobile();
 
   // Firebase ID tokens auto-refresh; no explicit session refresh needed.
 
@@ -316,7 +314,6 @@ function App() {
             userDictionary={userDictionary}
             showLanguageDropdown={showLanguageDropdown}
             firebaseError={firebaseError}
-            isMobile={isMobile}
             setShowLanguageDropdown={setShowLanguageDropdown}
             setCurrentView={setCurrentView}
             handleLanguageChange={handleLanguageChange}
@@ -344,7 +341,6 @@ function MainApp({
   userDictionary,
   showLanguageDropdown,
   firebaseError,
-  isMobile,
   setShowLanguageDropdown,
   setCurrentView,
   handleLanguageChange,
@@ -377,13 +373,7 @@ function MainApp({
           onNavigateToSettings={() => handleNavigation("settings")}
         />
 
-        {/* Mobile Bottom Navigation Bar */}
-        {isMobile && (
-          <MobileBottomBar
-            currentView={currentView}
-            onNavigate={handleNavigation}
-          />
-        )}
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
         {/* Auth Blocked Warning */}
         {firebaseError && (
@@ -407,13 +397,7 @@ function MainApp({
           onLogout={handleLogout}
         />
 
-        {/* Mobile Bottom Navigation Bar */}
-        {isMobile && (
-          <MobileBottomBar
-            currentView={currentView}
-            onNavigate={handleNavigation}
-          />
-        )}
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
         {/* Auth Blocked Warning */}
         {firebaseError && (
@@ -488,18 +472,6 @@ function MainApp({
                 )}
               </div>
 
-              {/* User Profile Avatar - Desktop only */}
-              {!isMobile && (
-                <button
-                  onClick={() => handleNavigation("profile")}
-                  className="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center hover:scale-110 transition-all duration-300 shadow-sm"
-                  aria-label="View Profile"
-                >
-                  <span className="text-sm font-medium text-white">
-                    {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -507,44 +479,8 @@ function MainApp({
 
       {/* Main Content */}
       <main
-        className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? "pb-20" : ""}`}
+        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20"
       >
-        {/* Navigation Tabs - Hidden on mobile */}
-        {!isMobile && (
-          <div className="sticky top-16 z-40 flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
-            <button
-              onClick={() => handleNavigation("feed")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "feed"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Learning Feed
-            </button>
-            <button
-              onClick={() => handleNavigation("dictionary")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "dictionary" || currentView === "flashcards"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Saved Words
-            </button>
-            <button
-              onClick={() => handleNavigation("savedposts")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "savedposts"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Saved Posts
-            </button>
-          </div>
-        )}
-
         {/* Render different views based on currentView */}
         {currentView === "feed" && (
           <NewsFeed
@@ -572,13 +508,7 @@ function MainApp({
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      {isMobile && (
-        <MobileBottomBar
-          currentView={currentView}
-          onNavigate={handleNavigation}
-        />
-      )}
+      <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
       {/* Firebase Blocked Warning */}
       {firebaseError && (
