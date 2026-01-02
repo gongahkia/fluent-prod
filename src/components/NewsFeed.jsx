@@ -2,7 +2,6 @@ import {
   Bookmark,
   MessageCircle,
   RefreshCw,
-  Settings,
   Share,
   UserCheck,
   UserPlus,
@@ -766,29 +765,12 @@ const NewsFeed = ({
     <div className="space-y-6">
       {/* Country Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
+        <div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Learning Feed</h1>
             <p className="text-gray-600">
               Real news with interactive translation - Click any word to learn!
             </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={loadPosts}
-              disabled={loading}
-              className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
-            </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
