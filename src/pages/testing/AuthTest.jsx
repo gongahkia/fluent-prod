@@ -105,7 +105,7 @@ export default function AuthTest() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>🔐 Supabase Auth Testing</h1>
+        <h1 style={styles.title}>🔐 Firebase Auth Testing</h1>
         <p style={styles.subtitle}>Test authentication and user management</p>
       </div>
 
@@ -217,8 +217,8 @@ export default function AuthTest() {
         <ol style={styles.list}>
           <li>Fill in email, password, and name fields</li>
           <li>Click "Test Signup" to create a new account</li>
-          <li>Check Supabase Dashboard → Authentication to verify user was created</li>
-          <li>Check Supabase Dashboard → Database → users table</li>
+          <li>Check Firebase Console → Authentication to verify user was created</li>
+          <li>Check Firebase Console → Firestore Database for user data</li>
           <li>Click "Test Logout" to sign out</li>
           <li>Click "Test Login" to sign back in</li>
           <li>Test "Password Reset" (check your email)</li>

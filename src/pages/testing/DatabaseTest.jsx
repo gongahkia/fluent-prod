@@ -258,7 +258,7 @@ export default function DatabaseTest() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>🗄️ Database Operations Testing</h1>
-        <p style={styles.subtitle}>Test Supabase database operations and RLS policies</p>
+        <p style={styles.subtitle}>Test Firebase Firestore operations and access rules</p>
         <div style={styles.userInfo}>
           Logged in as: <strong>{currentUser.email}</strong>
         </div>
@@ -425,8 +425,8 @@ export default function DatabaseTest() {
         <ol style={styles.list}>
           <li>Click "Run All Tests" to test all database operations</li>
           <li>Or test individual operations using the buttons in each section</li>
-          <li>Check the Supabase Dashboard → Database to verify data is created</li>
-          <li>Verify RLS policies: other users shouldn't see your data</li>
+          <li>Check Firebase Console → Firestore Database to verify data is created</li>
+          <li>Verify access rules: other users shouldn't see your data</li>
           <li>Watch the Test Log for real-time operation feedback</li>
         </ol>
       </div>

@@ -182,7 +182,7 @@ function App() {
 
   const handleProfileUpdate = async (updatedProfile) => {
     if (currentUser) {
-      // Update user profile in Supabase
+      // Update user profile in Firebase
       await updateUserProfile(currentUser.id, updatedProfile);
       setUserProfile((prev) => ({ ...prev, ...updatedProfile }));
     }
@@ -239,7 +239,7 @@ function App() {
       if (exists) return;
     }
 
-    // Add to Supabase (will trigger real-time update)
+    // Add to Firebase (Firestore)
     // The targetLanguage in newWord will be used to determine the correct collection
     const result = await addWordToDb(currentUser.id, newWord);
 
@@ -260,7 +260,7 @@ function App() {
   const removeWordFromDictionary = async (wordId) => {
     if (!currentUser) return;
 
-    // Remove from Supabase (will trigger real-time update)
+    // Remove from Firebase (Firestore)
     // Pass target language to remove from correct collection
     const targetLang = userProfile?.targetLanguage || "Japanese";
     const result = await removeWordFromDb(currentUser.id, wordId, targetLang);
