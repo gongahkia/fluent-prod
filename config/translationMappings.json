@@ -44,8 +44,7 @@
       "bidirectional": true,
       "apiProviders": ["lingva", "mymemory", "libretranslate"],
       "priority": 1
-    },
-    
+    }
   },
   "apiEndpoints": {
     "lingva": {

@@ -300,7 +300,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             onClick={(e) => {
               if (postId) toggleTranslation(postId, wordData.index)
               // When clicking, pass the ACTUAL language of the currently displayed text
-              // If showing target lang (Korean/Japanese), the word IS in target lang -> translate to English
+              // If showing target lang, the word IS in target lang -> translate to English
               // If showing English, the word is NOT in target lang -> translate to target lang
               handleWordClick(displayText, isShowingTargetLang, processedText, e)
             }}

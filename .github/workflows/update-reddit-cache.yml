@@ -11,7 +11,7 @@ on:
         options:
           - showcase
       target_lang:
-        description: "Target language (e.g. ja, ko)"
+        description: "Target language (e.g. ja)"
         required: false
         default: "ja"
         type: string

@@ -1,6 +1,6 @@
 # Fluent
 
-A language learning platform that helps you learn Japanese and Korean through real-world content from Reddit, news sources, and social media.
+A language learning platform that helps you learn Japanese through real-world content from Reddit, news sources, and social media.
 
 ## Usage
 

@@ -53,11 +53,13 @@ function App() {
 
   // Listen to dictionary changes in real-time (language-specific)
   useEffect(() => {
-    if (!currentUser || !userProfile?.targetLanguage) return;
+    if (!currentUser) return;
+
+    const targetLanguage = 'Japanese'
 
     // Initial fetch of dictionary
     const loadDictionary = async () => {
-      const result = await getUserDictionary(currentUser.id, userProfile.targetLanguage);
+      const result = await getUserDictionary(currentUser.id, targetLanguage);
       if (result.success) {
         setUserDictionary(result.data);
       }
@@ -71,11 +73,11 @@ function App() {
       (words) => {
         setUserDictionary(words);
       },
-      userProfile.targetLanguage, // Pass target language for correct collection
+      targetLanguage, // Pass target language for correct collection
     );
 
     return () => unsubscribe();
-  }, [currentUser, userProfile?.targetLanguage]);
+  }, [currentUser]);
 
   // Ensure target language is Japanese-only.
   // Migrates any legacy profiles that may still have a different target language.
@@ -289,11 +291,8 @@ function App() {
             showOnboarding={showOnboarding}
             currentView={currentView}
             userDictionary={userDictionary}
-            showLanguageDropdown={showLanguageDropdown}
             firebaseError={firebaseError}
-            setShowLanguageDropdown={setShowLanguageDropdown}
             setCurrentView={setCurrentView}
-            handleLanguageChange={handleLanguageChange}
             handleNavigation={handleNavigation}
             handleLogout={handleLogout}
             handleAuthComplete={handleAuthComplete}

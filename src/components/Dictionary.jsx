@@ -71,7 +71,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
       const query = searchQuery.toLowerCase()
       words = words.filter(word => {
         const targetWord = word[langFields.word] || word.japanese || ""
-        const reading = word[langFields.reading] || word.hiragana || word.romanization || ""
+        const reading = word[langFields.reading] || word.hiragana || ""
         const meaning = word[langFields.meaning] || word.english || ""
 
         return targetWord.toLowerCase().includes(query) ||
@@ -140,7 +140,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
     setEditingWord(word.id)
     setEditForm({
       [langFields.word]: word[langFields.word] || word.japanese || '',
-      [langFields.reading]: word[langFields.reading] || word.hiragana || word.romanization || '',
+      [langFields.reading]: word[langFields.reading] || word.hiragana || '',
       [langFields.meaning]: word[langFields.meaning] || word.english || '',
       example: word.example || '',
       exampleEn: word.exampleEn || '',
@@ -183,7 +183,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
     const headers = [langLabels.wordLabel, langLabels.readingLabel, 'English', 'Level', 'Example', 'Translation', 'Source', 'Date Added']
     const rows = userDictionary.map(word => [
       word[langFields.word] || word.japanese || '',
-      word[langFields.reading] || word.hiragana || word.romanization || '',
+      word[langFields.reading] || word.hiragana || '',
       word[langFields.meaning] || word.english || '',
       word.level,
       word.example || '',
@@ -211,7 +211,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
   const exportTXT = () => {
     const lines = userDictionary.map(word => {
       const wordText = word[langFields.word] || word.japanese || ''
-      const reading = word[langFields.reading] || word.hiragana || word.romanization || ''
+      const reading = word[langFields.reading] || word.hiragana || ''
       const meaning = word[langFields.meaning] || word.english || ''
       const example = word.example ? `\n  Example: ${word.example}` : ''
       const exampleEn = word.exampleEn ? `\n  Translation: ${word.exampleEn}` : ''
@@ -551,7 +551,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
                           />
                         </div>
                         <div className="text-lg text-gray-600">
-                          {word[langFields.reading] || word.hiragana || word.romanization}
+                          {word[langFields.reading] || word.hiragana}
                         </div>
                         <span
                           className={`px-2 py-1 rounded-full text-white text-xs font-medium ${getLevelColor(languageConfig.id, word.level)}`}
