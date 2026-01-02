@@ -701,7 +701,7 @@ const Dictionary = ({ userDictionary, onRemoveWord, onUpdateWord, userProfile, o
             {!(searchQuery || filterLevel !== 'all' || filterTag !== 'all') && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
                 <div className="text-sm text-orange-800">
-                  <strong>💡 Tip:</strong> Click on any {targetLanguage} word in the news
+                  <strong>Tip:</strong> Click on any {targetLanguage} word in the news
                   feed to see its meaning, pronunciation, and save it
                   for later review.
                 </div>

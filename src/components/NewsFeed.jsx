@@ -1,5 +1,6 @@
 import {
   Bookmark,
+  Globe,
   MessageCircle,
   RefreshCw,
   Share,
@@ -578,11 +579,11 @@ const NewsFeed = ({
       if (newSet.has(sourceName)) {
         newSet.delete(sourceName)
         // Optionally: Save to Firebase or localStorage
-        showFeedback(`Unsubscribed from ${sourceName}`, '🔕')
+        showFeedback(`Unsubscribed from ${sourceName}`, '')
       } else {
         newSet.add(sourceName)
         // Optionally: Save to Firebase or localStorage
-        showFeedback(`Subscribed to ${sourceName}`, '🔔')
+        showFeedback(`Subscribed to ${sourceName}`, '')
       }
       return newSet
     })
@@ -784,7 +785,7 @@ const NewsFeed = ({
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🌍</span>
+            <Globe className="w-8 h-8 text-orange-600" aria-hidden="true" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Welcome to Fluent

@@ -404,12 +404,29 @@ const Auth = ({ onAuthComplete }) => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </div>
+        {/* Footer (Sign In only) */}
+        {isLogin && (
+          <div className="text-center mt-8 text-sm text-gray-500">
+            <p>
+              By continuing, you agree to our{" "}
+              <button
+                type="button"
+                onClick={() => setShowTOS(true)}
+                className="text-orange-600 hover:text-orange-700 underline"
+              >
+                Terms of Service
+              </button>
+              {" "}and{" "}
+              <button
+                type="button"
+                onClick={() => setShowPrivacy(true)}
+                className="text-orange-600 hover:text-orange-700 underline"
+              >
+                Privacy Policy
+              </button>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Terms of Service Modal */}

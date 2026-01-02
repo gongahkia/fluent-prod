@@ -124,7 +124,7 @@ export class CacheMetrics {
 
   logStats(cacheName = 'Cache') {
     const stats = this.getStats()
-    console.log(`📊 [CACHE] ${cacheName} Stats:`, stats)
+    console.log(`[CACHE] ${cacheName} Stats:`, stats)
   }
 
   reset() {
