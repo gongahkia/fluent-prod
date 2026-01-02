@@ -25,17 +25,17 @@ async function main() {
     throw err
   }
 
-  const jsonFiles = entries
-    .filter((e) => e.isFile() && e.name.endsWith('.json'))
+  const cacheFiles = entries
+    .filter((e) => e.isFile() && (e.name.endsWith('.json') || e.name.endsWith('.txt') || e.name.endsWith('.ndjson')))
     .map((e) => e.name)
 
-  for (const name of jsonFiles) {
+  for (const name of cacheFiles) {
     const src = path.join(sourceDir, name)
     const dst = path.join(destDir, name)
     await fs.copyFile(src, dst)
   }
 
-  console.log(`✅ Synced ${jsonFiles.length} cache files -> public/cache/`)
+  console.log(`✅ Synced ${cacheFiles.length} cache files -> public/cache/`)
 }
 
 main().catch((err) => {

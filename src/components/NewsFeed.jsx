@@ -464,6 +464,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         } else {
           // Korean word - add normally
@@ -475,6 +476,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         }
 
@@ -500,6 +502,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         } else {
           // Japanese word - add normally
@@ -511,6 +514,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         }
 

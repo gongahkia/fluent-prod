@@ -286,11 +286,13 @@ export const getSavedPosts = async (userId) => {
 
 export const savePost = async (userId, postData) => {
   try {
-    const postId = postData?.postId || postData?.id || crypto.randomUUID()
+    const postHash = postData?.postHash || postData?.postId || postData?.id || crypto.randomUUID()
+    const postId = postData?.postId || postData?.id || postHash
     const payload = {
       ...postData,
       id: postId,
       postId,
+      postHash,
       userId,
       savedAt: postData?.savedAt || nowIso(),
       savedAtTs: serverTimestamp(),
