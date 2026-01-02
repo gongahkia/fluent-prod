@@ -21,6 +21,7 @@ import {
   updateUserProfile,
 } from "./services/firebaseDatabaseService";
 import { signOutUser } from "./services/authService";
+import { prewarmTranslationCacheFromDictionary } from "./lib/wordDatabase";
 import "./App.css";
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
       const result = await getUserDictionary(currentUser.id, targetLanguage);
       if (result.success) {
         setUserDictionary(result.data);
+        prewarmTranslationCacheFromDictionary(result.data, targetLanguage);
       }
     };
 
@@ -72,6 +74,7 @@ function App() {
       currentUser.id,
       (words) => {
         setUserDictionary(words);
+        prewarmTranslationCacheFromDictionary(words, targetLanguage);
       },
       targetLanguage, // Pass target language for correct collection
     );
