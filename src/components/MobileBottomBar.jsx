@@ -22,7 +22,7 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       inactiveColor: 'text-gray-500'
     },
     {
-      id: 'savedPosts',
+      id: 'savedposts',
       label: 'Saved Posts',
       icon: Bookmark,
       activeColor: 'text-orange-600',
@@ -45,7 +45,9 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = currentView === item.id
+          const isActive =
+            currentView === item.id ||
+            (item.id === 'dictionary' && currentView === 'flashcards')
 
           return (
             <button

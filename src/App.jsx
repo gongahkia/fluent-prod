@@ -366,7 +366,7 @@ function MainApp({
   // Show profile page (simplified public view with consistent navigation)
   if (currentView === "profile") {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-20">
         <PublicProfile
           userProfile={userProfile}
           onBack={() => handleNavigation("feed")}
@@ -389,7 +389,7 @@ function MainApp({
   // Show settings page (account configuration with consistent navigation)
   if (currentView === "settings") {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-20">
         <Settings
           userProfile={userProfile}
           onProfileUpdate={handleProfileUpdate}
