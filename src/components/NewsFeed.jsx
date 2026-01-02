@@ -114,16 +114,16 @@ const NewsFeed = ({
       try {
         const result = await getSavedPosts(currentUser.id)
         if (result.success) {
-          const savedIds = new Set(result.data.map(post => post.postHash || post.postId || post.id))
-                          <div className="post-title">
+          const savedIds = new Set(result.data.map((post) => post.postHash || post.postId || post.id))
+          setSavedPostIds(savedIds)
         }
-                          </div>
+      } catch (error) {
         console.error('Failed to load saved posts:', error)
       }
     }
-                          <div>
+
+    loadSavedPosts()
   }, [currentUser])
-                          </div>
   useEffect(() => {
     if (import.meta.env.VITE_NEWS_MODE === 'cache') {
       // No backend in cache mode
@@ -375,24 +375,24 @@ const NewsFeed = ({
       // Show "see more" button when user scrolls to bottom 200px
       const isNearBottom = scrollTop + windowHeight >= documentHeight - 200
 
-      // Don't show button if user is translating/processing
+      // Don't show button if user is translating
       if (
         isNearBottom &&
         posts.length > 0 &&
         hasMorePosts &&
-          setSavedPostIds(savedIds)
         !loadingMore &&
-      } catch (error) {
-        console.error('Failed to load saved posts:', error)
+        !selectedWord &&
+        !isTranslating
       ) {
         setShowSeeMoreButton(true)
-
-    loadSavedPosts()
-  }, [currentUser])
+      } else {
+        setShowSeeMoreButton(false)
+      }
+    }
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [posts.length, hasMorePosts, loading, loadingMore, selectedWord, isTranslating])
+  }, [posts.length, hasMorePosts, loadingMore, selectedWord, isTranslating])
 
   // Function to load more posts
   const handleLoadMore = () => {
@@ -865,16 +865,15 @@ const NewsFeed = ({
                       >
                         {/* Title portion with emphasis */}
                         {titleText && (
-                          <span className="post-title">
+                          <div className="post-title">
                             {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
-                          </span>
+                          </div>
                         )}
                         {/* Content portion */}
                         {contentText && (
-                          <span>
-                            {titleText && '. '}
+                          <div>
                             {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
-                          </span>
+                          </div>
                         )}
                         {!titleText && !contentText && parseMarkdownContent(combinedText, combinedId, renderClickableText)}
                       </div>

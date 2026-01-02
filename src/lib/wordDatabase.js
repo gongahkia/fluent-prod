@@ -1,5 +1,6 @@
 import translationService from "../services/translationService"
 import { getLanguageByName } from "@config/languages"
+import { emitToast } from "./toastBus"
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
@@ -299,24 +300,7 @@ export const handleWordClick = async (
   lastClickAtByKey.set(clickKey, now)
 
   if (!shouldTranslateToken(cleanWord, fromLang)) {
-    // Skip non-word tokens (URLs, emails, numbers). Keep UX minimal: show a lightweight failure.
-    if (setSelectedWord) {
-      setSelectedWord({
-        english: isTargetLang ? "Not a translatable token" : cleanWord,
-        japanese: isTargetLang ? cleanWord : "Not a translatable token",
-        hiragana: isTargetLang ? cleanWord : "",
-        level: 5,
-        example: contextText || `"${cleanWord}"`,
-        exampleEn: "This token is unlikely to be a word.",
-        original: cleanWord,
-        isApiFallback: true,
-        error: true,
-        isJapanese: isTargetLang,
-        showJapaneseTranslation: !isTargetLang,
-        clickPosition,
-        postHash: contextPostHash,
-      })
-    }
+    emitToast({ message: "Not a translatable token", icon: "⚠️" })
     return
   }
 
@@ -415,25 +399,8 @@ export const handleWordClick = async (
   } catch (error) {
     console.error("Translation API failed:", error)
 
-    // Show error message - don't pretend we have a translation
-    const errorData = {
-      english: isTargetLang ? "Translation failed" : cleanWord,
-      level: 5,
-      example: contextText || `"${cleanWord}"`,
-      exampleEn: "Translation service is currently unavailable.",
-      original: cleanWord,
-      isApiFallback: true,
-      error: true,
-      clickPosition: clickPosition, // Add click position for anchored popup
-      postHash: contextPostHash,
-    }
-
-    errorData.japanese = isTargetLang ? cleanWord : "Translation failed"
-    errorData.hiragana = "Translation service unavailable"
-    errorData.isJapanese = isTargetLang
-    errorData.showJapaneseTranslation = !isTargetLang
-
-    setSelectedWord(errorData)
+    emitToast({ message: "Translation unavailable. Try again.", icon: "⚠️" })
+    if (setSelectedWord) setSelectedWord(null)
   } finally {
     // Clear loading state
     if (setLoading) {

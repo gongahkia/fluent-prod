@@ -12,6 +12,7 @@ import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import LoadingScreen from "./components/ui/LoadingScreen";
 import { FluentLogo } from "./components/ui/FluentLogo";
+import Toast from "./components/ui/Toast";
 import { useAuth } from "./contexts/AuthContext";
 import {
   addWordToDictionary as addWordToDb,
@@ -22,6 +23,7 @@ import {
 } from "./services/firebaseDatabaseService";
 import { signOutUser } from "./services/authService";
 import { prewarmTranslationCacheFromDictionary } from "./lib/wordDatabase";
+import { addToastListener } from "./lib/toastBus";
 import "./App.css";
 
 function App() {
@@ -33,8 +35,21 @@ function App() {
   const [currentView, setCurrentView] = useState("feed"); // 'feed', 'explore', 'profile', 'settings', 'dictionary', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([]);
   const [firebaseError, setFirebaseError] = useState(null);
+  const [toastState, setToastState] = useState(null);
 
   // Firebase ID tokens auto-refresh; no explicit session refresh needed.
+
+  // Global toast host (used by translation errors and other non-component code)
+  useEffect(() => {
+    return addToastListener((detail) => {
+      if (!detail?.message) return;
+      setToastState({
+        message: detail.message,
+        icon: detail.icon,
+        duration: detail.duration,
+      });
+    });
+  }, []);
 
   // Handle loading screen completion
   const handleLoadingComplete = () => {
@@ -283,31 +298,41 @@ function App() {
   }
 
   return (
-    <Routes>
-      {/* Main App */}
-      <Route
-        path="*"
-        element={
-          <MainApp
-            currentUser={currentUser}
-            userProfile={userProfile}
-            showOnboarding={showOnboarding}
-            currentView={currentView}
-            userDictionary={userDictionary}
-            firebaseError={firebaseError}
-            setCurrentView={setCurrentView}
-            handleNavigation={handleNavigation}
-            handleLogout={handleLogout}
-            handleAuthComplete={handleAuthComplete}
-            handleOnboardingComplete={handleOnboardingComplete}
-            handleProfileUpdate={handleProfileUpdate}
-            addWordToDictionary={addWordToDictionary}
-            removeWordFromDictionary={removeWordFromDictionary}
-            setFirebaseError={setFirebaseError}
-          />
-        }
-      />
-    </Routes>
+    <>
+      {toastState && (
+        <Toast
+          message={toastState.message}
+          icon={toastState.icon}
+          duration={toastState.duration}
+          onClose={() => setToastState(null)}
+        />
+      )}
+      <Routes>
+        {/* Main App */}
+        <Route
+          path="*"
+          element={
+            <MainApp
+              currentUser={currentUser}
+              userProfile={userProfile}
+              showOnboarding={showOnboarding}
+              currentView={currentView}
+              userDictionary={userDictionary}
+              firebaseError={firebaseError}
+              setCurrentView={setCurrentView}
+              handleNavigation={handleNavigation}
+              handleLogout={handleLogout}
+              handleAuthComplete={handleAuthComplete}
+              handleOnboardingComplete={handleOnboardingComplete}
+              handleProfileUpdate={handleProfileUpdate}
+              addWordToDictionary={addWordToDictionary}
+              removeWordFromDictionary={removeWordFromDictionary}
+              setFirebaseError={setFirebaseError}
+            />
+          }
+        />
+      </Routes>
+    </>
   );
 }
 
