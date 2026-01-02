@@ -2,6 +2,12 @@ name: Prune Reddit Cache (max 500)
 
 on:
   workflow_dispatch:
+    inputs:
+      max_rows:
+        description: "Max rows to keep in cache"
+        required: false
+        default: "500"
+        type: string
   push:
     paths:
       - 'cache/news-cache.txt'
@@ -27,7 +33,7 @@ jobs:
       - name: Prune cache
         env:
           CACHE_PATH: cache/news-cache.txt
-          MAX_ROWS: '500'
+          MAX_ROWS: ${{ inputs.max_rows || '500' }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: node backend/prune-news-cache.js
 
