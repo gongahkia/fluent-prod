@@ -115,16 +115,15 @@ const NewsFeed = ({
         const result = await getSavedPosts(currentUser.id)
         if (result.success) {
           const savedIds = new Set(result.data.map(post => post.postHash || post.postId || post.id))
-          setSavedPostIds(savedIds)
+                          <div className="post-title">
         }
-      } catch (error) {
+                          </div>
         console.error('Failed to load saved posts:', error)
       }
     }
-
-    loadSavedPosts()
+                          <div>
   }, [currentUser])
-
+                          </div>
   useEffect(() => {
     if (import.meta.env.VITE_NEWS_MODE === 'cache') {
       // No backend in cache mode
@@ -381,16 +380,15 @@ const NewsFeed = ({
         isNearBottom &&
         posts.length > 0 &&
         hasMorePosts &&
-        !loading &&
+          setSavedPostIds(savedIds)
         !loadingMore &&
-        !selectedWord &&
-        !isTranslating
+      } catch (error) {
+        console.error('Failed to load saved posts:', error)
       ) {
         setShowSeeMoreButton(true)
-      } else {
-        setShowSeeMoreButton(false)
-      }
-    }
+
+    loadSavedPosts()
+  }, [currentUser])
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)

@@ -106,7 +106,7 @@ const PostSettingsModal = ({ post, onClose, onNotInterested, onReport }) => {
           <div className="p-4">
             {/* Quick Share Actions Row */}
             <div className="mb-4">
-              <p className="text-xs font-medium text-gray-500 uppercase mb-3">Quick Share</p>
+              <p className="text-xs font-medium text-gray-500 uppercase mb-3">Share</p>
               <div className="flex items-center justify-around gap-2">
                 {/* Twitter/X */}
                 <button

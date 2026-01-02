@@ -297,16 +297,15 @@ const SinglePostView = ({
                   >
                     {/* Title portion with emphasis */}
                     {titleText && (
-                      <span className="post-title">
+                      <div className="post-title">
                         {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
-                      </span>
+                      </div>
                     )}
                     {/* Content portion */}
                     {contentText && (
-                      <span>
-                        {titleText && '. '}
+                      <div>
                         {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
-                      </span>
+                      </div>
                     )}
                     {!titleText && !contentText && parseMarkdownContent(combinedText, combinedId, renderClickableText)}
                   </div>
