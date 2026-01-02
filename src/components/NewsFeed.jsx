@@ -787,19 +787,6 @@ const NewsFeed = ({
         </div>
       )}
 
-      {/* Processing indicator */}
-      {processingPosts && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
-            <span className="text-orange-700 text-sm font-medium">
-              Creating mixed language content based on your level{" "}
-              {userProfile?.learningLevel}...
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Loading Skeletons */}
       {loading && !error && (
         <FeedSkeleton count={5} />
