@@ -10,6 +10,12 @@ function isValidVocabularyWord(word) {
   return true
 }
 
+function cleanEnglishToken(token) {
+  if (!token || typeof token !== "string") return ""
+  // Strip leading/trailing non-letters but keep internal apostrophes/hyphens.
+  return token.trim().replace(/^[^a-zA-Z]+/, "").replace(/[^a-zA-Z]+$/, "")
+}
+
 // Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
   if (!text) return ""
@@ -228,15 +234,16 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             vocabMap.set(normalizedWord, v)
           })
 
-          // Split by word boundaries
-          const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
+          // Split by spaces + common punctuation (keep apostrophes/hyphens inside words)
+          const segments = text.split(/(\s+|[.,!?;:"()[\]{}—–])/)
           return segments.map((segment, idx) => {
             // Keep whitespace and punctuation as-is
-            if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
+            if (!segment.trim() || /^[.,!?;:"()[\]{}—–\s]+$/.test(segment)) {
               return <span key={`${keyPrefix}-${idx}`}>{segment}</span>
             }
 
-            const cleanWord = segment.trim().toLowerCase().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
+            const cleanWordRaw = cleanEnglishToken(segment)
+            const cleanWord = cleanWordRaw.toLowerCase()
             const vocabData = vocabMap.get(cleanWord)
 
             if (vocabData && isValidVocabularyWord(cleanWord)) {
@@ -246,9 +253,24 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
               return (
                 <span
                   key={`${keyPrefix}-vocab-${idx}`}
-                  className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-                  onClick={(e) => handleWordClick(segment.trim(), false, { text: processedText, postHash: postId, postId }, e)}
+                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+                  onClick={(e) => handleWordClick(cleanWordRaw || segment.trim(), false, { text: processedText, postHash: postId, postId }, e)}
                   title={`Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
+                  style={{ textDecoration: "none" }}
+                >
+                  {segment}
+                </span>
+              )
+            }
+
+            // Not a curated vocab word, but still allow hot-translate for normal English words
+            if (/[a-zA-Z]/.test(segment) && isValidVocabularyWord(cleanWordRaw)) {
+              return (
+                <span
+                  key={`${keyPrefix}-en-${idx}`}
+                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+                  onClick={(e) => handleWordClick(cleanWordRaw, false, { text: processedText, postHash: postId, postId }, e)}
+                  title={`Click to translate: "${cleanWordRaw}"`}
                   style={{ textDecoration: "none" }}
                 >
                   {segment}
@@ -335,11 +357,12 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     }
 
     // Split by spaces and punctuation, preserving them
-    const segments = text.split(/(\s+|[.,!?;:"'()[\]{}—–-])/)
+    // Split by spaces + common punctuation (keep apostrophes/hyphens inside words)
+    const segments = text.split(/(\s+|[.,!?;:"()[\]{}—–])/)
 
     return segments.map((segment, segmentIndex) => {
       // Keep whitespace and punctuation as-is
-      if (!segment.trim() || /^[.,!?;:"'()[\]{}—–-\s]+$/.test(segment)) {
+      if (!segment.trim() || /^[.,!?;:"()[\]{}—–\s]+$/.test(segment)) {
         return <span key={segmentIndex}>{segment}</span>
       }
 
@@ -389,7 +412,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         )
       } else if (hasEnglish) {
         // MODIFIED: ALL English words are now clickable with consistent styling
-        const cleanWord = segment.trim().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
+        const cleanWord = cleanEnglishToken(segment)
 
         // Skip if empty after cleaning
         if (!cleanWord) {
@@ -398,8 +421,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
         const isVocabularyWord = isValidVocabularyWord(cleanWord)
 
-        // Use lighter styling for non-partially-translated words
-        const vocabularyClasses = "cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
+        // Match the same hover-highlight affordance used elsewhere
+        const vocabularyClasses = "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
 
         const vocabularyTitle = `Click to translate: "${cleanWord}"`
 
