@@ -6,6 +6,7 @@ addiitonally, is the japanese tokenisation/NER still occuring? to identify group
 think this through with me, would it make sense for japanese words that are meant to be read together to then be highlighted as one yellow block and when that blcok is clicked, all those words are translated together. for more sane translation instead of the current bit-by-bit approach
 """
 
+move the profile pic icon to be top right and to the right of the search icon
 fix the dark theme to actually work and to look good
 fix the font size/remove it
 fix the toast error for broken translation
