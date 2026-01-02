@@ -5,62 +5,44 @@
       "language": "Japanese",
       "targetLang": "ja",
       "subreddits": [
+        "newsokuexp",
+        "newsokunomoral",
         "lowlevelaware",
-        "newsokur",
-        "anime",
-        "BakaNewsJP",
-        "manga",
-        "jpop",
-        "japannews",
-        "japanmemes",
-        "shibuya",
-        "harajuku"
+        "bakanewsJP",
+        "WriteStreakJP",
+        "Japaneselanguage",
+        "LearnJapanese",
+        "japanlife",
+        "japantravel",
+        "movingtojapan",
+        "newsokur"
       ],
       "description": "Japanese language and culture subreddits"
-    },
-    "default": {
-      "language": "English",
-      "targetLang": "en",
-      "subreddits": ["memes", "trending", "news", "worldnews"],
-      "description": "Default fallback subreddits"
     }
   },
   "interestCategories": {
     "japanese": [
       {
-        "name": "r/japan",
-        "displayName": "Japan",
-        "subreddits": ["lowlevelaware", "newsokur", "shibuya", "harajuku"]
-      },
-      {
-        "name": "r/anime",
-        "displayName": "Anime",
-        "subreddits": ["anime"]
-      },
-      {
-        "name": "r/manga",
-        "displayName": "Manga",
-        "subreddits": ["manga"]
-      },
-      {
-        "name": "r/jpop",
-        "displayName": "J-Pop",
-        "subreddits": ["jpop"]
-      },
-      {
-        "name": "r/japannews",
-        "displayName": "Japan News",
-        "subreddits": ["japannews", "BakaNewsJP"]
-      },
-      {
-        "name": "r/japanmemes",
-        "displayName": "Japan Memes",
-        "subreddits": ["japanmemes"]
+        "name": "Japanese",
+        "displayName": "Japanese",
+        "subreddits": [
+          "newsokuexp",
+          "newsokunomoral",
+          "lowlevelaware",
+          "bakanewsJP",
+          "WriteStreakJP",
+          "Japaneselanguage",
+          "LearnJapanese",
+          "japanlife",
+          "japantravel",
+          "movingtojapan",
+          "newsokur"
+        ]
       }
     ]
   },
   "settings": {
-    "maxSubredditsPerQuery": 4,
+    "maxSubredditsPerQuery": 11,
     "postsPerSubreddit": 10,
     "shuffleResults": true
   }

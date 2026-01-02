@@ -5,16 +5,17 @@ const GeneralTab = ({ formData, handleInputChange }) => {
   // All available subreddit tags based on target language
   const allTags = {
     Japanese: [
+      "newsokuexp",
+      "newsokunomoral",
       "lowlevelaware",
       "newsokur",
-      "anime",
-      "BakaNewsJP",
-      "manga",
-      "jpop",
-      "japannews",
-      "japanmemes",
-      "shibuya",
-      "harajuku"
+      "bakanewsJP",
+      "WriteStreakJP",
+      "Japaneselanguage",
+      "LearnJapanese",
+      "japanlife",
+      "japantravel",
+      "movingtojapan"
     ]
   }
 
