@@ -363,7 +363,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                       ? "cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
                       : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
-                  onClick={(e) => handleWordClick(text, isTargetLanguage, text, e)}
+                  onClick={(e) => handleWordClick(text, isTargetLanguage, { text, postHash: postId, postId }, e)}
                   title={
                     isTranslatedWord
                       ? `Japanese: Click to see English "${text}"`
