@@ -29,7 +29,7 @@ function App() {
   const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
   const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'profile', 'settings', 'dictionary', or 'savedposts'
+  const [currentView, setCurrentView] = useState("feed"); // 'feed', 'explore', 'profile', 'settings', 'dictionary', or 'savedposts'
   const [userDictionary, setUserDictionary] = useState([]);
   const [firebaseError, setFirebaseError] = useState(null);
 
@@ -428,6 +428,17 @@ function MainApp({
             userProfile={userProfile}
             onAddWordToDictionary={addWordToDictionary}
             userDictionary={userDictionary}
+            viewMode="feed"
+          />
+        )}
+
+        {currentView === "explore" && (
+          <NewsFeed
+            selectedCountry="Japan"
+            userProfile={userProfile}
+            onAddWordToDictionary={addWordToDictionary}
+            userDictionary={userDictionary}
+            viewMode="explore"
           />
         )}
 

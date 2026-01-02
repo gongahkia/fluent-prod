@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, BookOpen, Bookmark, User } from 'lucide-react'
+import { Home, Search, BookOpen, Bookmark, User } from 'lucide-react'
 
 /**
  * Instagram-style bottom navigation bar
@@ -11,6 +11,13 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'feed',
       label: 'Feed',
       icon: Home,
+      activeColor: 'text-orange-600',
+      inactiveColor: 'text-gray-500'
+    },
+    {
+      id: 'explore',
+      label: 'Explore',
+      icon: Search,
       activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     },
