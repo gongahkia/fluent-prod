@@ -25,6 +25,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const REPO_ROOT = join(__dirname, '..')
 const CACHE_DIR = join(REPO_ROOT, 'cache')
+const SUBREDDITS_CONFIG_PATH = join(REPO_ROOT, 'config', 'subreddits.json')
 
 function parseArgs(argv) {
   const args = {}
@@ -91,61 +92,21 @@ const PRESETS = {
     concurrencyLimit: 5,
     targetLang: 'ja',
     outFile: 'news-cache.txt',
-    subreddits: [
-  // Japanese-focused subreddits
-  'newsokur',
-  'lowlevelaware',
-  'JapanNews',
-  'japanpics',
-  'JapanArt',
-  'JapanPlaces',
-  'RideItJapan',
-  'japanparents',
-  'BakaNewsJP',
-  'Anime',
-  'JDorama',
-  'JapaneseMusic',
-  'JPop',
-  'Otaku',
-  'JapanLife',
-  'JapanResidents',
-  'MovingToJapan',
-  'JapanFinance',
-  'TeachingInJapan',
-  'ALTinginJapan',
-  'JETProgramme',
-  'JapanTravel',
-  'OsakaTravel',
-  'KyotoTravel',
-  
-  // General interest subreddits
-  'movies',
-  'Music',
-  'television',
-  'anime',
-  'manga',
-  'NetflixBestOf',
-  'mlb',
-  'hockey',
-  'mma',
-  'formula1',
-  'Boxing',
-  'running',
-  'cricket',
-  'malefashionadvice',
-  'streetwear',
-  'femalefashionadvice',
-  'frugalmalefashion',
-  'Sneakers',
-  'womensstreetwear',
-  'Cooking',
-  'AskCulinary',
-  'FoodPorn',
-  'KitchenConfidential',
-  'EatCheapAndHealthy',
-  'Sushi',
-  'JapaneseFood'
-    ]
+    // Default subreddits come from config/subreddits.json unless overridden.
+    subreddits: []
+  }
+}
+
+function loadSubredditsFromConfig(queryKey) {
+  try {
+    if (!existsSync(SUBREDDITS_CONFIG_PATH)) return null
+    const raw = readFileSync(SUBREDDITS_CONFIG_PATH, 'utf-8')
+    const cfg = JSON.parse(raw)
+    const q = cfg?.queries?.[queryKey]
+    const subs = Array.isArray(q?.subreddits) ? q.subreddits : null
+    return subs && subs.length ? subs : null
+  } catch {
+    return null
   }
 }
 
@@ -160,10 +121,12 @@ const TARGET_LANG = String(argv.targetLang || process.env.TARGET_LANG || preset.
 const OUT_FILE = String(argv.outFile || process.env.OUT_FILE || preset.outFile)
 const MAX_NEW_POSTS = toInt(argv.maxNewPosts || process.env.MAX_NEW_POSTS, 200)
 
+const queryKey = String(argv.query || process.env.QUERY || (TARGET_LANG === 'ko' ? 'korea' : 'japan'))
+
 const subredditsArg = argv.subreddits || process.env.SUBREDDITS
 const SUBREDDITS = subredditsArg
   ? String(subredditsArg).split(',').map((s) => s.trim()).filter(Boolean)
-  : preset.subreddits
+  : (loadSubredditsFromConfig(queryKey) || preset.subreddits)
 
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
 
@@ -436,6 +399,7 @@ async function run() {
   console.log('')
 
   console.log(`Preset: ${presetName}`)
+  console.log(`query: ${queryKey}`)
   console.log(`Subreddits: ${SUBREDDITS.length}`)
   console.log(`postsPerSubreddit: ${POSTS_PER_SUBREDDIT}`)
   console.log(`targetLang: ${TARGET_LANG}`)

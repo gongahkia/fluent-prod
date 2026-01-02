@@ -10,10 +10,7 @@ import Settings from "./components/Settings";
 import SavedPosts from "./components/SavedPosts";
 import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
-import RedditCallback from "./pages/RedditCallback";
 import LoadingScreen from "./components/ui/LoadingScreen";
-import AuthTest from "./pages/testing/AuthTest";
-import DatabaseTest from "./pages/testing/DatabaseTest";
 import { FluentLogo } from "./components/ui/FluentLogo";
 import { useIsMobile } from "./hooks/use-mobile";
 import { useAuth } from "./contexts/AuthContext";
@@ -305,16 +302,8 @@ function App() {
     return <LoadingScreen onLoadingComplete={handlePostOnboardingLoadingComplete} showText={true} />;
   }
 
-  // Handle Reddit OAuth callback route first (before auth checks)
   return (
     <Routes>
-      {/* Reddit OAuth Callback */}
-      <Route path="/auth/reddit/callback" element={<RedditCallback />} />
-
-      {/* Testing Routes */}
-      <Route path="/test/auth" element={<AuthTest />} />
-      <Route path="/test/database" element={<DatabaseTest />} />
-
       {/* Main App */}
       <Route
         path="*"

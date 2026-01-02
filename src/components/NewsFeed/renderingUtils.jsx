@@ -1,6 +1,14 @@
 import React from "react"
-import vocabularyService from "../../services/vocabularyService"
 import { decodeHTMLEntities, segmentJapaneseText } from "./utils/textParsing"
+
+function isValidVocabularyWord(word) {
+  if (!word || typeof word !== "string") return false
+  const clean = word.toLowerCase().trim()
+  if (clean.length < 1 || clean.length > 20) return false
+  if (/^\d+$/.test(clean)) return false
+  if (/[^a-zA-Z'-]/.test(clean)) return false
+  return true
+}
 
 // Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
@@ -231,7 +239,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             const cleanWord = segment.trim().toLowerCase().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
             const vocabData = vocabMap.get(cleanWord)
 
-            if (vocabData && vocabularyService.isValidVocabularyWord(cleanWord)) {
+            if (vocabData && isValidVocabularyWord(cleanWord)) {
               // This is a vocabulary word - make it clickable
               const targetLangName = targetLanguage === 'Korean' ? 'Korean' : 'Japanese'
 
@@ -403,8 +411,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           return <span key={segmentIndex}>{segment}</span>
         }
 
-        const isVocabularyWord =
-          vocabularyService.isValidVocabularyWord(cleanWord)
+        const isVocabularyWord = isValidVocabularyWord(cleanWord)
 
         // Use lighter styling for non-partially-translated words
         const vocabularyClasses = "cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"

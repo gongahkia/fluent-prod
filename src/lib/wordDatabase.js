@@ -1,5 +1,4 @@
 import translationService from "../services/translationService"
-import vocabularyService from "../services/vocabularyService"
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
@@ -47,8 +46,7 @@ export const handleWordClick = async (
 
     let translation,
       pronunciation,
-      contextTranslationResult,
-      isVocabularyWord = false
+      contextTranslationResult
 
     const langCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
 
@@ -70,60 +68,7 @@ export const handleWordClick = async (
       }
     } else {
       // English to target language with vocabulary detection
-
-      // First check if this is a vocabulary word worth learning
-      if (vocabularyService.isValidVocabularyWord(cleanWord)) {
-        // Use vocabulary service for enhanced translation
-        const vocabData = await vocabularyService.getVocabularyWord(
-          cleanWord,
-          "unknown",
-          context
-        )
-
-        if (vocabData && vocabData.isVocabulary) {
-          // Translate to target language
-          translation = await translationService.translateText(
-            cleanWord,
-            "en",
-            langCode
-          )
-          pronunciation = translation
-          isVocabularyWord = true
-
-          const wordData = {
-            english: cleanWord,
-            level: vocabData.level || 5,
-            example: contextText || `Example with "${cleanWord}".`,
-            exampleEn: contextText || `Example with "${cleanWord}".`,
-            original: cleanWord,
-            isApiTranslated: true,
-            isVocabulary: true,
-            wordType: vocabData.type || "unknown",
-            clickPosition: clickPosition, // Add click position for anchored popup
-            postHash: contextPostHash,
-          }
-
-          if (targetLanguage === 'Korean') {
-            wordData.korean = translation
-            wordData.romanization = pronunciation
-            wordData.showKoreanTranslation = true
-          } else {
-            wordData.japanese = translation
-            wordData.hiragana = pronunciation
-            wordData.showJapaneseTranslation = true
-            wordData.isJapanese = false
-          }
-
-          setSelectedWord(wordData)
-
-          if (setLoading) {
-            setLoading(false)
-          }
-          return
-        }
-      }
-
-      // Fallback to regular translation if not a vocabulary word
+      // Regular translation (backend-free)
       translation = await translationService.translateText(
         cleanWord,
         "en",
@@ -155,7 +100,7 @@ export const handleWordClick = async (
           : `Example with "${cleanWord}".`),
       original: cleanWord,
       isApiTranslated: true,
-      isVocabulary: isVocabularyWord,
+      isVocabulary: true,
       clickPosition: clickPosition, // Add click position for anchored popup
       postHash: contextPostHash,
     }
@@ -180,7 +125,7 @@ export const handleWordClick = async (
       english: isTargetLang ? "⚠️ Translation failed" : cleanWord,
       level: 5,
       example: contextText || `"${cleanWord}"`,
-      exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
+      exampleEn: "Translation service is currently unavailable.",
       original: cleanWord,
       isApiFallback: true,
       error: true,
@@ -205,26 +150,6 @@ export const handleWordClick = async (
     if (setLoading) {
       setLoading(false)
     }
-  }
-}
-
-// Function to detect all vocabulary words in a text
-export const detectVocabularyInText = async (text) => {
-  try {
-    return await vocabularyService.detectVocabulary(text)
-  } catch (error) {
-    console.error("Vocabulary detection failed:", error)
-    return []
-  }
-}
-
-// Function to get vocabulary statistics for a text
-export const getVocabularyStats = async (text) => {
-  try {
-    return await vocabularyService.getVocabularyStats(text)
-  } catch (error) {
-    console.error("Vocabulary stats failed:", error)
-    return { totalWords: 0, byType: {}, byLevel: {}, averageLevel: 0 }
   }
 }
 
