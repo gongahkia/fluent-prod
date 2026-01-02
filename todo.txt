@@ -1,17 +1,17 @@
 fix broken translation for words that are precomputed
 fix translation for words computed at runtime
 fix the dark theme to actually work and to look good
+fix the broken settings page
 test the saved words and saved posts
 remove any part of fluent that handles korean translation, for now i want it to just handle japanese, meanign remove korean as a language option entirely from now. be as thorough as possible
 make translation logic better and prevent eggrigious errors like the one astin flagged
-use this translation library instead if it works better https://github.com/UlionTse/translators
-optimise fluent for a mobile browser view instead of a web view
+use this translation library instead if it works better https://github.com/UlionTse/translators for the precomputed translation run
 scrape more posts and from actual popular japanese reddit threads
-add better logs for when something
-add code in the frontend that calls real reddit posts from those subreddits first, and if can't then it fallsback on the aforementioned cache
 scrape reddit comments for the cache file workflow
-fix the broken settings page
-make search anything searchbar in the current fluent feed to be a new tab called explore/search in the bottom navbar, then it should show all posts loaded from all subreddits. also tweak the user's feed so they are only being shown posts from subreddits they indicated interest in upon onboarding
+make the search anything searchbar in the current fluent feed to be a new tab called explore/search in the bottom navbar, then it should show all posts loaded from all subreddits. also tweak the user's feed so they are only being shown posts from subreddits they indicated interest in upon onboarding
 prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
 fix the pronounciation/audio feature
 test the entire workflow, github actions and all
+make the translation pop-up smaller, and it should not appear over the topbar, it should render below as it does with the bottom bar
+add code in the frontend that calls real reddit posts from those subreddits first, and if can't then it fallsback on the aforementioned cache
+optimise fluent for a mobile browser view instead of a web view
