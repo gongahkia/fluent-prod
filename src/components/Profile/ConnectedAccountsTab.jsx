@@ -1,42 +1,12 @@
-import React, { useState, useEffect } from "react"
-import { Link, Bot, X, RefreshCw, CheckCircle2, Check } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
-import { startRedditOAuth, syncRedditSubreddits, disconnectReddit, checkRedditStatus } from "@/services/redditService"
+import React, { useState } from "react"
+import { Bot, X, CheckCircle2, Check } from "lucide-react"
 
 const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
-  const { currentUser, userProfile } = useAuth()
   const [showPopup, setShowPopup] = useState(null)
   const [tempApiKey, setTempApiKey] = useState("")
   const [showStorageWarning, setShowStorageWarning] = useState(false)
-  const [redditConfigured, setRedditConfigured] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [syncMessage, setSyncMessage] = useState(null)
-
-  // Check if Reddit OAuth is configured on backend
-  useEffect(() => {
-    checkRedditStatus().then(status => {
-      setRedditConfigured(status.configured)
-    })
-  }, [])
 
   const connections = [
-    {
-      id: "reddit",
-      name: "Reddit Account",
-      icon: Link,
-      connected: !!userProfile?.reddit?.connected,
-      color: "orange",
-      benefits: [
-        "Sync your subscribed subreddits",
-        "Auto-fetch content from your subscriptions",
-        "Keep your feed personalized",
-        "Connect once, sync anytime"
-      ],
-      useOAuth: true, // NEW: Use OAuth flow
-      username: userProfile?.reddit?.username || null,
-      syncedSubreddits: userProfile?.reddit?.syncedSubreddits || [],
-      lastSynced: userProfile?.reddit?.lastSynced || null
-    },
     {
       id: "gemini",
       name: "Gemini AI",
@@ -58,25 +28,8 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
   ]
 
   const handleConnect = async (connection) => {
-    if (connection.useOAuth && connection.id === "reddit") {
-      // Reddit OAuth flow
-      if (!redditConfigured) {
-        alert("Reddit OAuth is not configured on the server. Please contact the administrator.")
-        return
-      }
-
-      try {
-        await startRedditOAuth()
-        // User will be redirected to Reddit, then back to /auth/reddit/callback
-      } catch (error) {
-        console.error("Error starting Reddit OAuth:", error)
-        alert(`Failed to connect Reddit: ${error.message}`)
-      }
-    } else {
-      // Traditional API key flow
-      setTempApiKey(formData[connection.apiKeyField] || "")
-      setShowPopup(connection)
-    }
+    setTempApiKey(formData[connection.apiKeyField] || "")
+    setShowPopup(connection)
   }
 
   const handleSaveApiKey = () => {
@@ -105,57 +58,13 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
   }
 
   const handleDisconnect = async (connection) => {
-    if (connection.useOAuth && connection.id === "reddit") {
-      // Reddit OAuth disconnect
-      if (!confirm(`Are you sure you want to disconnect your Reddit account (@${connection.username})?`)) {
-        return
-      }
-
-      try {
-        await disconnectReddit(currentUser.uid)
-        window.location.reload() // Reload to update UI
-      } catch (error) {
-        console.error("Error disconnecting Reddit:", error)
-        alert(`Failed to disconnect Reddit: ${error.message}`)
-      }
-    } else {
-      // Traditional API key disconnect
-      if (confirm(`Are you sure you want to disconnect ${connection.name}?`)) {
-        handleInputChange({
-          target: {
-            name: connection.apiKeyField,
-            value: ""
-          }
-        })
-      }
-    }
-  }
-
-  const handleSyncSubreddits = async () => {
-    if (!currentUser) return
-
-    setSyncing(true)
-    setSyncMessage(null)
-
-    try {
-      const result = await syncRedditSubreddits(currentUser.uid)
-      setSyncMessage({
-        type: "success",
-        text: `Successfully synced ${result.count} subreddits!`
+    if (confirm(`Are you sure you want to disconnect ${connection.name}?`)) {
+      handleInputChange({
+        target: {
+          name: connection.apiKeyField,
+          value: ""
+        }
       })
-
-      // Reload page to show updated data
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    } catch (error) {
-      console.error("Error syncing subreddits:", error)
-      setSyncMessage({
-        type: "error",
-        text: `Failed to sync: ${error.message}`
-      })
-    } finally {
-      setSyncing(false)
     }
   }
 
@@ -183,22 +92,12 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
     return colors[color] || colors.blue
   }
 
-  const formatDate = (date) => {
-    if (!date) return "Never"
-    try {
-      const d = date.toDate ? date.toDate() : new Date(date)
-      return d.toLocaleDateString() + " " + d.toLocaleTimeString()
-    } catch {
-      return "Unknown"
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
         <p className="text-sm text-orange-800">
           <strong>Connect your accounts</strong> to unlock additional features and enhance your learning experience.
-          Reddit uses secure OAuth 2.0. Gemini API keys are encrypted and stored securely.
+          Gemini API keys are encrypted and stored securely.
         </p>
       </div>
 
@@ -237,18 +136,6 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
                 <div className="flex space-x-2">
                   {connection.connected ? (
                     <>
-                      {/* Sync button for Reddit */}
-                      {connection.id === "reddit" && (
-                        <button
-                          onClick={handleSyncSubreddits}
-                          disabled={syncing}
-                          className="px-4 py-2 text-sm font-medium text-orange-600 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors flex items-center space-x-2 disabled:opacity-50"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                          <span>{syncing ? 'Syncing...' : 'Sync'}</span>
-                        </button>
-                      )}
-
                       <button
                         onClick={() => handleDisconnect(connection)}
                         className="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
@@ -259,42 +146,13 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
                   ) : (
                     <button
                       onClick={() => handleConnect(connection)}
-                      disabled={connection.id === "reddit" && !redditConfigured}
-                      className={`px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className={`px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-lg transition-colors`}
                     >
                       Connect
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* Reddit-specific info */}
-              {connection.id === "reddit" && connection.connected && (
-                <div className="mb-4 p-3 bg-white rounded-lg border border-orange-200">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium text-gray-700">Synced Subreddits:</p>
-                      <p className="text-gray-600">{connection.syncedSubreddits.length} subreddits</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700">Last Synced:</p>
-                      <p className="text-gray-600">{formatDate(connection.lastSynced)}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sync message */}
-              {connection.id === "reddit" && syncMessage && (
-                <div className={`mb-4 p-3 rounded-lg border flex items-center space-x-2 ${
-                  syncMessage.type === "success"
-                    ? "bg-green-50 border-green-200 text-green-800"
-                    : "bg-red-50 border-red-200 text-red-800"
-                }`}>
-                  {syncMessage.type === "success" && <CheckCircle2 className="w-5 h-5" />}
-                  <span className="text-sm font-medium">{syncMessage.text}</span>
-                </div>
-              )}
 
               {/* Benefits Preview */}
               <div className="mt-4 pt-4 border-t border-gray-200">

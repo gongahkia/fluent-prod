@@ -1,8 +1,180 @@
-// News Service - Backend API Client
+// News Service
+// Supports two modes:
+// - API mode: calls backend (/api/news)
+// - Cache mode: reads prebuilt NDJSON from GitHub raw (or /public/cache)
+
+import { loadNdjsonCache } from './cacheNdjsonService'
+
+const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache'
+
 // In dev mode (VITE_USE_LOCAL_API=true), use localhost. Otherwise use production URL.
 const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
   ? 'http://localhost:3001'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
+
+// NDJSON cache URL:
+// Prefer a direct GitHub Raw URL via VITE_GITHUB_CACHE_NDJSON_URL.
+// Fallbacks:
+// - if VITE_GITHUB_CACHE_BASE_URL is set, use `${base}/news-cache.txt`
+// - else use same-origin `/cache/news-cache.txt` (served from public/cache)
+const CACHE_NDJSON_URL = (() => {
+  const direct = import.meta.env.VITE_GITHUB_CACHE_NDJSON_URL
+  if (direct) return direct
+
+  const base = (import.meta.env.VITE_GITHUB_CACHE_BASE_URL || '/cache').replace(/\/$/, '')
+  return `${base}/news-cache.txt`
+})()
+
+function hasJapanese(text) {
+  if (!text) return false
+  return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
+}
+
+async function fetchPostsFromCache(options = {}) {
+  const {
+    limit = 10,
+    shuffle = true,
+    searchQuery = null,
+    offset = 0,
+    userLevel = null,
+    targetLang = 'ja'
+  } = options
+
+  const { rows, sha256, url } = await loadNdjsonCache(CACHE_NDJSON_URL, { revalidate: offset === 0 })
+
+  // Map rows → posts with stable ids
+  let posts = (Array.isArray(rows) ? rows : []).map((row) => {
+    const postHash = row?.postHash || row?.id
+    const translatedTitle = row?.translatedTitle
+    const translatedContent = row?.translatedContent
+
+    // Ensure title/content are strings for the renderer.
+    // The app expects JSON-as-string for mixed-language rendering.
+    const toRenderable = (value, fallback) => {
+      if (value == null) return fallback
+      if (typeof value === 'string') return value
+      try {
+        return JSON.stringify(value)
+      } catch {
+        return fallback
+      }
+    }
+
+    return {
+      id: postHash,
+      postHash,
+      sourceId: row?.sourceId,
+      title: toRenderable(translatedTitle, row?.title || ''),
+      content: toRenderable(translatedContent, row?.content || ''),
+      originalTitle: row?.title || '',
+      originalContent: row?.content || '',
+      author: row?.author || 'deleted',
+      url: row?.url,
+      source: row?.source || 'reddit',
+      tags: ['reddit', row?.subreddit].filter(Boolean),
+      subreddit: row?.subreddit || null,
+      difficulty: row?.difficulty,
+      targetLang: row?.targetLang || targetLang,
+      publishedAt: row?.publishedAt,
+      isMixedLanguage: Boolean(translatedTitle || translatedContent),
+      userLevel: row?.difficulty,
+    }
+  })
+
+  // Filter by difficulty level (userLevel ± 1)
+  if (userLevel && userLevel >= 1 && userLevel <= 5) {
+    let allowedLevels = []
+    if (userLevel === 1) allowedLevels = [1, 2]
+    else if (userLevel === 5) allowedLevels = [4, 5]
+    else allowedLevels = [userLevel - 1, userLevel, userLevel + 1]
+
+    posts = posts.filter((p) => allowedLevels.includes(p.difficulty))
+
+    // If translated fields exist, ensure title/content are strings
+    posts = posts.map((post) => {
+      const translatedTitle = post.translatedTitle
+      const translatedContent = post.translatedContent
+
+      if (translatedTitle) {
+        let processedTitle = post.originalTitle || post.title
+        let processedContent = post.originalContent || post.content
+
+        try {
+          processedTitle = typeof translatedTitle === 'object'
+            ? JSON.stringify(translatedTitle)
+            : String(translatedTitle)
+        } catch {
+          processedTitle = post.originalTitle || post.title
+        }
+
+        try {
+          processedContent = translatedContent
+            ? (typeof translatedContent === 'object'
+                ? JSON.stringify(translatedContent)
+                : String(translatedContent))
+            : post.originalContent || post.content
+        } catch {
+          processedContent = post.originalContent || post.content
+        }
+
+        return {
+          ...post,
+          title: processedTitle,
+          content: processedContent,
+          isMixedLanguage: true,
+          userLevel: post.difficulty
+        }
+      }
+
+      return post
+    })
+  }
+
+  // Search filtering
+  if (searchQuery && searchQuery.trim().length > 0) {
+    const searchLower = searchQuery.toLowerCase()
+    posts = posts.filter((post) => {
+      const titleMatch = post.title?.toLowerCase().includes(searchLower)
+      const contentMatch = post.content?.toLowerCase().includes(searchLower)
+      return titleMatch || contentMatch
+    })
+  }
+
+  // Prioritize Japanese content when target is Japanese (unless searching)
+  if (targetLang === 'ja' && !(searchQuery && searchQuery.trim().length > 0)) {
+    posts = posts.sort((a, b) => {
+      const aHas = hasJapanese(a.title) || hasJapanese(a.content)
+      const bHas = hasJapanese(b.title) || hasJapanese(b.content)
+      if (aHas && !bHas) return -1
+      if (!aHas && bHas) return 1
+      return 0
+    })
+  }
+
+  // Shuffle for variety (only first page, and only if not searching)
+  if (shuffle && offset === 0 && !(searchQuery && searchQuery.trim().length > 0) && targetLang !== 'ja') {
+    posts = posts.sort(() => Math.random() - 0.5)
+  }
+
+  const totalCount = posts.length
+  const paginated = posts.slice(offset, offset + limit)
+
+  return {
+    posts: paginated,
+    metadata: {
+      count: paginated.length,
+      sources: ['reddit'],
+      searchQuery: searchQuery || null,
+      totalCount,
+      hasMore: offset + paginated.length < totalCount,
+      offset,
+      userLevel,
+      targetLang,
+      cacheSha256: sha256,
+      cacheUrl: url
+    }
+  }
+}
 
 /**
  * Fetch news posts from backend API
@@ -17,6 +189,10 @@ const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
  * @returns {Promise<Object>} Posts and metadata
  */
 export async function fetchPosts(options = {}) {
+  if (NEWS_MODE === 'cache') {
+    return fetchPostsFromCache(options)
+  }
+
   const {
     sources = ['reddit'],
     query = 'japan',

@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import translationService from "../services/translationService"
-import { savePost, getSavedPosts } from "../services/databaseService"
+import { savePost, getSavedPosts } from "../services/firebaseDatabaseService"
 import { useAuth } from "../contexts/AuthContext"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
@@ -69,7 +69,7 @@ const NewsFeed = ({
       try {
         const result = await getSavedPosts(currentUser.id)
         if (result.success) {
-          const savedIds = new Set(result.data.map(post => post.postId))
+          const savedIds = new Set(result.data.map(post => post.postHash || post.postId || post.id))
           setSavedPostIds(savedIds)
         }
       } catch (error) {
@@ -81,6 +81,11 @@ const NewsFeed = ({
   }, [currentUser])
 
   useEffect(() => {
+    if (import.meta.env.VITE_NEWS_MODE === 'cache') {
+      // No backend in cache mode
+      return
+    }
+
     const loadApiStatus = async (retryCount = 0) => {
       const MAX_RETRIES = 3
       const RETRY_DELAY = 2000 // 2 seconds
@@ -459,6 +464,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         } else {
           // Korean word - add normally
@@ -470,6 +476,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         }
 
@@ -495,6 +502,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         } else {
           // Japanese word - add normally
@@ -506,6 +514,7 @@ const NewsFeed = ({
             example: selectedWord.example,
             exampleEn: selectedWord.exampleEn,
             source: "Fluent Post",
+            postHash: selectedWord.postHash || null,
           }
         }
 
@@ -606,6 +615,8 @@ const NewsFeed = ({
     try {
       const postData = {
         id: article.id,
+        postHash: article.postHash || article.id,
+        postId: article.postHash || article.id,
         title: article.title,
         content: article.content,
         author: article.author,

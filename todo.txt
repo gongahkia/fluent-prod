@@ -1,0 +1,5 @@
+prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
+test the entire workflow, actions and all
+make translation logic better and prevent eggrigious errors
+use this translation library instead if it works better
+optimise fluent for a mobile browser view instead of a web view

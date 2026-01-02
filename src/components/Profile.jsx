@@ -22,7 +22,7 @@ import {
   removeFollower,
   unfollowUser,
   blockUser
-} from "@/services/databaseService"
+} from "@/services/firebaseDatabaseService"
 import { signOutUser } from "@/services/authService"
 import {
   encryptCredentials,

@@ -18,7 +18,7 @@ import {
   updateUserProfile,
   updateUserCredentials,
   getUserCredentials,
-} from "@/services/databaseService"
+} from "@/services/firebaseDatabaseService"
 import {
   encryptCredentials,
   decryptCredentials

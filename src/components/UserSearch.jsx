@@ -6,7 +6,7 @@ import {
   followUser,
   unfollowUser,
   isFollowing
-} from "@/services/databaseService"
+} from "@/services/firebaseDatabaseService"
 
 const UserSearch = () => {
   const { currentUser } = useAuth()

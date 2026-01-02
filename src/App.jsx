@@ -10,12 +10,8 @@ import Settings from "./components/Settings";
 import SavedPosts from "./components/SavedPosts";
 import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
-import RedditCallback from "./pages/RedditCallback";
 import LoadingScreen from "./components/ui/LoadingScreen";
-import AuthTest from "./pages/testing/AuthTest";
-import DatabaseTest from "./pages/testing/DatabaseTest";
 import { FluentLogo } from "./components/ui/FluentLogo";
-import { useIsMobile } from "./hooks/use-mobile";
 import { useAuth } from "./contexts/AuthContext";
 import {
   addWordToDictionary as addWordToDb,
@@ -23,7 +19,7 @@ import {
   onDictionaryChange,
   getUserDictionary,
   updateUserProfile,
-} from "./services/supabaseDatabaseService";
+} from "./services/firebaseDatabaseService";
 import { signOutUser } from "./services/authService";
 import "./App.css";
 
@@ -37,30 +33,8 @@ function App() {
   const [userDictionary, setUserDictionary] = useState([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [firebaseError, setFirebaseError] = useState(null);
-  const isMobile = useIsMobile();
 
-  // Check for stale session on mount and refresh if needed
-  useEffect(() => {
-    const checkAndRefreshSession = async () => {
-      const { supabase } = await import('./lib/supabase');
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Check if session is expired or about to expire
-        const expiresAt = session.expires_at * 1000; // Convert to milliseconds
-        const now = Date.now();
-        const timeUntilExpiry = expiresAt - now;
-        
-        // If session expired or expires in less than 5 minutes, refresh it
-        if (timeUntilExpiry < 5 * 60 * 1000) {
-          console.log('Session expired or expiring soon, refreshing...');
-          await supabase.auth.refreshSession();
-        }
-      }
-    };
-    
-    checkAndRefreshSession();
-  }, []);
+  // Firebase ID tokens auto-refresh; no explicit session refresh needed.
 
   // Handle loading screen completion
   const handleLoadingComplete = () => {
@@ -175,7 +149,7 @@ function App() {
         console.log('Onboarding profile saved successfully');
         
         // Re-fetch the profile from database to ensure we have the latest data
-        const { getUserProfile } = await import('./services/supabaseDatabaseService');
+        const { getUserProfile } = await import('./services/firebaseDatabaseService');
         const refreshedProfile = await getUserProfile(currentUser.id);
         
         if (refreshedProfile.success) {
@@ -203,7 +177,7 @@ function App() {
 
   const handleProfileUpdate = async (updatedProfile) => {
     if (currentUser) {
-      // Update user profile in Supabase
+      // Update user profile in Firebase
       await updateUserProfile(currentUser.id, updatedProfile);
       setUserProfile((prev) => ({ ...prev, ...updatedProfile }));
     }
@@ -260,7 +234,7 @@ function App() {
       if (exists) return;
     }
 
-    // Add to Supabase (will trigger real-time update)
+    // Add to Firebase (Firestore)
     // The targetLanguage in newWord will be used to determine the correct collection
     const result = await addWordToDb(currentUser.id, newWord);
 
@@ -281,7 +255,7 @@ function App() {
   const removeWordFromDictionary = async (wordId) => {
     if (!currentUser) return;
 
-    // Remove from Supabase (will trigger real-time update)
+    // Remove from Firebase (Firestore)
     // Pass target language to remove from correct collection
     const targetLang = userProfile?.targetLanguage || "Japanese";
     const result = await removeWordFromDb(currentUser.id, wordId, targetLang);
@@ -326,16 +300,8 @@ function App() {
     return <LoadingScreen onLoadingComplete={handlePostOnboardingLoadingComplete} showText={true} />;
   }
 
-  // Handle Reddit OAuth callback route first (before auth checks)
   return (
     <Routes>
-      {/* Reddit OAuth Callback */}
-      <Route path="/auth/reddit/callback" element={<RedditCallback />} />
-
-      {/* Testing Routes */}
-      <Route path="/test/auth" element={<AuthTest />} />
-      <Route path="/test/database" element={<DatabaseTest />} />
-
       {/* Main App */}
       <Route
         path="*"
@@ -348,7 +314,6 @@ function App() {
             userDictionary={userDictionary}
             showLanguageDropdown={showLanguageDropdown}
             firebaseError={firebaseError}
-            isMobile={isMobile}
             setShowLanguageDropdown={setShowLanguageDropdown}
             setCurrentView={setCurrentView}
             handleLanguageChange={handleLanguageChange}
@@ -376,7 +341,6 @@ function MainApp({
   userDictionary,
   showLanguageDropdown,
   firebaseError,
-  isMobile,
   setShowLanguageDropdown,
   setCurrentView,
   handleLanguageChange,
@@ -402,20 +366,14 @@ function MainApp({
   // Show profile page (simplified public view with consistent navigation)
   if (currentView === "profile") {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-20">
         <PublicProfile
           userProfile={userProfile}
           onBack={() => handleNavigation("feed")}
           onNavigateToSettings={() => handleNavigation("settings")}
         />
 
-        {/* Mobile Bottom Navigation Bar */}
-        {isMobile && (
-          <MobileBottomBar
-            currentView={currentView}
-            onNavigate={handleNavigation}
-          />
-        )}
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
         {/* Auth Blocked Warning */}
         {firebaseError && (
@@ -431,7 +389,7 @@ function MainApp({
   // Show settings page (account configuration with consistent navigation)
   if (currentView === "settings") {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-20">
         <Settings
           userProfile={userProfile}
           onProfileUpdate={handleProfileUpdate}
@@ -439,13 +397,7 @@ function MainApp({
           onLogout={handleLogout}
         />
 
-        {/* Mobile Bottom Navigation Bar */}
-        {isMobile && (
-          <MobileBottomBar
-            currentView={currentView}
-            onNavigate={handleNavigation}
-          />
-        )}
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
         {/* Auth Blocked Warning */}
         {firebaseError && (
@@ -520,18 +472,6 @@ function MainApp({
                 )}
               </div>
 
-              {/* User Profile Avatar - Desktop only */}
-              {!isMobile && (
-                <button
-                  onClick={() => handleNavigation("profile")}
-                  className="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center hover:scale-110 transition-all duration-300 shadow-sm"
-                  aria-label="View Profile"
-                >
-                  <span className="text-sm font-medium text-white">
-                    {userProfile?.name?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -539,44 +479,8 @@ function MainApp({
 
       {/* Main Content */}
       <main
-        className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? "pb-20" : ""}`}
+        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20"
       >
-        {/* Navigation Tabs - Hidden on mobile */}
-        {!isMobile && (
-          <div className="sticky top-16 z-40 flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
-            <button
-              onClick={() => handleNavigation("feed")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "feed"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Learning Feed
-            </button>
-            <button
-              onClick={() => handleNavigation("dictionary")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "dictionary" || currentView === "flashcards"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Saved Words
-            </button>
-            <button
-              onClick={() => handleNavigation("savedposts")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 ${
-                currentView === "savedposts"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Saved Posts
-            </button>
-          </div>
-        )}
-
         {/* Render different views based on currentView */}
         {currentView === "feed" && (
           <NewsFeed
@@ -604,13 +508,7 @@ function MainApp({
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      {isMobile && (
-        <MobileBottomBar
-          currentView={currentView}
-          onNavigate={handleNavigation}
-        />
-      )}
+      <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
 
       {/* Firebase Blocked Warning */}
       {firebaseError && (

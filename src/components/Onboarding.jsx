@@ -10,7 +10,9 @@ import {
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FluentLogo } from "@/components/ui/FluentLogo";
-import interestCategoriesData from "@config/interestCategories.json";
+import subredditsConfig from "@config/subreddits.json";
+
+const interestCategoriesData = subredditsConfig?.interestCategories || {};
 
 const Onboarding = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);

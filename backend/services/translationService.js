@@ -227,13 +227,7 @@ async function tryLibreTranslate(text, fromLang, toLang) {
 }
 
 // Batch translation
-export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
-  const translations = await Promise.all(
-    texts.map(text => translateText(text, fromLang, toLang))
-  )
-
-  return { translations }
-}
+// translateBatch removed (not used by cache generator)
 
 // Note: stripMarkdownFormatting is now imported from utils/textUtils.js
 
@@ -244,7 +238,7 @@ export async function translateBatch(texts, fromLang = 'en', toLang = 'ja') {
  * @param {string} sourceLang - Source language code
  * @returns {Promise<Object>} - Map of all word translations
  */
-export async function translateAllWords(text, targetLang = 'ja', sourceLang = 'en') {
+async function translateAllWords(text, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
     return {}
   }
@@ -478,37 +472,4 @@ export function containsJapanese(text) {
   return regex.test(text)
 }
 
-export function containsKorean(text) {
-  const regex = new RegExp(translationMappings.languages.ko.characterRanges.regex)
-  return regex.test(text)
-}
-
-export function containsTargetLanguage(text, languageCode) {
-  const language = translationMappings.languages[languageCode]
-  if (!language) return false
-  const regex = new RegExp(language.characterRanges.regex)
-  return regex.test(text)
-}
-
-export function isEnglishOnly(text) {
-  const regex = new RegExp(translationMappings.languages.en.characterRanges.regex)
-  return regex.test(text)
-}
-
-// Get all supported translation pairs
-export function getSupportedTranslationPairs() {
-  return Object.entries(translationMappings.translationPairs)
-    .filter(([_, pair]) => pair.enabled)
-    .map(([key, pair]) => ({
-      key,
-      from: pair.from,
-      to: pair.to,
-      fromLanguage: translationMappings.languages[pair.from],
-      toLanguage: translationMappings.languages[pair.to]
-    }))
-}
-
-// Get language information
-export function getLanguageInfo(languageCode) {
-  return translationMappings.languages[languageCode] || null
-}
+// containsKorean/containsTargetLanguage/isEnglishOnly/getSupportedTranslationPairs/getLanguageInfo removed (not used by cache generator)

@@ -1,7 +1,80 @@
-// Translation Service - Backend API Client
+// Translation Service - Direct client-side translation
+//
+// NOTE:
+// This app used to call a backend translation API.
+// To support a backend-free deployment, we call public translation providers directly
+// according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+function withTimeout(ms) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), ms)
+  return { signal: controller.signal, cancel: () => clearTimeout(timeout) }
+}
+
+async function tryLingva(text, fromLang, toLang, timeoutMs) {
+  const endpoint = translationMappings.apiEndpoints.lingva
+  if (!endpoint?.enabled) return null
+
+  const url = `${endpoint.baseUrl}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
+  const { signal, cancel } = withTimeout(timeoutMs)
+  try {
+    const res = await fetch(url, { method: 'GET', signal })
+    if (!res.ok) return null
+    const data = await res.json()
+    const translation = data?.translation
+    if (translation && translation !== text) return translation
+    return null
+  } catch {
+    return null
+  } finally {
+    cancel()
+  }
+}
+
+async function tryMyMemory(text, fromLang, toLang, timeoutMs) {
+  const endpoint = translationMappings.apiEndpoints.mymemory
+  if (!endpoint?.enabled) return null
+
+  const url = `${endpoint.baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
+  const { signal, cancel } = withTimeout(timeoutMs)
+  try {
+    const res = await fetch(url, { method: 'GET', signal })
+    if (!res.ok) return null
+    const data = await res.json()
+    const translation = data?.responseData?.translatedText
+    if (translation && translation !== text) return translation
+    return null
+  } catch {
+    return null
+  } finally {
+    cancel()
+  }
+}
+
+async function tryLibreTranslate(text, fromLang, toLang, timeoutMs) {
+  const endpoint = translationMappings.apiEndpoints.libretranslate
+  if (!endpoint?.enabled) return null
+
+  const { signal, cancel } = withTimeout(timeoutMs)
+  try {
+    const res = await fetch(endpoint.baseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: text, source: fromLang, target: toLang, format: 'text' }),
+      signal,
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const translation = data?.translatedText
+    if (translation && translation !== text) return translation
+    return null
+  } catch {
+    return null
+  } finally {
+    cancel()
+  }
+}
 
 class TranslationService {
   constructor() {
@@ -59,24 +132,24 @@ class TranslationService {
       throw new Error(`Translation pair ${fromLang}-${toLang} is not supported`)
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, fromLang, toLang })
-      })
+    const pairKey = `${fromLang}-${toLang}`
+    const pair = this.mappings.translationPairs[pairKey]
+    const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
 
-      if (!response.ok) {
-        throw new Error(`Translation failed: ${response.statusText}`)
-      }
+    const timeoutMs = 5000
+    for (const provider of providers) {
+      const trimmed = String(text ?? '')
+      if (!trimmed) return ''
 
-      const data = await response.json()
-      // Backend returns { original, translation, fromLang, toLang, ... }
-      return data.translation || text
-    } catch (error) {
-      console.error('Translation error:', error)
-      throw error // Throw error so caller knows translation failed
+      let result = null
+      if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
+      else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
+      else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
+
+      if (result) return result
     }
+
+    throw new Error('Translation failed (no provider succeeded). This may be a CORS/network issue.')
   }
 
   /**
@@ -94,21 +167,20 @@ class TranslationService {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/translate/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts, fromLang, toLang })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Batch translation failed: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return data.translations || []
+      const results = await Promise.all(
+        (texts || []).map(async (t) => {
+          try {
+            const translation = await this.translateText(t, fromLang, toLang)
+            return { original: t, translation }
+          } catch {
+            return { original: t, translation: t }
+          }
+        })
+      )
+      return results
     } catch (error) {
       console.error('Batch translation error:', error)
-      return texts.map(text => ({ original: text, translation: text }))
+      return (texts || []).map((t) => ({ original: t, translation: t }))
     }
   }
 
@@ -127,23 +199,10 @@ class TranslationService {
       return text
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/translate/mixed-content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, userLevel, targetLang, sourceLang })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Mixed content creation failed: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return JSON.stringify(data)
-    } catch (error) {
-      console.error('Mixed content creation error:', error)
-      return text // Return original text on error
-    }
+    // Backend-free mode: rely on precomputed mixed-language content in the cache.
+    // Keep this function as a safe fallback so older code paths don't crash.
+    // Returning original text preserves readability.
+    return text
   }
 
   /**

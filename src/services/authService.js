@@ -1,38 +1,37 @@
 /**
- * Supabase Authentication Service
- * Replaces Firebase Authentication
+ * Firebase Authentication Service
  */
 
-import { supabase } from '@/lib/supabase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  sendPasswordResetEmail,
+  updatePassword as fbUpdatePassword,
+  updateProfile,
+  onAuthStateChanged,
+  sendEmailVerification,
+} from 'firebase/auth'
+
+import { firebaseAuth } from '@/lib/firebase'
 
 /**
  * Register a new user with email and password
  */
 export const registerWithEmail = async (email, password, displayName) => {
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName,
-          name: displayName,
-        },
-      },
-    });
+    const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password)
 
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    if (displayName && displayName.trim().length > 0) {
+      await updateProfile(cred.user, { displayName: displayName.trim() })
     }
 
-    return {
-      success: true,
-      user: data.user,
-      isNewUser: true,
-    };
+    // Match prior UX: app shows confirmation UI after registration
+    await sendEmailVerification(cred.user).catch(() => {})
+
+    return { success: true, user: cred.user, isNewUser: true }
   } catch (error) {
     console.error('Error registering user:', error);
     return {
@@ -47,24 +46,8 @@ export const registerWithEmail = async (email, password, displayName) => {
  */
 export const signInWithEmail = async (email, password) => {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return {
-      success: true,
-      user: data.user,
-      session: data.session,
-      isNewUser: false,
-    };
+    const cred = await signInWithEmailAndPassword(firebaseAuth, email, password)
+    return { success: true, user: cred.user, isNewUser: false }
   } catch (error) {
     console.error('Error signing in:', error);
     return {
@@ -79,26 +62,9 @@ export const signInWithEmail = async (email, password) => {
  */
 export const signInWithGoogle = async () => {
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}`,
-      },
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    // Note: OAuth redirects, so this return won't be reached immediately
-    // The actual user data will be available after redirect
-    return {
-      success: true,
-      data,
-    };
+    const provider = new GoogleAuthProvider()
+    const cred = await signInWithPopup(firebaseAuth, provider)
+    return { success: true, user: cred.user, isNewUser: false }
   } catch (error) {
     console.error('Error signing in with Google:', error);
     return {
@@ -113,16 +79,8 @@ export const signInWithGoogle = async () => {
  */
 export const signOutUser = async () => {
   try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return { success: true };
+    await signOut(firebaseAuth)
+    return { success: true }
   } catch (error) {
     console.error('Error signing out:', error);
     return {
@@ -137,18 +95,8 @@ export const signOutUser = async () => {
  */
 export const resetPassword = async (email) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return { success: true };
+    await sendPasswordResetEmail(firebaseAuth, email)
+    return { success: true }
   } catch (error) {
     console.error('Error sending password reset email:', error);
     return {
@@ -163,18 +111,11 @@ export const resetPassword = async (email) => {
  */
 export const updatePassword = async (newPassword) => {
   try {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    if (!firebaseAuth.currentUser) {
+      return { success: false, error: 'Not signed in' }
     }
-
-    return { success: true };
+    await fbUpdatePassword(firebaseAuth.currentUser, newPassword)
+    return { success: true }
   } catch (error) {
     console.error('Error updating password:', error);
     return {
@@ -189,21 +130,18 @@ export const updatePassword = async (newPassword) => {
  */
 export const updateUserMetadata = async (metadata) => {
   try {
-    const { data, error } = await supabase.auth.updateUser({
-      data: metadata,
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
+    if (!firebaseAuth.currentUser) {
+      return { success: false, error: 'Not signed in' }
     }
 
-    return {
-      success: true,
-      user: data.user,
-    };
+    // Firebase user metadata is limited; map common fields
+    const updates = {}
+    if (typeof metadata?.display_name === 'string') updates.displayName = metadata.display_name
+    if (typeof metadata?.name === 'string') updates.displayName = metadata.name
+    if (typeof metadata?.photoURL === 'string') updates.photoURL = metadata.photoURL
+
+    await updateProfile(firebaseAuth.currentUser, updates)
+    return { success: true, user: firebaseAuth.currentUser }
   } catch (error) {
     console.error('Error updating user metadata:', error);
     return {
@@ -217,17 +155,11 @@ export const updateUserMetadata = async (metadata) => {
  * Listen to authentication state changes
  */
 export const onAuthStateChange = (callback) => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      const user = session?.user || null;
-      callback(user);
-    }
-  );
+  const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+    callback(user || null)
+  })
 
-  // Return unsubscribe function
-  return () => {
-    subscription.unsubscribe();
-  };
+  return unsubscribe
 };
 
 /**
@@ -235,14 +167,7 @@ export const onAuthStateChange = (callback) => {
  */
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error) {
-      console.error('Error getting current user:', error);
-      return null;
-    }
-
-    return user;
+    return firebaseAuth.currentUser
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -254,14 +179,10 @@ export const getCurrentUser = async () => {
  */
 export const getCurrentSession = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-
-    if (error) {
-      console.error('Error getting current session:', error);
-      return null;
-    }
-
-    return session;
+    const user = firebaseAuth.currentUser
+    if (!user) return null
+    const token = await user.getIdToken().catch(() => null)
+    return { user, access_token: token }
   } catch (error) {
     console.error('Error getting current session:', error);
     return null;
@@ -273,19 +194,10 @@ export const getCurrentSession = async () => {
  */
 export const refreshSession = async () => {
   try {
-    const { data, error } = await supabase.auth.refreshSession();
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return {
-      success: true,
-      session: data.session,
-    };
+    const user = firebaseAuth.currentUser
+    if (!user) return { success: false, error: 'Not signed in' }
+    await user.getIdToken(true)
+    return { success: true }
   } catch (error) {
     console.error('Error refreshing session:', error);
     return {

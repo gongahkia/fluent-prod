@@ -1,6 +1,14 @@
 import React from "react"
-import vocabularyService from "../../services/vocabularyService"
 import { decodeHTMLEntities, segmentJapaneseText } from "./utils/textParsing"
+
+function isValidVocabularyWord(word) {
+  if (!word || typeof word !== "string") return false
+  const clean = word.toLowerCase().trim()
+  if (clean.length < 1 || clean.length > 20) return false
+  if (/^\d+$/.test(clean)) return false
+  if (/[^a-zA-Z'-]/.test(clean)) return false
+  return true
+}
 
 // Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
@@ -231,7 +239,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             const cleanWord = segment.trim().toLowerCase().replace(/[.,!?;:"'()[\]{}—–-]/g, "")
             const vocabData = vocabMap.get(cleanWord)
 
-            if (vocabData && vocabularyService.isValidVocabularyWord(cleanWord)) {
+            if (vocabData && isValidVocabularyWord(cleanWord)) {
               // This is a vocabulary word - make it clickable
               const targetLangName = targetLanguage === 'Korean' ? 'Korean' : 'Japanese'
 
@@ -239,7 +247,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                 <span
                   key={`${keyPrefix}-vocab-${idx}`}
                   className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-                  onClick={(e) => handleWordClick(segment.trim(), false, processedText, e)}
+                  onClick={(e) => handleWordClick(segment.trim(), false, { text: processedText, postHash: postId, postId }, e)}
                   title={`Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
                   style={{ textDecoration: "none" }}
                 >
@@ -363,7 +371,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                       ? "cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
                       : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
-                  onClick={(e) => handleWordClick(text, isTargetLanguage, text, e)}
+                  onClick={(e) => handleWordClick(text, isTargetLanguage, { text, postHash: postId, postId }, e)}
                   title={
                     isTranslatedWord
                       ? `Japanese: Click to see English "${text}"`
@@ -386,7 +394,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           <span key={segmentIndex}>
             <span
               className="cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
-              onClick={(e) => handleWordClick(segment, isTargetLanguage, segment, e)}
+              onClick={(e) => handleWordClick(segment, isTargetLanguage, { text: segment, postHash: postId, postId }, e)}
               title={`Korean: Click to see English "${segment}"`}
               style={{ textDecoration: "none" }}
             >
@@ -403,8 +411,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           return <span key={segmentIndex}>{segment}</span>
         }
 
-        const isVocabularyWord =
-          vocabularyService.isValidVocabularyWord(cleanWord)
+        const isVocabularyWord = isValidVocabularyWord(cleanWord)
 
         // Use lighter styling for non-partially-translated words
         const vocabularyClasses = "cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
@@ -415,7 +422,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           <span key={segmentIndex}>
             <span
               className={vocabularyClasses}
-              onClick={(e) => handleWordClick(cleanWord, false, text, e)}
+              onClick={(e) => handleWordClick(cleanWord, false, { text, postHash: postId, postId }, e)}
               title={vocabularyTitle}
               style={{ textDecoration: "none" }}
             >

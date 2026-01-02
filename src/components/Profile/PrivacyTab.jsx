@@ -1,7 +1,8 @@
 import React, { useState } from "react"
 import { User, Trash2, X } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { supabase } from "@/lib/supabase"
+import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth'
+import { deleteUserAccountData } from '@/services/firebaseDatabaseService'
 
 const PrivacyTab = ({ formData, handleInputChange, setShowFollowers, setShowFollowing }) => {
   const { currentUser } = useAuth()
@@ -20,45 +21,28 @@ const PrivacyTab = ({ formData, handleInputChange, setShowFollowers, setShowFoll
     setDeleteError("")
 
     try {
-      // Reauthenticate user by verifying password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: currentUser.email,
-        password: deletePassword,
-      })
+      // Re-authenticate (required by Firebase to delete account)
+      const credential = EmailAuthProvider.credential(currentUser.email, deletePassword)
+      await reauthenticateWithCredential(currentUser, credential)
 
-      if (signInError) {
-        throw signInError
+      // Best-effort cleanup of user data in Firestore
+      const cleanup = await deleteUserAccountData(currentUser.id)
+      if (!cleanup.success) {
+        console.warn('Failed to delete all user data:', cleanup.error)
       }
 
-      // Delete user data from database (CASCADE will handle related tables)
-      const { error: deleteDataError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', currentUser.id)
-
-      if (deleteDataError) {
-        console.error("Error deleting user data:", deleteDataError)
-      }
-
-      // Delete the user account from Supabase Auth
-      const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(
-        currentUser.id
-      )
-
-      if (deleteAuthError) {
-        throw deleteAuthError
-      }
-
-      // Sign out (will happen automatically after account deletion)
-      await supabase.auth.signOut()
+      // Delete the Firebase Auth user (self-delete)
+      await deleteUser(currentUser)
 
       // User will be logged out automatically
       alert("Your account has been permanently deleted.")
     } catch (error) {
       console.error("Error deleting account:", error)
 
-      if (error.message?.includes('Invalid login credentials')) {
+      if (error.code === 'auth/wrong-password') {
         setDeleteError("Incorrect password. Please try again.")
+      } else if (error.code === 'auth/requires-recent-login') {
+        setDeleteError('Please sign in again and retry account deletion.')
       } else if (error.message?.includes('too many')) {
         setDeleteError("Too many failed attempts. Please try again later.")
       } else {

@@ -1,14 +1,21 @@
 import translationService from "../services/translationService"
-import vocabularyService from "../services/vocabularyService"
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
-// Now enhanced with real-time translation API and NER-based vocabulary detection
+// Uses client-side translation and a simple local vocabulary heuristic.
 
 // Removed hardcoded words - now using only API translations
 export const japaneseWords = {}
 
-// Function to handle word clicks with enhanced vocabulary detection
+function isValidVocabularyWord(word) {
+  if (!word || typeof word !== "string") return false
+  const clean = word.toLowerCase().trim()
+  if (clean.length < 1 || clean.length > 20) return false
+  if (/^\d+$/.test(clean)) return false
+  if (/[^a-zA-Z'-]/.test(clean)) return false
+  return true
+}
+
 export const handleWordClick = async (
   word,
   setSelectedWord,
@@ -16,9 +23,12 @@ export const handleWordClick = async (
   context = null,
   contextTranslation = null,
   setLoading = null,
-  targetLanguage = 'Japanese', // Add target language parameter
+  targetLanguage = "Japanese", // Add target language parameter
   clickPosition = null // Add click position parameter
 ) => {
+  const contextText = typeof context === 'string' ? context : (context?.text || null)
+  const contextPostHash = typeof context === 'object' && context ? (context.postHash || context.postId || null) : null
+
   // Auto-detect if word is in target language or English if not specified
   let isTargetLang = isJapanese
   if (isTargetLang === null) {
@@ -38,14 +48,11 @@ export const handleWordClick = async (
   }
 
   try {
-    console.log(
-      `Translating word: ${cleanWord} using API with vocabulary detection...`
-    )
+    console.log(`Translating word: ${cleanWord} using API...`)
 
     let translation,
       pronunciation,
-      contextTranslationResult,
-      isVocabularyWord = false
+      contextTranslationResult
 
     const langCode = targetLanguage === 'Korean' ? 'ko' : 'ja'
 
@@ -58,68 +65,15 @@ export const handleWordClick = async (
       )
       pronunciation = cleanWord // Use the original text as pronunciation
 
-      if (context && !contextTranslation) {
+      if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
-          context,
+          contextText,
           langCode,
           "en"
         )
       }
     } else {
-      // English to target language with vocabulary detection
-
-      // First check if this is a vocabulary word worth learning
-      if (vocabularyService.isValidVocabularyWord(cleanWord)) {
-        // Use vocabulary service for enhanced translation
-        const vocabData = await vocabularyService.getVocabularyWord(
-          cleanWord,
-          "unknown",
-          context
-        )
-
-        if (vocabData && vocabData.isVocabulary) {
-          // Translate to target language
-          translation = await translationService.translateText(
-            cleanWord,
-            "en",
-            langCode
-          )
-          pronunciation = translation
-          isVocabularyWord = true
-
-          const wordData = {
-            english: cleanWord,
-            level: vocabData.level || 5,
-            example: context || `Example with "${cleanWord}".`,
-            exampleEn: context || `Example with "${cleanWord}".`,
-            original: cleanWord,
-            isApiTranslated: true,
-            isVocabulary: true,
-            wordType: vocabData.type || "unknown",
-            clickPosition: clickPosition, // Add click position for anchored popup
-          }
-
-          if (targetLanguage === 'Korean') {
-            wordData.korean = translation
-            wordData.romanization = pronunciation
-            wordData.showKoreanTranslation = true
-          } else {
-            wordData.japanese = translation
-            wordData.hiragana = pronunciation
-            wordData.showJapaneseTranslation = true
-            wordData.isJapanese = false
-          }
-
-          setSelectedWord(wordData)
-
-          if (setLoading) {
-            setLoading(false)
-          }
-          return
-        }
-      }
-
-      // Fallback to regular translation if not a vocabulary word
+      // English to target language
       translation = await translationService.translateText(
         cleanWord,
         "en",
@@ -127,9 +81,9 @@ export const handleWordClick = async (
       )
       pronunciation = translation
 
-      if (context && !contextTranslation) {
+      if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
-          context,
+          contextText,
           "en",
           langCode
         )
@@ -142,7 +96,7 @@ export const handleWordClick = async (
     const wordData = {
       english: isTargetLang ? translation : cleanWord,
       level: level,
-      example: context || `Example with "${cleanWord}".`,
+      example: contextText || `Example with "${cleanWord}".`,
       exampleEn:
         contextTranslationResult ||
         contextTranslation ||
@@ -151,8 +105,9 @@ export const handleWordClick = async (
           : `Example with "${cleanWord}".`),
       original: cleanWord,
       isApiTranslated: true,
-      isVocabulary: isVocabularyWord,
+      isVocabulary: !isTargetLang && isValidVocabularyWord(cleanWord),
       clickPosition: clickPosition, // Add click position for anchored popup
+      postHash: contextPostHash,
     }
 
     if (targetLanguage === 'Korean') {
@@ -174,12 +129,13 @@ export const handleWordClick = async (
     const errorData = {
       english: isTargetLang ? "⚠️ Translation failed" : cleanWord,
       level: 5,
-      example: context || `"${cleanWord}"`,
-      exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
+      example: contextText || `"${cleanWord}"`,
+      exampleEn: "Translation service is currently unavailable.",
       original: cleanWord,
       isApiFallback: true,
       error: true,
       clickPosition: clickPosition, // Add click position for anchored popup
+      postHash: contextPostHash,
     }
 
     if (targetLanguage === 'Korean') {
@@ -199,26 +155,6 @@ export const handleWordClick = async (
     if (setLoading) {
       setLoading(false)
     }
-  }
-}
-
-// Function to detect all vocabulary words in a text
-export const detectVocabularyInText = async (text) => {
-  try {
-    return await vocabularyService.detectVocabulary(text)
-  } catch (error) {
-    console.error("Vocabulary detection failed:", error)
-    return []
-  }
-}
-
-// Function to get vocabulary statistics for a text
-export const getVocabularyStats = async (text) => {
-  try {
-    return await vocabularyService.getVocabularyStats(text)
-  } catch (error) {
-    console.error("Vocabulary stats failed:", error)
-    return { totalWords: 0, byType: {}, byLevel: {}, averageLevel: 0 }
   }
 }
 
