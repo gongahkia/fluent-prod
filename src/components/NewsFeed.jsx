@@ -11,7 +11,6 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
-import translationService from "../services/translationService"
 import { savePost, getSavedPosts } from "../services/firebaseDatabaseService"
 import { useAuth } from "../contexts/AuthContext"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
@@ -40,11 +39,8 @@ const NewsFeed = ({
   const [subscribedSources, setSubscribedSources] = useState(new Set())
   const [isTranslating, setIsTranslating] = useState(false)
   const [posts, setPosts] = useState([])
-  const [processedPosts, setProcessedPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [processingPosts, setProcessingPosts] = useState(false)
-  const [minPostsLoaded, setMinPostsLoaded] = useState(false)
   const [selectedSources, setSelectedSources] = useState(["reddit"])
   const [showSettings, setShowSettings] = useState(false)
   const [apiStatus, setApiStatus] = useState({})
@@ -98,8 +94,7 @@ const NewsFeed = ({
   }, [userProfile?.selectedTags, userProfile?.interests])
 
   const displayedPosts = useMemo(() => {
-    const base = processedPosts.length > 0 ? processedPosts : posts
-    const unhidden = base.filter((article) => !hiddenPosts.has(article.id))
+    const unhidden = posts.filter((article) => !hiddenPosts.has(article.id))
 
     if (!shouldFilterByInterests) return unhidden
     if (interestSubreddits.size === 0) return []
@@ -174,90 +169,6 @@ const NewsFeed = ({
       }
     }
   }, [])
-
-  // Process posts with mixed language content based on user level
-  // OPTIMIZATION: Backend now pre-processes posts, so we just use them directly
-  const processPostsWithMixedLanguage = useCallback(
-    async (postsToProcess, isLoadMore = false) => {
-      if (!postsToProcess.length) {
-        return postsToProcess
-      }
-
-      // Check if posts are already pre-processed by backend (have isMixedLanguage flag)
-      const alreadyProcessed = postsToProcess.some(post => post.isMixedLanguage === true)
-      
-      if (alreadyProcessed) {
-        console.log('Using pre-processed posts from backend cache')
-        setProcessingPosts(false)
-        setMinPostsLoaded(true)
-        return postsToProcess
-      }
-
-      // Fallback: Process on frontend if backend didn't pre-process
-      // This maintains backward compatibility
-      if (!userProfile?.learningLevel) {
-        setMinPostsLoaded(true)
-        return postsToProcess
-      }
-
-      console.warn('Posts not pre-processed by backend, processing on frontend (slower)')
-      setProcessingPosts(true)
-      const targetLangCode = 'ja'
-
-      // Process posts asynchronously
-      const processPromises = postsToProcess.map(async (post, index) => {
-        try {
-          // Check if post already contains target language
-          const containsTargetLang = translationService.containsTargetLanguage(post.title, targetLangCode)
-
-          // Only process English content and create mixed content
-          const processedTitle = containsTargetLang
-            ? post.title
-            : await translationService.createMixedLanguageContent(
-                post.title,
-                userProfile.learningLevel,
-                targetLangCode
-              )
-
-          const processedContent =
-            post.content && !translationService.containsTargetLanguage(post.content, targetLangCode)
-              ? await translationService.createMixedLanguageContent(
-                  post.content,
-                  userProfile.learningLevel,
-                  targetLangCode
-                )
-              : post.content
-
-          const processedPost = {
-            ...post,
-            originalTitle: post.title,
-            originalContent: post.content,
-            title: processedTitle,
-            content: processedContent,
-            isMixedLanguage: true,
-          }
-
-          return { post: processedPost, index }
-        } catch (error) {
-          console.warn("Failed to process post for mixed language:", error)
-          const fallbackPost = {
-            ...post,
-            originalTitle: post.title,
-            originalContent: post.content,
-            isMixedLanguage: false,
-          }
-          return { post: fallbackPost, index }
-        }
-      })
-
-      // Wait for all to complete
-      const results = await Promise.all(processPromises)
-      setProcessingPosts(false)
-      setMinPostsLoaded(true)
-      return results.map(r => r.post)
-    },
-    [userProfile?.learningLevel, userProfile?.targetLanguage]
-  )
 
   // Load real posts from APIs
   const loadPosts = useCallback(
@@ -360,28 +271,19 @@ const NewsFeed = ({
           // Filter out duplicates when loading more
           setPosts((prev) => {
             const existingUrls = new Set(prev.map((post) => post.url))
-            const newPosts = enhancedPosts.filter(
-              (post) => !existingUrls.has(post.url)
-            )
+            const newPosts = enhancedPosts.filter((post) => !existingUrls.has(post.url))
 
             if (newPosts.length === 0) {
               setHasMorePosts(false)
               return prev
-            } else {
-              setCurrentPage((prevPage) => prevPage + 1)
-              // Update offset for next load
-              setOffset(currentOffset + newPosts.length)
-              // Add new posts directly to processed posts (no frontend processing needed)
-              setProcessedPosts((prev) => [...prev, ...newPosts])
-              return [...prev, ...newPosts]
             }
+
+            setCurrentPage((prevPage) => prevPage + 1)
+            setOffset(currentOffset + newPosts.length)
+            return [...prev, ...newPosts]
           })
         } else {
           setPosts(enhancedPosts)
-          // Set processed posts directly (backend already processed them)
-          setProcessedPosts(enhancedPosts)
-          setMinPostsLoaded(true)
-          // Set initial offset
           setOffset(enhancedPosts.length)
         }
       } catch (err) {
@@ -390,22 +292,18 @@ const NewsFeed = ({
         // Show error instead of fallback to ensure real news only
         if (!isLoadMore) {
           setPosts([])
-          setProcessedPosts([])
         }
       } finally {
-        // Only hide loading state if we're loading more, or if minimum posts are loaded
         if (isLoadMore) {
           setLoadingMore(false)
+        } else {
+          setLoading(false)
         }
-        // For initial load, wait for minPostsLoaded to be true before hiding loading
       }
     },
     [
       selectedSources,
       apiStatus,
-      userProfile?.learningLevel,
-      userProfile?.targetLanguage,
-      processPostsWithMixedLanguage,
       activeSearchQuery,
       offset,
     ]
@@ -456,7 +354,6 @@ const NewsFeed = ({
         console.log(`Language changed: ${prevDeps.targetLanguage} -> ${currentDeps.targetLanguage}`)
         // Clear posts immediately on language change for better UX
         setPosts([])
-        setProcessedPosts([])
       }
       
       console.log('Dependencies changed, reloading posts:', {
@@ -468,13 +365,6 @@ const NewsFeed = ({
       shouldReloadRef.current = false
     }
   }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, activeSearchQuery, loadPosts])
-
-  // Turn off loading state when minimum posts are loaded
-  useEffect(() => {
-    if (minPostsLoaded && loading) {
-      setLoading(false)
-    }
-  }, [minPostsLoaded, loading])
 
   // Scroll detection for "see more" button
   useEffect(() => {
@@ -493,7 +383,6 @@ const NewsFeed = ({
         hasMorePosts &&
         !loading &&
         !loadingMore &&
-        !processingPosts &&
         !selectedWord &&
         !isTranslating
       ) {
@@ -505,12 +394,12 @@ const NewsFeed = ({
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [posts.length, hasMorePosts, loading, loadingMore, processingPosts, selectedWord, isTranslating])
+  }, [posts.length, hasMorePosts, loading, loadingMore, selectedWord, isTranslating])
 
   // Function to load more posts
   const handleLoadMore = () => {
     // Don't load more if user is actively translating (processing posts or has translation popup open)
-    if (!loadingMore && hasMorePosts && !processingPosts && !selectedWord && !isTranslating) {
+    if (!loadingMore && hasMorePosts && !selectedWord && !isTranslating) {
       loadPosts(true)
       setShowSeeMoreButton(false) // Hide button after clicking
     }

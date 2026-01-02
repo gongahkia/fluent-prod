@@ -17,8 +17,8 @@ import crypto from 'crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { createMixedLanguageContent, containsJapanese } from './services/translationService.js'
-import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
+import { containsJapanese } from './services/translationService.js'
+import { stripMarkdownToPlaintext } from './utils/textUtils.js'
 import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -262,78 +262,12 @@ async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
   }
 }
 
-/**
- * Process a single post with mixed language content
- */
-async function processPostWithMixedLanguage(post, targetLang) {
-  const assignedLevel = post.difficulty
-
-  try {
-    // Create mixed language content by translating target-language tokens -> English.
-    // Learning level is intentionally ignored for cache generation.
-    const titleResult = post.title
-      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
-      : null
-
-    const contentResult = post.content
-      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
-      : null
-
-    return {
-      ...post,
-      targetLang,
-      translatedTitle: titleResult,
-      translatedContent: contentResult,
-      originalTitle: post.title,
-      originalContent: post.content
-    }
-  } catch (error) {
-    console.warn(`    Translation failed for post: ${error.message}`)
-    return {
-      ...post,
-      targetLang,
-      translatedTitle: null,
-      translatedContent: null,
-      originalTitle: post.title,
-      originalContent: post.content
-    }
-  }
-}
-
-/**
- * Process all posts with mixed language (parallel)
- */
-async function processAllPosts(posts, targetLang) {
-  console.log(`\nProcessing ${posts.length} posts with translations...`)
-  
-  const processedPosts = []
-  const chunks = chunkArray(posts, CONCURRENCY_LIMIT)
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i]
-    console.log(`  Processing chunk ${i + 1}/${chunks.length} (${chunk.length} posts)...`)
-
-    try {
-      const chunkResults = await Promise.all(
-        chunk.map(post => processPostWithMixedLanguage(post, targetLang))
-      )
-      processedPosts.push(...chunkResults)
-      console.log(`    Chunk ${i + 1} completed`)
-    } catch (error) {
-      console.error(`    Chunk ${i + 1} failed: ${error.message}`)
-      processedPosts.push(...chunk) // Add unprocessed posts
-    }
-  }
-
-  console.log(`Processed ${processedPosts.length} posts`)
-  return processedPosts
-}
-
 function toRow(post) {
   const sourceId = post.id
   const postHash = stablePostHash(sourceId)
   const row = {
-    schemaVersion: 1,
+    // v2: no pretranslated/mixed-language fields are stored in cache
+    schemaVersion: 2,
     postHash,
     sourceId,
     source: post.source || 'reddit',
@@ -342,11 +276,9 @@ function toRow(post) {
     author: post.author,
     publishedAt: post.publishedAt instanceof Date ? post.publishedAt.toISOString() : String(post.publishedAt),
     difficulty: post.difficulty,
-    targetLang: post.targetLang,
+    targetLang: TARGET_LANG,
     title: post.title,
     content: post.content,
-    translatedTitle: post.translatedTitle,
-    translatedContent: post.translatedContent,
     createdAt: new Date().toISOString(),
   }
   row.rowHash = rowIntegrityHash(row)
@@ -413,9 +345,8 @@ async function run() {
   const limitedFetched = allFetched.slice(0, MAX_NEW_POSTS)
   console.log(`\nLimiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
 
-  console.log('\nTranslating + generating mixed-language content...')
-  const processedPosts = await processAllPosts(limitedFetched, TARGET_LANG)
-  const newRows = processedPosts.map(toRow)
+  console.log('\nWriting cache rows (no pretranslation; original scraped text only)...')
+  const newRows = limitedFetched.map(toRow)
 
   // Merge + de-dupe by stable postHash
   const byHash = new Map()

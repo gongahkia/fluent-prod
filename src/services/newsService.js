@@ -45,11 +45,7 @@ async function fetchPostsFromCache(options = {}) {
   // Map rows → posts with stable ids
   let posts = (Array.isArray(rows) ? rows : []).map((row) => {
     const postHash = row?.postHash || row?.id
-    const translatedTitle = row?.translatedTitle
-    const translatedContent = row?.translatedContent
-
     // Ensure title/content are strings for the renderer.
-    // The app expects JSON-as-string for mixed-language rendering.
     const toRenderable = (value, fallback) => {
       if (value == null) return fallback
       if (typeof value === 'string') return value
@@ -64,10 +60,10 @@ async function fetchPostsFromCache(options = {}) {
       id: postHash,
       postHash,
       sourceId: row?.sourceId,
-      title: toRenderable(translatedTitle, row?.title || ''),
-      content: toRenderable(translatedContent, row?.content || ''),
-      originalTitle: row?.title || '',
-      originalContent: row?.content || '',
+      title: toRenderable(row?.title, ''),
+      content: toRenderable(row?.content, ''),
+      originalTitle: toRenderable(row?.title, ''),
+      originalContent: toRenderable(row?.content, ''),
       author: row?.author || 'deleted',
       url: row?.url,
       source: row?.source || 'reddit',
@@ -76,7 +72,7 @@ async function fetchPostsFromCache(options = {}) {
       difficulty: row?.difficulty,
       targetLang: row?.targetLang || targetLang,
       publishedAt: row?.publishedAt,
-      isMixedLanguage: Boolean(translatedTitle || translatedContent),
+      isMixedLanguage: false,
       userLevel: row?.difficulty,
     }
   })
