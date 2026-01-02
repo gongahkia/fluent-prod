@@ -211,6 +211,8 @@ const NewsFeed = ({
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
+      const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
+
       if (isLoadMore) {
         setLoadingMore(true)
       } else {
@@ -222,14 +224,30 @@ const NewsFeed = ({
       setError(null)
 
       try {
-        const enabledSources = selectedSources.filter(
-          (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
-        )
+        // Cache mode doesn't use backend/API status checks.
+        const enabledSources = isCacheMode
+          ? selectedSources
+          : selectedSources.filter(
+              (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
+            )
 
-        if (enabledSources.length === 0) {
+        if (!isCacheMode && enabledSources.length === 0) {
           throw new Error(
             "No enabled sources available. Please check your API configuration."
           )
+        }
+
+        if (import.meta.env.DEV) {
+          console.log('[NewsFeed] loadPosts start', {
+            mode: isCacheMode ? 'cache' : 'api',
+            isLoadMore,
+            enabledSources,
+            selectedSources,
+            offset: isLoadMore ? offset : 0,
+            targetLanguage: userProfile?.targetLanguage || null,
+            learningLevel: userProfile?.learningLevel || null,
+            activeSearchQuery,
+          })
         }
 
         // Determine query based on target language
@@ -265,6 +283,17 @@ const NewsFeed = ({
           userLevel: userProfile?.learningLevel || null,
           targetLang: targetLangCode
         })
+
+        if (import.meta.env.DEV) {
+          console.log('[NewsFeed] fetchPosts result', {
+            mode: isCacheMode ? 'cache' : 'api',
+            postsCount: result?.posts?.length || 0,
+            totalCount: result?.metadata?.totalCount,
+            hasMore: result?.metadata?.hasMore,
+            cacheUrl: result?.metadata?.cacheUrl,
+            cacheSha256: result?.metadata?.cacheSha256,
+          })
+        }
 
         const realPosts = result.posts || []
         const metadata = result.metadata || {}

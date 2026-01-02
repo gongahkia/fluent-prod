@@ -3,4 +3,5 @@ test the entire workflow, actions and all
 make translation logic better and prevent eggrigious errors
 use this translation library instead if it works better https://github.com/UlionTse/translators
 optimise fluent for a mobile browser view instead of a web view
-scrape more posts
+scrape more posts and from actual popular japanese reddit threads
+add better logs for when something
