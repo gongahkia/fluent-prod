@@ -103,7 +103,7 @@ const NewsFeed = ({
       const subreddit = String(article.subreddit || "").toLowerCase()
       return subreddit && interestSubreddits.has(subreddit)
     })
-  }, [processedPosts, posts, hiddenPosts, shouldFilterByInterests, interestSubreddits])
+  }, [posts, hiddenPosts, shouldFilterByInterests, interestSubreddits])
 
   // Check API configuration on component mount
   // Load saved posts on mount
