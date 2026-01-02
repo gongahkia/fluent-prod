@@ -11,3 +11,4 @@ add code in the frontend that calls real reddit posts from those subreddits firs
 test the entire workflow, github actions and all
 scrape reddit comments for the cache file workflow
 make search anything searchbar in the current fluent feed to be a new tab called explore/search in the bottom navbar
+remove any part of fluent that handles korean translation, for now i want it to just handle japanese

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import NodeCache from 'node-cache'
 import { isValidVocabularyWord, extractAllVocabularyWords } from './vocabularyService.js'
+import { tokenize as kuromojiTokenize } from 'kuromojin'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -299,65 +300,111 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
     throw new Error('Invalid text input')
   }
 
-  // Validate translation pair
-  if (!isTranslationPairSupported(sourceLang, targetLang)) {
-    throw new Error(`Translation pair ${sourceLang}-${targetLang} is not supported`)
+  // NOTE: For the cache generator, we translate target-language tokens -> English.
+  // userLevel is intentionally ignored (cache always precomputes everything).
+  const toLang = sourceLang || 'en'
+
+  // Validate translation pair (e.g., ja-en, ko-en)
+  if (!isTranslationPairSupported(targetLang, toLang)) {
+    throw new Error(`Translation pair ${targetLang}-${toLang} is not supported`)
   }
 
-  // Strip all markdown formatting FIRST, before translation
   const cleanedText = stripMarkdownFormatting(text)
 
-  // NEW: Extract ALL vocabulary words with comprehensive metadata
-  const vocabularyWords = await extractAllVocabularyWords(cleanedText, targetLang)
-
-  // Generate translations for ALL words (for backward compatibility)
-  const allWordTranslations = await translateAllWords(cleanedText, targetLang, sourceLang)
-
-  const translationPercentage = getTranslationPercentage(userLevel)
-
-  // Split cleaned text into sentences
-  const sentences = cleanedText.split(/(?<=[.!?])\s+/)
-
-  // Process sentences in parallel for better performance
-  const sentencePromises = sentences.map(async (sentence, index) => {
-    // Calculate starting index for this sentence's words
-    let startIndex = 0
-    for (let i = 0; i < index; i++) {
-      const prevTokens = sentences[i].match(/\b\w+\b/g) || []
-      startIndex += prevTokens.length
-    }
-
-    const result = await processSentenceForMixedContent(
-      sentence,
-      translationPercentage,
-      startIndex,
-      sourceLang,
-      targetLang,
-      allWordTranslations  // Pass the complete translation map
-    )
-
+  const occurrences = await extractTargetLanguageTokenOccurrences(cleanedText, targetLang)
+  if (occurrences.length === 0) {
     return {
-      ...result,
-      originalIndex: index
+      text: cleanedText,
+      wordMetadata: [],
+      allWordTranslations: {},
+      vocabularyWords: []
     }
-  })
-
-  const sentenceResults = await Promise.all(sentencePromises)
-
-  // Reconstruct in original order
-  const processedResult = {
-    text: '',
-    wordMetadata: [],
-    allWordTranslations,  // Include all simple word translations
-    vocabularyWords  // NEW: Include comprehensive vocabulary data with difficulty levels
   }
 
-  for (const result of sentenceResults) {
-    processedResult.text += (processedResult.text ? ' ' : '') + result.text
-    processedResult.wordMetadata.push(...result.metadata)
+  const uniqueTokens = [...new Set(occurrences.map((o) => o.token))]
+
+  const allWordTranslations = {}
+  await Promise.all(
+    uniqueTokens.map(async (token) => {
+      try {
+        const result = await translateText(token, targetLang, toLang)
+        allWordTranslations[token] = result.translation || token
+      } catch {
+        allWordTranslations[token] = token
+      }
+    })
+  )
+
+  // Build placeholder text using non-overlapping positions
+  const sorted = occurrences.slice().sort((a, b) => a.start - b.start)
+
+  let cursor = 0
+  let out = ''
+  const wordMetadata = []
+  let wordIndex = 0
+
+  for (const occ of sorted) {
+    if (occ.start < cursor) continue
+    out += cleanedText.slice(cursor, occ.start)
+    out += `{{WORD:${wordIndex}}}`
+
+    const metadataEntry = {
+      index: wordIndex,
+      original: occ.token,
+      translation: allWordTranslations[occ.token] || occ.token,
+      targetLanguage: targetLang
+    }
+
+    if (targetLang === 'ko') metadataEntry.showKorean = true
+    if (targetLang === 'ja') metadataEntry.showJapanese = true
+
+    wordMetadata.push(metadataEntry)
+    wordIndex++
+    cursor = occ.end
   }
 
-  return processedResult
+  out += cleanedText.slice(cursor)
+
+  return {
+    text: out,
+    wordMetadata,
+    allWordTranslations,
+    vocabularyWords: []
+  }
+}
+
+async function extractTargetLanguageTokenOccurrences(text, targetLang) {
+  if (!text) return []
+
+  if (targetLang === 'ja') {
+    const tokens = await kuromojiTokenize(text)
+    const excludedPos = new Set(['助詞', '助動詞', '記号', '接続詞'])
+
+    return tokens
+      .map((t) => ({
+        token: t.surface_form,
+        start: Math.max(0, (t.word_position || 1) - 1),
+        end: Math.max(0, (t.word_position || 1) - 1) + String(t.surface_form || '').length,
+        pos: t.pos
+      }))
+      .filter((t) => t.token && containsJapanese(t.token))
+      .filter((t) => !excludedPos.has(t.pos))
+      .filter((t) => t.end > t.start)
+  }
+
+  if (targetLang === 'ko') {
+    const out = []
+    const re = /[\uAC00-\uD7AF]+/g
+    for (const match of text.matchAll(re)) {
+      const token = match[0]
+      const start = match.index ?? -1
+      if (start < 0) continue
+      out.push({ token, start, end: start + token.length })
+    }
+    return out
+  }
+
+  return []
 }
 
 function getTranslationPercentage(level) {

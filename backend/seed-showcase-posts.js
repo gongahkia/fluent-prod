@@ -266,7 +266,8 @@ async function processPostWithMixedLanguage(post, targetLang) {
   const assignedLevel = post.difficulty
 
   try {
-    // Create mixed language content by translating a subset of source-language words.
+    // Create mixed language content by translating target-language tokens -> English.
+    // Learning level is intentionally ignored for cache generation.
     const titleResult = post.title
       ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
       : null

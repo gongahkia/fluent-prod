@@ -281,11 +281,14 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         const stateKey = postId ? `${postId}-${wordData.index}` : null
         const isToggled = stateKey ? translationStates[stateKey] : false
 
-        // Determine what to show based on target language
-        // wordData.showJapanese/showKorean indicates this is an ENGLISH word that can be translated to Japanese/Korean
+        // Determine what to show based on marker semantics:
+        // wordData.showJapanese/showKorean indicates this marker is a TARGET-LANGUAGE token.
+        // By default show the target-language token; toggling reveals the English translation.
         const showTargetLang = wordData.showJapanese || wordData.showKorean
         const isShowingTargetLang = isToggled ? !showTargetLang : showTargetLang
-        const displayText = isShowingTargetLang ? (wordData.translation || wordData.original) : wordData.original
+        const displayText = isShowingTargetLang
+          ? wordData.original
+          : (wordData.translation || wordData.original)
 
         // Determine language name
         const targetLangName = wordData.showKorean ? 'Korean' : 'Japanese'
@@ -303,8 +306,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
             }}
             title={
               isShowingTargetLang
-                ? `${targetLangName}: Click to see English "${wordData.original}"`
-                : `English: Click to see ${targetLangName} "${wordData.translation || '...'}"`
+                ? `${targetLangName}: Click to see English "${wordData.translation || '...'}"`
+                : `English: Click to see ${targetLangName} "${wordData.original}"`
             }
             style={{ textDecoration: "none" }}
           >

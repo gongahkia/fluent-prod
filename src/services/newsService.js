@@ -81,55 +81,6 @@ async function fetchPostsFromCache(options = {}) {
     }
   })
 
-  // Filter by difficulty level (userLevel ± 1)
-  if (userLevel && userLevel >= 1 && userLevel <= 5) {
-    let allowedLevels = []
-    if (userLevel === 1) allowedLevels = [1, 2]
-    else if (userLevel === 5) allowedLevels = [4, 5]
-    else allowedLevels = [userLevel - 1, userLevel, userLevel + 1]
-
-    posts = posts.filter((p) => allowedLevels.includes(p.difficulty))
-
-    // If translated fields exist, ensure title/content are strings
-    posts = posts.map((post) => {
-      const translatedTitle = post.translatedTitle
-      const translatedContent = post.translatedContent
-
-      if (translatedTitle) {
-        let processedTitle = post.originalTitle || post.title
-        let processedContent = post.originalContent || post.content
-
-        try {
-          processedTitle = typeof translatedTitle === 'object'
-            ? JSON.stringify(translatedTitle)
-            : String(translatedTitle)
-        } catch {
-          processedTitle = post.originalTitle || post.title
-        }
-
-        try {
-          processedContent = translatedContent
-            ? (typeof translatedContent === 'object'
-                ? JSON.stringify(translatedContent)
-                : String(translatedContent))
-            : post.originalContent || post.content
-        } catch {
-          processedContent = post.originalContent || post.content
-        }
-
-        return {
-          ...post,
-          title: processedTitle,
-          content: processedContent,
-          isMixedLanguage: true,
-          userLevel: post.difficulty
-        }
-      }
-
-      return post
-    })
-  }
-
   // Search filtering
   if (searchQuery && searchQuery.trim().length > 0) {
     const searchLower = searchQuery.toLowerCase()
