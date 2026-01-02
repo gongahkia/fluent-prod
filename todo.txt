@@ -1,16 +1,9 @@
-remove all pretranslations, posts are scraped and japanese words are highlighted but no pretranslations are computed now
-fix broken translation for words that are precomputed
-fix translation for words computed at runtime
 fix the dark theme to actually work and to look good
 fix the broken settings page
 test the saved words and saved posts
-make translation logic better and prevent eggrigious errors like the one astin flagged
-use this translation library instead if it works better https://github.com/UlionTse/translators for the precomputed translation run
-scrape more posts and from actual popular japanese reddit threads
 scrape reddit comments for the cache file workflow
 prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
 fix the pronounciation/audio feature
-test the entire workflow, github actions and all
 make the translation pop-up smaller, and it should not appear over the topbar, it should render below as it does with the bottom bar
 add code in the frontend that calls real reddit posts from those subreddits first, and if can't then it fallsback on the aforementioned cache
 optimise fluent for a mobile browser view instead of a web view
