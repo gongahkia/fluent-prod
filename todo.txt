@@ -3,7 +3,6 @@ fix translation for words computed at runtime
 fix the dark theme to actually work and to look good
 fix the broken settings page
 test the saved words and saved posts
-remove any part of fluent that handles korean translation, for now i want it to just handle japanese, meanign remove korean as a language option entirely from now. be as thorough as possible
 make translation logic better and prevent eggrigious errors like the one astin flagged
 use this translation library instead if it works better https://github.com/UlionTse/translators for the precomputed translation run
 scrape more posts and from actual popular japanese reddit threads
