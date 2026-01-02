@@ -47,6 +47,9 @@ jobs:
           TARGET_LANG: ${{ inputs.target_lang || 'ja' }}
           MAX_NEW_POSTS: ${{ inputs.max_new_posts || '200' }}
           OUT_FILE: news-cache.txt
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID || '' }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET || '' }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT || '' }}
         run: node backend/seed-showcase-posts.js
 
       - name: Commit cache changes
