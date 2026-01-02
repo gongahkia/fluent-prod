@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "sync-cache": "node scripts/sync-cache-to-public.mjs",
+    "backend:install": "npm ci --prefix backend",
+    "cache:seed": "node backend/seed-showcase-posts.js",
+    "cache:prune": "node backend/prune-news-cache.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "biome lint .",
