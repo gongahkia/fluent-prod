@@ -635,51 +635,47 @@ const NewsFeed = ({
 
   return (
     <div className="space-y-6">
-      {/* Country Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="border-t border-gray-200 pt-4 mt-4">
-            {/* Sources Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                News Sources
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(apiStatus).map(([sourceId, config]) => (
-                  <label
-                    key={sourceId}
-                    className="flex items-center space-x-2"
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Sources Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              News Sources
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(apiStatus).map(([sourceId, config]) => (
+                <label
+                  key={sourceId}
+                  className="flex items-center space-x-2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSources.includes(sourceId)}
+                    onChange={() => handleSourceToggle(sourceId)}
+                    disabled={!config.enabled || !config.hasApiKey}
+                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  />
+                  <span
+                    className={`text-sm ${
+                      !config.enabled || !config.hasApiKey
+                        ? "text-gray-400"
+                        : "text-gray-700"
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedSources.includes(sourceId)}
-                      onChange={() => handleSourceToggle(sourceId)}
-                      disabled={!config.enabled || !config.hasApiKey}
-                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                    />
-                    <span
-                      className={`text-sm ${
-                        !config.enabled || !config.hasApiKey
-                          ? "text-gray-400"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {config.name}
-                      {(!config.enabled || !config.hasApiKey) && sourceId !== 'reddit' && (
-                        <span className="text-xs text-red-500 ml-1">
-                          (API key needed)
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
+                    {config.name}
+                    {(!config.enabled || !config.hasApiKey) && sourceId !== 'reddit' && (
+                      <span className="text-xs text-red-500 ml-1">
+                        (API key needed)
+                      </span>
+                    )}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
@@ -718,16 +714,6 @@ const NewsFeed = ({
       {/* Loading Skeletons */}
       {loading && !error && (
         <FeedSkeleton count={5} />
-      )}
-
-      {/* Feed-only: require onboarding interests */}
-      {!loading && !error && shouldFilterByInterests && interestSubreddits.size === 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-          <div className="text-gray-900 font-medium mb-1">No interests selected</div>
-          <div className="text-gray-600 text-sm">
-            Your feed only shows posts from subreddits you selected during onboarding.
-          </div>
-        </div>
       )}
 
       {/* Posts - Unified Feed with Separator Lines */}

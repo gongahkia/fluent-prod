@@ -481,12 +481,6 @@ function MainApp({
                   )}
                 </div>
               )}
-
-              <div className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-700">
-                <span>{userProfile?.targetLanguage || "Japanese"}</span>
-                <ChevronDown className="w-4 h-4 opacity-0" aria-hidden="true" />
-              </div>
-
             </div>
           </div>
         </div>

@@ -417,6 +417,7 @@ const EnhancedCommentSystem = ({
       content: commentText,
       likes: 0,
       avatar: userProfile?.name?.charAt(0) || "A",
+      profilePictureUrl: userProfile?.profilePictureUrl || "",
       replies: [],
       media: selectedMedia ? {
         type: selectedMedia.type,
@@ -509,10 +510,20 @@ const EnhancedCommentSystem = ({
                   </button>
                 )}
                 {!hasReplies && <div className="w-4"></div>}
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-gray-600">
-                    {comment.avatar}
-                  </span>
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                  {comment.profilePictureUrl ? (
+                    <img
+                      src={comment.profilePictureUrl}
+                      alt={`${comment.user || "User"} profile picture`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="text-xs font-medium text-gray-600">
+                      {comment.avatar}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -606,10 +617,20 @@ const EnhancedCommentSystem = ({
       {/* Comment Input */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-start space-x-3">
-          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-medium text-orange-700">
-              {userProfile?.name?.charAt(0) || "U"}
-            </span>
+          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {userProfile?.profilePictureUrl ? (
+              <img
+                src={userProfile.profilePictureUrl}
+                alt={`${userProfile?.name || "User"} profile picture`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="text-sm font-medium text-orange-700">
+                {userProfile?.name?.charAt(0) || "U"}
+              </span>
+            )}
           </div>
           <div className="flex-1">
             {replyingTo && (
