@@ -2,12 +2,20 @@ import translationService from "../services/translationService"
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
-// Now enhanced with real-time translation API and NER-based vocabulary detection
+// Uses client-side translation and a simple local vocabulary heuristic.
 
 // Removed hardcoded words - now using only API translations
 export const japaneseWords = {}
 
-// Function to handle word clicks with enhanced vocabulary detection
+function isValidVocabularyWord(word) {
+  if (!word || typeof word !== "string") return false
+  const clean = word.toLowerCase().trim()
+  if (clean.length < 1 || clean.length > 20) return false
+  if (/^\d+$/.test(clean)) return false
+  if (/[^a-zA-Z'-]/.test(clean)) return false
+  return true
+}
+
 export const handleWordClick = async (
   word,
   setSelectedWord,
@@ -15,7 +23,7 @@ export const handleWordClick = async (
   context = null,
   contextTranslation = null,
   setLoading = null,
-  targetLanguage = 'Japanese', // Add target language parameter
+  targetLanguage = "Japanese", // Add target language parameter
   clickPosition = null // Add click position parameter
 ) => {
   const contextText = typeof context === 'string' ? context : (context?.text || null)
@@ -40,9 +48,7 @@ export const handleWordClick = async (
   }
 
   try {
-    console.log(
-      `Translating word: ${cleanWord} using API with vocabulary detection...`
-    )
+    console.log(`Translating word: ${cleanWord} using API...`)
 
     let translation,
       pronunciation,
@@ -67,8 +73,7 @@ export const handleWordClick = async (
         )
       }
     } else {
-      // English to target language with vocabulary detection
-      // Regular translation (backend-free)
+      // English to target language
       translation = await translationService.translateText(
         cleanWord,
         "en",
@@ -100,7 +105,7 @@ export const handleWordClick = async (
           : `Example with "${cleanWord}".`),
       original: cleanWord,
       isApiTranslated: true,
-      isVocabulary: true,
+      isVocabulary: !isTargetLang && isValidVocabularyWord(cleanWord),
       clickPosition: clickPosition, // Add click position for anchored popup
       postHash: contextPostHash,
     }

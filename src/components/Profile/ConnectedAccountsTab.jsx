@@ -1,9 +1,7 @@
 import React, { useState } from "react"
 import { Bot, X, CheckCircle2, Check } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
 
 const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
-  const { currentUser, userProfile } = useAuth()
   const [showPopup, setShowPopup] = useState(null)
   const [tempApiKey, setTempApiKey] = useState("")
   const [showStorageWarning, setShowStorageWarning] = useState(false)
@@ -94,16 +92,6 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
     return colors[color] || colors.blue
   }
 
-  const formatDate = (date) => {
-    if (!date) return "Never"
-    try {
-      const d = date.toDate ? date.toDate() : new Date(date)
-      return d.toLocaleDateString() + " " + d.toLocaleTimeString()
-    } catch {
-      return "Unknown"
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -158,42 +146,13 @@ const ConnectedAccountsTab = ({ formData, handleInputChange }) => {
                   ) : (
                     <button
                       onClick={() => handleConnect(connection)}
-                      disabled={connection.id === "reddit" && !redditConfigured}
-                      className={`px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className={`px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-lg transition-colors`}
                     >
                       Connect
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* Reddit-specific info */}
-              {connection.id === "reddit" && connection.connected && (
-                <div className="mb-4 p-3 bg-white rounded-lg border border-orange-200">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium text-gray-700">Synced Subreddits:</p>
-                      <p className="text-gray-600">{connection.syncedSubreddits.length} subreddits</p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-700">Last Synced:</p>
-                      <p className="text-gray-600">{formatDate(connection.lastSynced)}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sync message */}
-              {connection.id === "reddit" && syncMessage && (
-                <div className={`mb-4 p-3 rounded-lg border flex items-center space-x-2 ${
-                  syncMessage.type === "success"
-                    ? "bg-green-50 border-green-200 text-green-800"
-                    : "bg-red-50 border-red-200 text-red-800"
-                }`}>
-                  {syncMessage.type === "success" && <CheckCircle2 className="w-5 h-5" />}
-                  <span className="text-sm font-medium">{syncMessage.text}</span>
-                </div>
-              )}
 
               {/* Benefits Preview */}
               <div className="mt-4 pt-4 border-t border-gray-200">

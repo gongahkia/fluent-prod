@@ -128,6 +128,12 @@ const SUBREDDITS = subredditsArg
   ? String(subredditsArg).split(',').map((s) => s.trim()).filter(Boolean)
   : (loadSubredditsFromConfig(queryKey) || preset.subreddits)
 
+if (!SUBREDDITS.length) {
+  throw new Error(
+    `No subreddits configured. Provide --subreddits a,b,c or set QUERY to a key in config/subreddits.json (got QUERY=${queryKey}).`
+  )
+}
+
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
 
 /**
