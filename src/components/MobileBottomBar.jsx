@@ -2,7 +2,7 @@ import React from 'react'
 import { Home, BookOpen, Bookmark, User } from 'lucide-react'
 
 /**
- * Instagram-style bottom navigation bar for mobile devices
+ * Instagram-style bottom navigation bar
  * Shows: Feed, Saved Words, Saved Posts, Profile
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
