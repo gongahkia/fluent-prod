@@ -5,3 +5,4 @@ use this translation library instead if it works better https://github.com/Ulion
 optimise fluent for a mobile browser view instead of a web view
 scrape more posts and from actual popular japanese reddit threads
 add better logs for when something
+fix the dark theme to actually work and to look good

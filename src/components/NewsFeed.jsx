@@ -383,12 +383,13 @@ const NewsFeed = ({
   })
 
   useEffect(() => {
-    if (Object.keys(apiStatus).length === 0) return
+    const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
+    if (!isCacheMode && Object.keys(apiStatus).length === 0) return
 
     // Check if dependencies actually changed
     const currentDeps = {
       selectedSources: selectedSources.join(','),
-      apiStatusKeys: Object.keys(apiStatus).sort().join(','),
+      apiStatusKeys: isCacheMode ? 'cache-mode' : Object.keys(apiStatus).sort().join(','),
       learningLevel: userProfile?.learningLevel,
       targetLanguage: userProfile?.targetLanguage,
       activeSearchQuery
@@ -403,6 +404,13 @@ const NewsFeed = ({
       currentDeps.activeSearchQuery !== prevDeps.activeSearchQuery
 
     if (depsChanged || shouldReloadRef.current) {
+      if (import.meta.env.DEV) {
+        console.log('[NewsFeed] deps change -> loadPosts', {
+          mode: isCacheMode ? 'cache' : 'api',
+          depsChanged,
+          currentDeps,
+        })
+      }
       // Log language change for debugging
       if (currentDeps.targetLanguage !== prevDeps.targetLanguage && prevDeps.targetLanguage) {
         console.log(`🌐 Language changed: ${prevDeps.targetLanguage} → ${currentDeps.targetLanguage}`)
