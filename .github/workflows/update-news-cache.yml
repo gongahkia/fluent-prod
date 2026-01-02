@@ -1,0 +1,54 @@
+name: Update news cache
+
+on:
+  workflow_dispatch:
+  schedule:
+    # daily at 03:15 UTC
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-news-cache
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm install
+
+      - name: Run fetch job (writes cache/*.json)
+        run: node backend/run-fetch-job.js
+
+      - name: Sync cache -> public/cache
+        run: node scripts/sync-cache-to-public.mjs
+
+      - name: Commit updated cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add cache public/cache
+
+          if git diff --staged --quiet; then
+            echo "No cache changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(cache): update news cache"
+          git push

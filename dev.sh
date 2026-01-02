@@ -49,7 +49,7 @@ done
 
 # Start frontend with dev mode flag
 echo -e "${GREEN}Starting frontend server...${NC}"
-cd "$(dirname "$0")" && VITE_USE_LOCAL_API=true pnpm dev &
+cd "$(dirname "$0")" && pnpm sync-cache && VITE_USE_LOCAL_API=true pnpm dev &
 FRONTEND_PID=$!
 
 echo -e "\n${BLUE}Both servers are running!${NC}"

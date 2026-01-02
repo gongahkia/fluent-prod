@@ -337,22 +337,32 @@ export const getAllDictionaryEntries = async () => {
  */
 export const getAllNewsCachePosts = async () => {
   try {
-    const { prisma } = await import('./prismaService.js')
+    const { listCachedPosts, downloadPostsFromStorage } = await import('./storageService.js')
 
-    const posts = await prisma.newsCache.findMany({
-      orderBy: { fetchedAt: 'desc' }
+    const files = await listCachedPosts()
+    const all = []
+
+    for (const fileName of files) {
+      const docId = fileName.replace(/\.json$/, '')
+      const posts = await downloadPostsFromStorage(fileName)
+
+      posts.forEach((post, idx) => {
+        all.push({
+          ...post,
+          docId,
+          postIndex: idx
+        })
+      })
+    }
+
+    // Best-effort sort: newest first if we have a date-ish field
+    all.sort((a, b) => {
+      const aTime = Date.parse(a.fetchedAt || a.lastUpdated || a.publishedAt || '') || 0
+      const bTime = Date.parse(b.fetchedAt || b.lastUpdated || b.publishedAt || '') || 0
+      return bTime - aTime
     })
 
-    // Group by cacheKey for easier management
-    const grouped = posts.reduce((acc, post) => {
-      if (!acc[post.cacheKey]) {
-        acc[post.cacheKey] = []
-      }
-      acc[post.cacheKey].push(post)
-      return acc
-    }, {})
-
-    return grouped
+    return all
   } catch (error) {
     console.error('Error getting news cache posts:', error)
     throw error
@@ -362,29 +372,24 @@ export const getAllNewsCachePosts = async () => {
 /**
  * Update a post in news-cache
  */
-export const updateNewsCachePost = async (cacheKey, postId, data) => {
+export const updateNewsCachePost = async (cacheKey, postIndex, data) => {
   try {
-    const { prisma } = await import('./prismaService.js')
+    const { downloadPostsFromStorage, uploadPostsToStorage } = await import('./storageService.js')
 
-    // Find the post by cacheKey and postId
-    const post = await prisma.newsCache.findFirst({
-      where: {
-        cacheKey,
-        postId
-      }
-    })
+    const fileName = `${cacheKey}.json`
+    const posts = await downloadPostsFromStorage(fileName)
 
-    if (!post) {
+    if (!Number.isInteger(postIndex) || postIndex < 0 || postIndex >= posts.length) {
       throw new Error('Post not found')
     }
 
-    // Update the post
-    const updated = await prisma.newsCache.update({
-      where: { id: post.id },
-      data
-    })
+    posts[postIndex] = {
+      ...posts[postIndex],
+      ...data
+    }
 
-    return { success: true, data: updated }
+    await uploadPostsToStorage(fileName, posts)
+    return { success: true, data: posts[postIndex] }
   } catch (error) {
     console.error('Error updating news cache post:', error)
     throw error
@@ -394,21 +399,19 @@ export const updateNewsCachePost = async (cacheKey, postId, data) => {
 /**
  * Delete a post from news-cache
  */
-export const deleteNewsCachePost = async (cacheKey, postId) => {
+export const deleteNewsCachePost = async (cacheKey, postIndex) => {
   try {
-    const { prisma } = await import('./prismaService.js')
+    const { downloadPostsFromStorage, uploadPostsToStorage } = await import('./storageService.js')
 
-    // Find and delete the post
-    const deleted = await prisma.newsCache.deleteMany({
-      where: {
-        cacheKey,
-        postId
-      }
-    })
+    const fileName = `${cacheKey}.json`
+    const posts = await downloadPostsFromStorage(fileName)
 
-    if (deleted.count === 0) {
+    if (!Number.isInteger(postIndex) || postIndex < 0 || postIndex >= posts.length) {
       throw new Error('Post not found')
     }
+
+    posts.splice(postIndex, 1)
+    await uploadPostsToStorage(fileName, posts)
 
     return { success: true, message: 'Post deleted successfully' }
   } catch (error) {
