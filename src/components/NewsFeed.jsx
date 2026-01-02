@@ -145,15 +145,6 @@ const NewsFeed = ({
     loadApiStatus()
   }, [])
 
-  // Cleanup search timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
-    }
-  }, [])
-
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
@@ -192,7 +183,6 @@ const NewsFeed = ({
             offset: isLoadMore ? offset : 0,
             targetLanguage: userProfile?.targetLanguage || null,
             learningLevel: userProfile?.learningLevel || null,
-            activeSearchQuery,
           })
         }
 
@@ -213,7 +203,7 @@ const NewsFeed = ({
           query: defaultQuery,
           limit: isLoadMore ? loadMorePostLimit : initialPostLimit,
           shuffle: !isLoadMore, // Only shuffle on initial load
-          searchQuery: activeSearchQuery && activeSearchQuery.trim() ? activeSearchQuery.trim() : null,
+          searchQuery: null,
           offset: currentOffset,
           userLevel: userProfile?.learningLevel || null,
           targetLang: targetLangCode
@@ -288,8 +278,9 @@ const NewsFeed = ({
     [
       selectedSources,
       apiStatus,
-      activeSearchQuery,
       offset,
+      userProfile?.learningLevel,
+      userProfile?.targetLanguage,
     ]
   )
 
@@ -301,7 +292,6 @@ const NewsFeed = ({
     apiStatusKeys: [],
     learningLevel: null,
     targetLanguage: null,
-    activeSearchQuery: ''
   })
 
   useEffect(() => {
@@ -314,7 +304,6 @@ const NewsFeed = ({
       apiStatusKeys: isCacheMode ? 'cache-mode' : Object.keys(apiStatus).sort().join(','),
       learningLevel: userProfile?.learningLevel,
       targetLanguage: userProfile?.targetLanguage,
-      activeSearchQuery
     }
 
     const prevDeps = prevDepsRef.current
@@ -322,8 +311,7 @@ const NewsFeed = ({
       currentDeps.selectedSources !== prevDeps.selectedSources ||
       currentDeps.apiStatusKeys !== prevDeps.apiStatusKeys ||
       currentDeps.learningLevel !== prevDeps.learningLevel ||
-      currentDeps.targetLanguage !== prevDeps.targetLanguage ||
-      currentDeps.activeSearchQuery !== prevDeps.activeSearchQuery
+      currentDeps.targetLanguage !== prevDeps.targetLanguage
 
     if (depsChanged || shouldReloadRef.current) {
       if (import.meta.env.DEV) {
@@ -348,7 +336,7 @@ const NewsFeed = ({
       prevDepsRef.current = currentDeps
       shouldReloadRef.current = false
     }
-  }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, activeSearchQuery, loadPosts])
+  }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, loadPosts])
 
   // Scroll detection for "see more" button
   useEffect(() => {
@@ -473,29 +461,6 @@ const NewsFeed = ({
       guardian: "bg-orange-700",
     }
     return colors[source] || "bg-gray-500"
-  }
-
-  const handleSearch = (query) => {
-    setSearchQuery(query)
-
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
-
-    // Debounce search to avoid too many API calls
-    if (query.trim()) {
-      setIsSearching(true)
-      // Trigger search after user stops typing (800ms delay)
-      searchTimeoutRef.current = setTimeout(() => {
-        setActiveSearchQuery(query.trim())
-        setIsSearching(false)
-      }, 800)
-    } else {
-      // Clear search immediately if query is empty
-      setActiveSearchQuery("")
-      setIsSearching(false)
-    }
   }
 
   const toggleComments = (articleId) => {
@@ -672,26 +637,6 @@ const NewsFeed = ({
     <div className="space-y-6">
       {/* Country Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-
-        {/* Search Bar */}
-        {shouldShowSearch && (
-          <div className="mt-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search anything..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-              {isSearching && (
-                <div className="absolute right-3 top-2.5">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Settings Panel */}
         {showSettings && (
