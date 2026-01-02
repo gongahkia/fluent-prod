@@ -19,6 +19,9 @@ export const handleWordClick = async (
   targetLanguage = 'Japanese', // Add target language parameter
   clickPosition = null // Add click position parameter
 ) => {
+  const contextText = typeof context === 'string' ? context : (context?.text || null)
+  const contextPostHash = typeof context === 'object' && context ? (context.postHash || context.postId || null) : null
+
   // Auto-detect if word is in target language or English if not specified
   let isTargetLang = isJapanese
   if (isTargetLang === null) {
@@ -58,9 +61,9 @@ export const handleWordClick = async (
       )
       pronunciation = cleanWord // Use the original text as pronunciation
 
-      if (context && !contextTranslation) {
+      if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
-          context,
+          contextText,
           langCode,
           "en"
         )
@@ -90,13 +93,14 @@ export const handleWordClick = async (
           const wordData = {
             english: cleanWord,
             level: vocabData.level || 5,
-            example: context || `Example with "${cleanWord}".`,
-            exampleEn: context || `Example with "${cleanWord}".`,
+            example: contextText || `Example with "${cleanWord}".`,
+            exampleEn: contextText || `Example with "${cleanWord}".`,
             original: cleanWord,
             isApiTranslated: true,
             isVocabulary: true,
             wordType: vocabData.type || "unknown",
             clickPosition: clickPosition, // Add click position for anchored popup
+            postHash: contextPostHash,
           }
 
           if (targetLanguage === 'Korean') {
@@ -127,9 +131,9 @@ export const handleWordClick = async (
       )
       pronunciation = translation
 
-      if (context && !contextTranslation) {
+      if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
-          context,
+          contextText,
           "en",
           langCode
         )
@@ -142,7 +146,7 @@ export const handleWordClick = async (
     const wordData = {
       english: isTargetLang ? translation : cleanWord,
       level: level,
-      example: context || `Example with "${cleanWord}".`,
+      example: contextText || `Example with "${cleanWord}".`,
       exampleEn:
         contextTranslationResult ||
         contextTranslation ||
@@ -153,6 +157,7 @@ export const handleWordClick = async (
       isApiTranslated: true,
       isVocabulary: isVocabularyWord,
       clickPosition: clickPosition, // Add click position for anchored popup
+      postHash: contextPostHash,
     }
 
     if (targetLanguage === 'Korean') {
@@ -174,12 +179,13 @@ export const handleWordClick = async (
     const errorData = {
       english: isTargetLang ? "⚠️ Translation failed" : cleanWord,
       level: 5,
-      example: context || `"${cleanWord}"`,
+      example: contextText || `"${cleanWord}"`,
       exampleEn: "Translation service is currently unavailable. Please check your backend connection.",
       original: cleanWord,
       isApiFallback: true,
       error: true,
       clickPosition: clickPosition, // Add click position for anchored popup
+      postHash: contextPostHash,
     }
 
     if (targetLanguage === 'Korean') {
