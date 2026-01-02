@@ -7,7 +7,6 @@ make translation logic better and prevent eggrigious errors like the one astin f
 use this translation library instead if it works better https://github.com/UlionTse/translators for the precomputed translation run
 scrape more posts and from actual popular japanese reddit threads
 scrape reddit comments for the cache file workflow
-make the search anything searchbar in the current fluent feed to be a new tab called explore/search in the bottom navbar, then it should show all posts loaded from all subreddits. also tweak the user's feed so they are only being shown posts from subreddits they indicated interest in upon onboarding
 prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
 fix the pronounciation/audio feature
 test the entire workflow, github actions and all
