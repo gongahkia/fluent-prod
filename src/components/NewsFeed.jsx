@@ -803,14 +803,6 @@ const NewsFeed = ({
     <div className="space-y-6">
       {/* Country Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Learning Feed</h1>
-            <p className="text-gray-600">
-              Real news with interactive translation - Click any word to learn!
-            </p>
-          </div>
-        </div>
 
         {/* Search Bar */}
         <div className="mt-4">
@@ -1092,10 +1084,10 @@ const NewsFeed = ({
           <div className="text-center py-8 animate-fadeIn">
             <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
               <span className="font-medium">
-                No more posts, all {(processedPosts.length > 0 ? processedPosts : posts).length} from cache
+                No more posts.
               </span>
               <span className="text-sm text-gray-400">
-                Posts refresh daily at 3:00 AM
+                All {(processedPosts.length > 0 ? processedPosts : posts).length} posts have been loaded.
               </span>
             </div>
           </div>
