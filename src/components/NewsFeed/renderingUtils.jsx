@@ -147,6 +147,9 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
   return (text, postId = null) => {
     if (!text) return ""
 
+    const englishHoverOnlyClasses =
+      "cursor-pointer hover:bg-orange-50 hover:shadow-sm border-b-2 border-transparent hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block"
+
     // Check if text is JSON from translation service
     let parsedData = null
     try {
@@ -253,7 +256,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
               return (
                 <span
                   key={`${keyPrefix}-vocab-${idx}`}
-                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+                  className={englishHoverOnlyClasses}
                   onClick={(e) => handleWordClick(cleanWordRaw || segment.trim(), false, { text: processedText, postHash: postId, postId }, e)}
                   title={`Level ${vocabData.difficulty} Vocabulary: Click to see ${targetLangName} "${vocabData.translation}"`}
                   style={{ textDecoration: "none" }}
@@ -268,7 +271,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
               return (
                 <span
                   key={`${keyPrefix}-en-${idx}`}
-                  className="cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+                  className={englishHoverOnlyClasses}
                   onClick={(e) => handleWordClick(cleanWordRaw, false, { text: processedText, postHash: postId, postId }, e)}
                   title={`Click to translate: "${cleanWordRaw}"`}
                   style={{ textDecoration: "none" }}
@@ -318,7 +321,11 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
         parts.push(
           <span
             key={`word-${wordData.index}-${keyCounter++}`}
-            className="cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-100"
+            className={
+              isShowingTargetLang
+                ? "cursor-pointer hover:bg-amber-200 border-b-2 border-amber-400 hover:border-amber-600 rounded px-1 py-0.5 transition-all duration-200 font-medium bg-amber-100"
+                : englishHoverOnlyClasses
+            }
             onClick={(e) => {
               if (postId) toggleTranslation(postId, wordData.index)
               // When clicking, pass the ACTUAL language of the currently displayed text
@@ -421,8 +428,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
         const isVocabularyWord = isValidVocabularyWord(cleanWord)
 
-        // Match the same hover-highlight affordance used elsewhere
-        const vocabularyClasses = "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+        // English words should NOT be highlighted by default; only show orange overlay on hover
+        const vocabularyClasses = englishHoverOnlyClasses
 
         const vocabularyTitle = `Click to translate: "${cleanWord}"`
 
