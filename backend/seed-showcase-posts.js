@@ -136,6 +136,64 @@ if (!SUBREDDITS.length) {
 
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
 
+// Reddit fetching: unauthenticated requests often get 403 from CI/cloud IPs.
+// If REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are provided, use OAuth.
+const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID
+const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET
+const REDDIT_USER_AGENT = process.env.REDDIT_USER_AGENT || 'fluent-prod-cache-bot/1.0'
+
+let cachedRedditToken = null
+let cachedRedditTokenExpiresAt = 0
+
+async function getRedditAccessToken() {
+  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) return null
+
+  const now = Date.now()
+  if (cachedRedditToken && cachedRedditTokenExpiresAt - now > 30_000) {
+    return cachedRedditToken
+  }
+
+  const body = new URLSearchParams({ grant_type: 'client_credentials' })
+  const { data } = await axios.post('https://www.reddit.com/api/v1/access_token', body, {
+    auth: { username: REDDIT_CLIENT_ID, password: REDDIT_CLIENT_SECRET },
+    headers: {
+      'User-Agent': REDDIT_USER_AGENT,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    timeout: 15_000,
+  })
+
+  const token = data?.access_token
+  const expiresIn = Number(data?.expires_in) || 3600
+  if (!token) return null
+
+  cachedRedditToken = token
+  cachedRedditTokenExpiresAt = now + expiresIn * 1000
+  return token
+}
+
+async function fetchRedditListing(subreddit, limit) {
+  const token = await getRedditAccessToken().catch(() => null)
+  const url = token
+    ? `https://oauth.reddit.com/r/${subreddit}/new`
+    : `https://www.reddit.com/r/${subreddit}.json`
+
+  const headers = {
+    'User-Agent': REDDIT_USER_AGENT,
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9'
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const { data } = await axios.get(url, {
+    params: { limit, raw_json: 1 },
+    headers,
+    timeout: 15_000,
+  })
+
+  return data
+}
+
 /**
  * Normalize Reddit post to standard format
  */
@@ -172,17 +230,8 @@ function normalizeRedditPost(post) {
 async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
   try {
     console.log(`  🔍 Fetching from r/${subreddit}...`)
-    
-    const url = `https://www.reddit.com/r/${subreddit}.json`
-    const { data } = await axios.get(url, {
-      params: { limit: limit * 2 }, // Fetch extra in case some are filtered
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9'
-      },
-      timeout: 15000
-    })
+
+    const data = await fetchRedditListing(subreddit, limit * 2)
 
     const posts = (data?.data?.children || [])
       .map((child) => child.data)
@@ -444,7 +493,8 @@ async function run() {
   console.log(`  📄 Total posts fetched: ${allFetched.length}`)
 
   if (allFetched.length === 0) {
-    console.log('\n❌ No posts fetched. Exiting.')
+    console.log('\n❌ No posts fetched. Writing cache file anyway (may be empty) so CI can commit it.')
+    writeNdjson(OUT_PATH, existingRows)
     return
   }
 

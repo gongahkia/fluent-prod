@@ -2,8 +2,25 @@ name: Update Reddit Cache (NDJSON)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * 1' # weekly Mondays 03:00 UTC
+    inputs:
+      cache_preset:
+        description: "Cache preset to generate"
+        required: false
+        default: "showcase"
+        type: choice
+        options:
+          - showcase
+      target_lang:
+        description: "Target language (e.g. ja, ko)"
+        required: false
+        default: "ja"
+        type: string
+      max_new_posts:
+        description: "Max new posts to fetch"
+        required: false
+        default: "200"
+        type: string
+
 
 permissions:
   contents: write
@@ -25,10 +42,13 @@ jobs:
 
       - name: Generate cache
         env:
-          CACHE_PRESET: showcase
-          TARGET_LANG: ja
-          MAX_NEW_POSTS: '200'
+          CACHE_PRESET: ${{ inputs.cache_preset || 'showcase' }}
+          TARGET_LANG: ${{ inputs.target_lang || 'ja' }}
+          MAX_NEW_POSTS: ${{ inputs.max_new_posts || '200' }}
           OUT_FILE: news-cache.txt
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID || '' }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET || '' }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT || '' }}
         run: node backend/seed-showcase-posts.js
 
       - name: Commit cache changes
