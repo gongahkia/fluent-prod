@@ -56,12 +56,10 @@ export function startBatchTimer(operationName, itemCount) {
  * @param {string} level - Log level (info, success, warning)
  */
 export function logPerformance(metrics, level = 'info') {
-  const emoji = level === 'success' ? '✅' : level === 'warning' ? '⚠️' : 'ℹ️'
-
   if (metrics.itemCount !== undefined) {
-    console.log(`${emoji} [PERF] ${metrics.operation}: ${metrics.itemCount} items in ${metrics.durationSec} (${metrics.perItem})`)
+    console.log(`[PERF] ${metrics.operation}: ${metrics.itemCount} items in ${metrics.durationSec} (${metrics.perItem})`)
   } else {
-    console.log(`${emoji} [PERF] ${metrics.operation}: ${metrics.durationSec}`)
+    console.log(`[PERF] ${metrics.operation}: ${metrics.durationSec}`)
   }
 }
 
@@ -160,7 +158,7 @@ export class RequestDeduplicator {
     // Check if request is already in flight
     if (this.inFlight.has(key)) {
       this.stats.deduplicated++
-      console.log(`🔄 [DEDUPE] Request deduplicated: ${key}`)
+      console.log(`[DEDUPE] Request deduplicated: ${key}`)
       return await this.inFlight.get(key)
     }
 
@@ -188,7 +186,7 @@ export class RequestDeduplicator {
 
   logStats() {
     const stats = this.getStats()
-    console.log(`🔄 [DEDUPE] Stats:`, stats)
+    console.log(`[DEDUPE] Stats:`, stats)
   }
 }
 
