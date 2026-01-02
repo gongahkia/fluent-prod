@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { createMixedLanguageContent, translateText, containsJapanese } from './services/translationService.js'
+import { createMixedLanguageContent, containsJapanese, containsKorean } from './services/translationService.js'
 import { stripMarkdownToPlaintext, chunkArray } from './utils/textUtils.js'
 import { calculateEnglishDifficulty } from './utils/difficultyUtils.js'
 
@@ -194,6 +194,14 @@ async function fetchRedditListing(subreddit, limit) {
   return data
 }
 
+function hasTargetLanguageContent(text, targetLang) {
+  if (!text) return false
+  if (targetLang === 'ko') return containsKorean(text)
+  if (targetLang === 'ja') return containsJapanese(text)
+  // Fallback: for unsupported target languages, don't filter.
+  return true
+}
+
 /**
  * Normalize Reddit post to standard format
  */
@@ -229,123 +237,26 @@ function normalizeRedditPost(post) {
  */
 async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
   try {
-    console.log(`  🔍 Fetching from r/${subreddit}...`)
+    console.log(`  Fetching from r/${subreddit}...`)
 
-    const data = await fetchRedditListing(subreddit, limit * 2)
+    // Fetch more than we need, since we may filter out posts that contain
+    // zero target-language content.
+    const requested = Math.min(100, Math.max(limit * 5, limit * 2))
+    const data = await fetchRedditListing(subreddit, requested)
 
     const posts = (data?.data?.children || [])
       .map((child) => child.data)
       .filter((post) => !post.stickied && (post.selftext?.length > 20 || post.title))
-      .slice(0, limit)
       .map(post => normalizeRedditPost(post))
+      .filter((post) => hasTargetLanguageContent(`${post.title} ${post.content}`, TARGET_LANG))
+      .slice(0, limit)
 
-    console.log(`    ✅ Got ${posts.length} posts from r/${subreddit}`)
+    console.log(`    Got ${posts.length} posts from r/${subreddit}`)
     return { subreddit, posts, success: true }
   } catch (error) {
-    console.warn(`    ⚠️  Failed to fetch r/${subreddit}: ${error.message}`)
+    console.warn(`    Failed to fetch r/${subreddit}: ${error.message}`)
     return { subreddit, posts: [], success: false, error: error.message }
   }
-}
-
-/**
- * Inject Japanese content into a post if it doesn't have any
- * Randomly translates either the longest sentence or 5-10 random words
- */
-async function injectJapaneseIfNeeded(post) {
-  const combinedText = `${post.title} ${post.content}`
-  
-  // Check if post already has Japanese content
-  if (containsJapanese(combinedText)) {
-    return post // Already has Japanese, no need to inject
-  }
-
-  console.log(`    🔧 Injecting Japanese into post without Japanese content...`)
-
-  // Helper: Extract sentences from text
-  const extractSentences = (text) => {
-    if (!text) return []
-    return text.match(/[^.!?]+[.!?]+/g)?.map(s => s.trim()).filter(s => s.length > 10) || []
-  }
-
-  // Helper: Extract words from text (alphanumeric words only)
-  const extractWords = (text) => {
-    if (!text) return []
-    return text.match(/\b[a-zA-Z]{3,}\b/g) || []
-  }
-
-  // Randomly choose: 0 = translate sentence, 1 = translate words
-  const translateType = Math.random() < 0.5 ? 'sentence' : 'words'
-  
-  let modifiedPost = { ...post }
-
-  if (translateType === 'sentence') {
-    // Translate the longest sentence
-    const sentences = extractSentences(post.content || post.title)
-    if (sentences.length > 0) {
-      // Find longest sentence
-      const longestSentence = sentences.reduce((a, b) => a.length > b.length ? a : b)
-      
-      try {
-        const result = await translateText(longestSentence, 'en', 'ja')
-        if (result.translation && result.translation !== longestSentence) {
-          // Replace the longest sentence with its Japanese translation
-          if (post.content && post.content.includes(longestSentence)) {
-            modifiedPost.content = post.content.replace(longestSentence, result.translation)
-            console.log(`      ✓ Replaced sentence with Japanese translation`)
-          } else if (post.title && post.title.includes(longestSentence)) {
-            modifiedPost.title = post.title.replace(longestSentence, result.translation)
-            console.log(`      ✓ Replaced title sentence with Japanese translation`)
-          }
-        }
-      } catch (error) {
-        console.warn(`      ⚠️  Sentence translation failed: ${error.message}`)
-      }
-    }
-  } else {
-    // Translate 5-10 random words
-    const words = extractWords(post.content || post.title)
-    if (words.length > 0) {
-      // Pick 5-10 unique random words
-      const numWords = Math.min(words.length, Math.floor(Math.random() * 6) + 5) // 5-10
-      const shuffled = [...new Set(words)].sort(() => Math.random() - 0.5)
-      const selectedWords = shuffled.slice(0, numWords)
-      
-      try {
-        // Translate each word
-        const translations = await Promise.all(
-          selectedWords.map(async word => {
-            const result = await translateText(word, 'en', 'ja')
-            return { original: word, translated: result.translation }
-          })
-        )
-        
-        // Replace words in content/title
-        let contentModified = post.content
-        let titleModified = post.title
-        
-        translations.forEach(({ original, translated }) => {
-          if (translated && translated !== original) {
-            // Use word boundary regex to replace whole words only
-            const regex = new RegExp(`\\b${original}\\b`, 'gi')
-            if (contentModified) {
-              contentModified = contentModified.replace(regex, translated)
-            }
-            if (titleModified) {
-              titleModified = titleModified.replace(regex, translated)
-            }
-          }
-        })
-        
-        modifiedPost.content = contentModified
-        modifiedPost.title = titleModified
-        console.log(`      ✓ Replaced ${translations.length} words with Japanese translations`)
-      } catch (error) {
-        console.warn(`      ⚠️  Word translation failed: ${error.message}`)
-      }
-    }
-  }
-
-  return modifiedPost
 }
 
 /**
@@ -354,21 +265,18 @@ async function injectJapaneseIfNeeded(post) {
 async function processPostWithMixedLanguage(post, targetLang) {
   const assignedLevel = post.difficulty
 
-  // STEP 1: Inject Japanese content if post doesn't have any
-  const postWithJapanese = await injectJapaneseIfNeeded(post)
-
   try {
-    // STEP 2: Create mixed language content with the post (now potentially with Japanese)
-    const titleResult = postWithJapanese.title
-      ? await createMixedLanguageContent(postWithJapanese.title, assignedLevel, targetLang, 'en')
+    // Create mixed language content by translating a subset of source-language words.
+    const titleResult = post.title
+      ? await createMixedLanguageContent(post.title, assignedLevel, targetLang, 'en')
       : null
 
-    const contentResult = postWithJapanese.content
-      ? await createMixedLanguageContent(postWithJapanese.content, assignedLevel, targetLang, 'en')
+    const contentResult = post.content
+      ? await createMixedLanguageContent(post.content, assignedLevel, targetLang, 'en')
       : null
 
     return {
-      ...postWithJapanese,
+      ...post,
       targetLang,
       translatedTitle: titleResult,
       translatedContent: contentResult,
@@ -376,9 +284,9 @@ async function processPostWithMixedLanguage(post, targetLang) {
       originalContent: post.content
     }
   } catch (error) {
-    console.warn(`    ⚠️  Translation failed for post: ${error.message}`)
+    console.warn(`    Translation failed for post: ${error.message}`)
     return {
-      ...postWithJapanese,
+      ...post,
       targetLang,
       translatedTitle: null,
       translatedContent: null,
@@ -392,28 +300,28 @@ async function processPostWithMixedLanguage(post, targetLang) {
  * Process all posts with mixed language (parallel)
  */
 async function processAllPosts(posts, targetLang) {
-  console.log(`\n🔄 Processing ${posts.length} posts with translations...`)
+  console.log(`\nProcessing ${posts.length} posts with translations...`)
   
   const processedPosts = []
   const chunks = chunkArray(posts, CONCURRENCY_LIMIT)
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]
-    console.log(`  📦 Processing chunk ${i + 1}/${chunks.length} (${chunk.length} posts)...`)
+    console.log(`  Processing chunk ${i + 1}/${chunks.length} (${chunk.length} posts)...`)
 
     try {
       const chunkResults = await Promise.all(
         chunk.map(post => processPostWithMixedLanguage(post, targetLang))
       )
       processedPosts.push(...chunkResults)
-      console.log(`    ✓ Chunk ${i + 1} completed`)
+      console.log(`    Chunk ${i + 1} completed`)
     } catch (error) {
-      console.error(`    ❌ Chunk ${i + 1} failed: ${error.message}`)
+      console.error(`    Chunk ${i + 1} failed: ${error.message}`)
       processedPosts.push(...chunk) // Add unprocessed posts
     }
   }
 
-  console.log(`✅ Processed ${processedPosts.length} posts`)
+  console.log(`Processed ${processedPosts.length} posts`)
   return processedPosts
 }
 
@@ -462,11 +370,11 @@ async function run() {
 
   const startTime = Date.now()
 
-  console.log('\n📥 Loading existing cache rows (if any)...')
+  console.log('\nLoading existing cache rows (if any)...')
   const existingRows = readNdjson(OUT_PATH)
-  console.log(`  ✅ Found ${existingRows.length} existing rows`)
+  console.log(`  Found ${existingRows.length} existing rows`)
 
-  console.log('\n🔍 Fetching posts from subreddits...')
+  console.log('\nFetching posts from subreddits...')
   const results = []
   for (let i = 0; i < SUBREDDITS.length; i++) {
     const subreddit = SUBREDDITS[i]
@@ -484,24 +392,24 @@ async function run() {
   const successfulSubs = results.filter((r) => r.success).length
   const failedSubs = results.filter((r) => !r.success)
 
-  console.log(`\n📊 Fetch Summary:`)
-  console.log(`  ✅ Successful: ${successfulSubs}/${SUBREDDITS.length} subreddits`)
-  console.log(`  ❌ Failed: ${failedSubs.length} subreddits`)
+  console.log(`\nFetch Summary:`)
+  console.log(`  Successful: ${successfulSubs}/${SUBREDDITS.length} subreddits`)
+  console.log(`  Failed: ${failedSubs.length} subreddits`)
   if (failedSubs.length > 0) {
     console.log(`  Failed subreddits: ${failedSubs.map((f) => f.subreddit).join(', ')}`)
   }
-  console.log(`  📄 Total posts fetched: ${allFetched.length}`)
+  console.log(`  Total posts fetched: ${allFetched.length}`)
 
   if (allFetched.length === 0) {
-    console.log('\n❌ No posts fetched. Writing cache file anyway (may be empty) so CI can commit it.')
+    console.log('\nNo posts fetched. Writing cache file anyway (may be empty) so CI can commit it.')
     writeNdjson(OUT_PATH, existingRows)
     return
   }
 
   const limitedFetched = allFetched.slice(0, MAX_NEW_POSTS)
-  console.log(`\n✂️  Limiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
+  console.log(`\nLimiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
 
-  console.log('\n🔄 Translating + generating mixed-language content...')
+  console.log('\nTranslating + generating mixed-language content...')
   const processedPosts = await processAllPosts(limitedFetched, TARGET_LANG)
   const newRows = processedPosts.map(toRow)
 
@@ -517,11 +425,11 @@ async function run() {
 
   const merged = [...byHash.values()].sort(sortNewestFirst)
 
-  console.log(`\n💾 Writing cache file...`)
+  console.log(`\nWriting cache file...`)
   writeNdjson(OUT_PATH, merged)
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-  console.log(`\n✅ Done in ${duration}s`)
+  console.log(`\nDone in ${duration}s`)
   console.log(`  Existing rows: ${existingRows.length}`)
   console.log(`  New rows: ${newRows.length}`)
   console.log(`  Total rows now: ${merged.length}`)
@@ -530,7 +438,7 @@ async function run() {
 run()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('\n❌ Cache generation failed:', error)
+    console.error('\nCache generation failed:', error)
     console.error(error.stack)
     process.exit(1)
   })

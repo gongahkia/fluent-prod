@@ -177,7 +177,7 @@ const SinglePostView = ({
   }
 
   const handleMastered = () => {
-    showFeedback("Sugoi!", "😊")
+    showFeedback("Sugoi!", "")
   }
 
   const handleWordClick = async (word, isJapanese, context = null) => {

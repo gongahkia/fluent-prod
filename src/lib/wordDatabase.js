@@ -127,7 +127,7 @@ export const handleWordClick = async (
 
     // Show error message - don't pretend we have a translation
     const errorData = {
-      english: isTargetLang ? "⚠️ Translation failed" : cleanWord,
+      english: isTargetLang ? "Translation failed" : cleanWord,
       level: 5,
       example: contextText || `"${cleanWord}"`,
       exampleEn: "Translation service is currently unavailable.",
@@ -139,11 +139,11 @@ export const handleWordClick = async (
     }
 
     if (targetLanguage === 'Korean') {
-      errorData.korean = isTargetLang ? cleanWord : "⚠️ Translation failed"
+      errorData.korean = isTargetLang ? cleanWord : "Translation failed"
       errorData.romanization = "Translation service unavailable"
       errorData.showKoreanTranslation = !isTargetLang
     } else {
-      errorData.japanese = isTargetLang ? cleanWord : "⚠️ Translation failed"
+      errorData.japanese = isTargetLang ? cleanWord : "Translation failed"
       errorData.hiragana = "Translation service unavailable"
       errorData.isJapanese = isTargetLang
       errorData.showJapaneseTranslation = !isTargetLang

@@ -1,5 +1,6 @@
 import {
   Bookmark,
+  Globe,
   MessageCircle,
   RefreshCw,
   Share,
@@ -97,7 +98,7 @@ const NewsFeed = ({
           statusMap[source.id] = source
         })
         setApiStatus(statusMap)
-        console.log('✅ API configuration loaded successfully:', statusMap)
+        console.log('API configuration loaded successfully:', statusMap)
       } catch (error) {
         console.error(`Failed to load API status (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, error)
 
@@ -136,7 +137,7 @@ const NewsFeed = ({
       const alreadyProcessed = postsToProcess.some(post => post.isMixedLanguage === true)
       
       if (alreadyProcessed) {
-        console.log('✅ Using pre-processed posts from backend cache')
+        console.log('Using pre-processed posts from backend cache')
         setProcessingPosts(false)
         setMinPostsLoaded(true)
         return postsToProcess
@@ -149,7 +150,7 @@ const NewsFeed = ({
         return postsToProcess
       }
 
-      console.warn('⚠️ Posts not pre-processed by backend, processing on frontend (slower)')
+      console.warn('Posts not pre-processed by backend, processing on frontend (slower)')
       setProcessingPosts(true)
       const targetLangCode = userProfile.targetLanguage === 'Korean' ? 'ko' : 'ja'
 
@@ -211,6 +212,8 @@ const NewsFeed = ({
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
+      const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
+
       if (isLoadMore) {
         setLoadingMore(true)
       } else {
@@ -222,14 +225,30 @@ const NewsFeed = ({
       setError(null)
 
       try {
-        const enabledSources = selectedSources.filter(
-          (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
-        )
+        // Cache mode doesn't use backend/API status checks.
+        const enabledSources = isCacheMode
+          ? selectedSources
+          : selectedSources.filter(
+              (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
+            )
 
-        if (enabledSources.length === 0) {
+        if (!isCacheMode && enabledSources.length === 0) {
           throw new Error(
             "No enabled sources available. Please check your API configuration."
           )
+        }
+
+        if (import.meta.env.DEV) {
+          console.log('[NewsFeed] loadPosts start', {
+            mode: isCacheMode ? 'cache' : 'api',
+            isLoadMore,
+            enabledSources,
+            selectedSources,
+            offset: isLoadMore ? offset : 0,
+            targetLanguage: userProfile?.targetLanguage || null,
+            learningLevel: userProfile?.learningLevel || null,
+            activeSearchQuery,
+          })
         }
 
         // Determine query based on target language
@@ -265,6 +284,17 @@ const NewsFeed = ({
           userLevel: userProfile?.learningLevel || null,
           targetLang: targetLangCode
         })
+
+        if (import.meta.env.DEV) {
+          console.log('[NewsFeed] fetchPosts result', {
+            mode: isCacheMode ? 'cache' : 'api',
+            postsCount: result?.posts?.length || 0,
+            totalCount: result?.metadata?.totalCount,
+            hasMore: result?.metadata?.hasMore,
+            cacheUrl: result?.metadata?.cacheUrl,
+            cacheSha256: result?.metadata?.cacheSha256,
+          })
+        }
 
         const realPosts = result.posts || []
         const metadata = result.metadata || {}
@@ -354,12 +384,13 @@ const NewsFeed = ({
   })
 
   useEffect(() => {
-    if (Object.keys(apiStatus).length === 0) return
+    const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
+    if (!isCacheMode && Object.keys(apiStatus).length === 0) return
 
     // Check if dependencies actually changed
     const currentDeps = {
       selectedSources: selectedSources.join(','),
-      apiStatusKeys: Object.keys(apiStatus).sort().join(','),
+      apiStatusKeys: isCacheMode ? 'cache-mode' : Object.keys(apiStatus).sort().join(','),
       learningLevel: userProfile?.learningLevel,
       targetLanguage: userProfile?.targetLanguage,
       activeSearchQuery
@@ -374,15 +405,22 @@ const NewsFeed = ({
       currentDeps.activeSearchQuery !== prevDeps.activeSearchQuery
 
     if (depsChanged || shouldReloadRef.current) {
+      if (import.meta.env.DEV) {
+        console.log('[NewsFeed] deps change -> loadPosts', {
+          mode: isCacheMode ? 'cache' : 'api',
+          depsChanged,
+          currentDeps,
+        })
+      }
       // Log language change for debugging
       if (currentDeps.targetLanguage !== prevDeps.targetLanguage && prevDeps.targetLanguage) {
-        console.log(`🌐 Language changed: ${prevDeps.targetLanguage} → ${currentDeps.targetLanguage}`)
+        console.log(`Language changed: ${prevDeps.targetLanguage} -> ${currentDeps.targetLanguage}`)
         // Clear posts immediately on language change for better UX
         setPosts([])
         setProcessedPosts([])
       }
       
-      console.log('🔄 Dependencies changed, reloading posts:', {
+      console.log('Dependencies changed, reloading posts:', {
         targetLanguage: currentDeps.targetLanguage,
         learningLevel: currentDeps.learningLevel
       })
@@ -541,11 +579,11 @@ const NewsFeed = ({
       if (newSet.has(sourceName)) {
         newSet.delete(sourceName)
         // Optionally: Save to Firebase or localStorage
-        showFeedback(`Unsubscribed from ${sourceName}`, '🔕')
+        showFeedback(`Unsubscribed from ${sourceName}`, '')
       } else {
         newSet.add(sourceName)
         // Optionally: Save to Firebase or localStorage
-        showFeedback(`Subscribed to ${sourceName}`, '🔔')
+        showFeedback(`Subscribed to ${sourceName}`, '')
       }
       return newSet
     })
@@ -747,7 +785,7 @@ const NewsFeed = ({
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🌍</span>
+            <Globe className="w-8 h-8 text-orange-600" aria-hidden="true" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Welcome to Fluent

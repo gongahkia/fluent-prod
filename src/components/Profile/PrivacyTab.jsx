@@ -132,7 +132,7 @@ const PrivacyTab = ({ formData, handleInputChange, setShowFollowers, setShowFoll
             <div className="mb-6">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-red-800 font-medium mb-2">
-                  ⚠️ Warning: This action is permanent!
+                  Warning: This action is permanent!
                 </p>
                 <p className="text-sm text-red-700">
                   All your data including:

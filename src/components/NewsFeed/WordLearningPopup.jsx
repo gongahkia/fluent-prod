@@ -291,12 +291,12 @@ const WordLearningPopup = ({
                 {selectedWord.isApiTranslated &&
                   !selectedWord.isVocabulary && (
                     <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
-                      🌐 Live Translation
+                      Live Translation
                     </span>
                   )}
                 {selectedWord.isApiFallback && (
                   <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                    ⚠️ Basic Translation
+                    Basic Translation
                   </span>
                 )}
               </div>

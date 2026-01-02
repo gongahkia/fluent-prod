@@ -127,7 +127,7 @@ export function PronunciationButton({
       {showToast && (
         <Toast
           message={toastMessage}
-          icon="🔊"
+          icon={null}
           onClose={() => {
             setShowToast(false);
             setError(false);

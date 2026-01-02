@@ -59,7 +59,7 @@ const EnhancedCommentSystem = ({
       const geminiApiKey = localStorage.getItem('geminiApiKey') || null
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
-      console.log('🤖 Fetching AI suggestions...', { geminiApiKey: geminiApiKey ? '✓ Set' : '✗ Not set', targetLanguage })
+      console.log('Fetching AI suggestions...', { geminiApiKey: geminiApiKey ? 'set' : 'not set', targetLanguage })
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
       const response = await fetch(`${API_BASE_URL}/api/ai/comment-suggestions`, {
@@ -77,14 +77,14 @@ const EnhancedCommentSystem = ({
       })
 
       const data = await response.json()
-      console.log('🤖 AI Response:', data)
+      console.log('AI response:', data)
 
       if (data.suggestions && data.suggestions.length > 0) {
-        console.log('✓ Setting suggestions:', data.suggestions)
+        console.log('Setting suggestions:', data.suggestions)
         setAiSuggestions(data.suggestions)
         setAiModel(data.model || 'Gemini 2.0 Flash (Free)')
       } else {
-        console.warn('⚠️ No suggestions in response, using fallbacks')
+        console.warn('No suggestions in response, using fallbacks')
         // Fallback suggestions based on target language
         const fallbackSuggestions = targetLanguage === 'Korean' ? [
           {
@@ -109,7 +109,7 @@ const EnhancedCommentSystem = ({
         setAiModel('Gemini 2.0 Flash (Free)')
       }
     } catch (error) {
-      console.error('❌ Failed to fetch AI suggestions:', error)
+      console.error('Failed to fetch AI suggestions:', error)
       // Fallback suggestions based on target language
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
       const fallbackSuggestions = targetLanguage === 'Korean' ? [
@@ -672,7 +672,7 @@ const EnhancedCommentSystem = ({
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -813,7 +813,7 @@ const EnhancedCommentSystem = ({
               </div>
             )}
             <p className="text-xs text-amber-700 mt-3 text-center">
-              💡 AI-generated suggestions to help you practice mixed-language comments
+              AI-generated suggestions to help you practice mixed-language comments
             </p>
           </div>
         )}

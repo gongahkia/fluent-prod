@@ -8,7 +8,7 @@
     "backend:install": "npm ci --prefix backend",
     "cache:seed": "node backend/seed-showcase-posts.js",
     "cache:prune": "node backend/prune-news-cache.js",
-    "dev": "vite",
+    "dev": "npm run sync-cache && vite",
     "build": "vite build",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",

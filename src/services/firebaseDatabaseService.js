@@ -216,6 +216,12 @@ export const getUserDictionary = async (userId, language = null) => {
     const words = snap.docs.map((d) => d.data())
     return { success: true, data: words }
   } catch (error) {
+    // Firestore requires a composite index when combining a filter + orderBy.
+    // Don't crash the app UI if the index isn't created yet.
+    if (error?.code === 'failed-precondition' && String(error?.message || '').toLowerCase().includes('requires an index')) {
+      console.warn('Firestore index missing for dictionary query; returning empty list until index is created.')
+      return { success: true, data: [], warning: 'missing-index' }
+    }
     console.error('Error getting user dictionary:', error)
     return { success: false, error: error.message }
   }
@@ -227,10 +233,21 @@ export const onDictionaryChange = (userId, callback, language = null) => {
     ? query(base, where('language', '==', language), orderBy('createdAt', 'desc'))
     : query(base, orderBy('createdAt', 'desc'))
 
-  return onSnapshot(q, (snap) => {
-    const words = snap.docs.map((d) => d.data())
-    callback(words)
-  })
+  return onSnapshot(
+    q,
+    (snap) => {
+      const words = snap.docs.map((d) => d.data())
+      callback(words)
+    },
+    (error) => {
+      if (error?.code === 'failed-precondition' && String(error?.message || '').toLowerCase().includes('requires an index')) {
+        console.warn('Firestore index missing for dictionary listener; emitting empty list until index is created.')
+        callback([])
+        return
+      }
+      console.error('Dictionary snapshot listener error:', error)
+    }
+  )
 }
 
 // ================== FLASHCARDS ==================

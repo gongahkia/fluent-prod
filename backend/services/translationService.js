@@ -266,7 +266,7 @@ async function translateAllWords(text, targetLang = 'ja', sourceLang = 'en') {
   const uniqueWords = [...new Set(words.map(w => w.toLowerCase()))]
     .filter(w => !neverTranslate.has(w))
 
-  console.log(`  📝 Translating ${uniqueWords.length} unique words...`)
+  console.log(`  Translating ${uniqueWords.length} unique words...`)
 
   // Translate all words in parallel
   const allWordTranslations = {}
@@ -472,4 +472,9 @@ export function containsJapanese(text) {
   return regex.test(text)
 }
 
-// containsKorean/containsTargetLanguage/isEnglishOnly/getSupportedTranslationPairs/getLanguageInfo removed (not used by cache generator)
+export function containsKorean(text) {
+  const regex = new RegExp(translationMappings.languages.ko.characterRanges.regex)
+  return regex.test(text)
+}
+
+// containsTargetLanguage/isEnglishOnly/getSupportedTranslationPairs/getLanguageInfo removed

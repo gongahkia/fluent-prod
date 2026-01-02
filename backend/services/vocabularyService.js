@@ -286,7 +286,7 @@ export async function extractAllVocabularyWords(text, targetLang = 'ja') {
   const metrics = timer.stop()
   logPerformance(metrics, 'success')
 
-  console.log(`  ✅ Extracted ${vocabularyWithTranslations.length} vocabulary words`)
+  console.log(`  Extracted ${vocabularyWithTranslations.length} vocabulary words`)
 
   return vocabularyWithTranslations
 }

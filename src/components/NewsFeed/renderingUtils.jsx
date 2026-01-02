@@ -26,7 +26,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
         // Extract the text (markdown already stripped by backend)
         cleaned = parsedData.text
       } else {
-        console.warn('⚠️ JSON structure invalid - missing text or wordMetadata')
+        console.warn('JSON structure invalid - missing text or wordMetadata')
         parsedData = null
       }
     }
