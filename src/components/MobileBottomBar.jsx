@@ -1,9 +1,9 @@
 import React from 'react'
-import { Home, BookOpen, Bookmark, User } from 'lucide-react'
+import { Home, BookOpen, Bookmark } from 'lucide-react'
 
 /**
  * Instagram-style bottom navigation bar
- * Shows: Feed, Saved Words, Saved Posts, Profile
+ * Shows: Feed, Saved Words, Saved Posts
  */
 const MobileBottomBar = ({ currentView, onNavigate }) => {
   const navItems = [
@@ -25,13 +25,6 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
       id: 'savedposts',
       label: 'Saved Posts',
       icon: Bookmark,
-      activeColor: 'text-orange-600',
-      inactiveColor: 'text-gray-500'
-    },
-    {
-      id: 'profile',
-      label: 'Profile',
-      icon: User,
       activeColor: 'text-orange-600',
       inactiveColor: 'text-gray-500'
     }

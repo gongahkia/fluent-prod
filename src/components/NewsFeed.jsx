@@ -54,41 +54,69 @@ const NewsFeed = ({
   const [savedPostIds, setSavedPostIds] = useState(new Set())
   const [savingPost, setSavingPost] = useState(null)
 
-  const displayedPosts = useMemo(() => {
+  const searchResult = useMemo(() => {
     const unhidden = posts.filter((article) => !hiddenPosts.has(article.id))
     const raw = String(searchQuery || "").trim()
-    if (!raw) return unhidden
+
+    if (!raw) {
+      return { posts: unhidden, mode: "none" }
+    }
+
+    if (unhidden.length === 0) {
+      return { posts: [], mode: "none" }
+    }
 
     const lowered = raw.toLowerCase()
+
+    const fuseSearch = (query, threshold) => {
+      const fuse = new Fuse(unhidden, {
+        includeScore: true,
+        shouldSort: true,
+        threshold,
+        ignoreLocation: true,
+        minMatchCharLength: 2,
+        keys: [
+          { name: "title", weight: 0.5 },
+          { name: "content", weight: 0.3 },
+          { name: "author", weight: 0.15 },
+          { name: "subreddit", weight: 0.05 },
+        ],
+      })
+      return fuse.search(query).map((r) => r.item)
+    }
+
+    const ensureAtLeastOne = (arr) => {
+      if (arr.length > 0) return arr
+      return unhidden.slice(0, 1)
+    }
 
     // Special-case: @username and r/subreddit searches
     if (lowered.startsWith("@")) {
       const q = lowered.slice(1).trim()
-      if (!q) return unhidden
-      return unhidden.filter((p) => String(p.author || "").toLowerCase().includes(q))
+      if (!q) return { posts: unhidden, mode: "none" }
+      const exact = unhidden.filter((p) => String(p.author || "").toLowerCase().includes(q))
+      if (exact.length > 0) return { posts: exact, mode: "match" }
+      const relaxed = fuseSearch(q, 0.65).slice(0, 10)
+      return { posts: ensureAtLeastOne(relaxed), mode: "fallback" }
     }
     if (lowered.startsWith("r/")) {
       const q = lowered.slice(2).trim()
-      if (!q) return unhidden
-      return unhidden.filter((p) => String(p.subreddit || "").toLowerCase().includes(q))
+      if (!q) return { posts: unhidden, mode: "none" }
+      const exact = unhidden.filter((p) => String(p.subreddit || "").toLowerCase().includes(q))
+      if (exact.length > 0) return { posts: exact, mode: "match" }
+      const relaxed = fuseSearch(q, 0.65).slice(0, 10)
+      return { posts: ensureAtLeastOne(relaxed), mode: "fallback" }
     }
 
-    const fuse = new Fuse(unhidden, {
-      includeScore: true,
-      shouldSort: true,
-      threshold: 0.35,
-      ignoreLocation: true,
-      minMatchCharLength: 2,
-      keys: [
-        { name: "title", weight: 0.5 },
-        { name: "content", weight: 0.3 },
-        { name: "author", weight: 0.15 },
-        { name: "subreddit", weight: 0.05 },
-      ],
-    })
+    const strict = fuseSearch(raw, 0.35)
+    if (strict.length > 0) return { posts: strict, mode: "match" }
 
-    return fuse.search(raw).map((r) => r.item)
+    // No matches: show the closest posts instead of an empty feed.
+    const relaxed = fuseSearch(raw, 0.65).slice(0, 10)
+    return { posts: ensureAtLeastOne(relaxed), mode: "fallback" }
   }, [posts, hiddenPosts, searchQuery])
+
+  const displayedPosts = searchResult.posts
 
   // Check API configuration on component mount
   // Load saved posts on mount
@@ -714,6 +742,14 @@ const NewsFeed = ({
       {/* Loading Skeletons */}
       {loading && !error && (
         <FeedSkeleton count={5} />
+      )}
+
+      {/* Search fallback notice */}
+      {!loading && !error && String(searchQuery || "").trim() && searchResult.mode === "fallback" && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-600">
+          No matches for <span className="font-medium text-gray-900">“{String(searchQuery || "").trim()}”</span>.
+          Showing the closest posts instead.
+        </div>
       )}
 
       {/* Posts - Unified Feed with Separator Lines */}
