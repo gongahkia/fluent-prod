@@ -1,5 +1,5 @@
 import { ChevronDown, Search, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Routes, Route } from "react-router-dom";
 import Auth from "./components/Auth";
 import DictionaryWithPractice from "./components/DictionaryWithPractice";
@@ -356,7 +356,28 @@ function MainApp({
   setFirebaseError,
 }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isSearchRendered, setIsSearchRendered] = useState(false)
+  const [isSearchVisible, setIsSearchVisible] = useState(false)
   const [feedSearchQuery, setFeedSearchQuery] = useState("")
+  const searchInputRef = useRef(null)
+
+  // Animate search open/close (keep mounted briefly so the exit animation can play)
+  useEffect(() => {
+    if (!isSearchOpen) return
+    setIsSearchRendered(true)
+    requestAnimationFrame(() => {
+      setIsSearchVisible(true)
+      requestAnimationFrame(() => searchInputRef.current?.focus())
+    })
+  }, [isSearchOpen])
+
+  useEffect(() => {
+    if (isSearchOpen) return
+    if (!isSearchRendered) return
+    setIsSearchVisible(false)
+    const t = setTimeout(() => setIsSearchRendered(false), 200)
+    return () => clearTimeout(t)
+  }, [isSearchOpen, isSearchRendered])
 
   // Close search when navigating away from the feed
   useEffect(() => {
