@@ -500,19 +500,49 @@ const EnhancedCommentSystem = ({
   }
 
   // Render a single comment with Reddit-style threading
-  const renderComment = (comment, depth = 0) => {
+  const renderComment = (
+    comment,
+    {
+      depth = 0,
+      ancestorsHasNext = [],
+      isLast = true,
+    } = {}
+  ) => {
     const isCollapsed = collapsedComments.has(comment.id)
     const hasReplies = comment.replies && comment.replies.length > 0
+
+    const renderThreadGutter = () => {
+      if (depth <= 0) return null
+
+      return (
+        <div className="flex-shrink-0 flex" aria-hidden="true">
+          {ancestorsHasNext.map((hasNext, idx) => (
+            <div key={idx} className="relative w-8">
+              {hasNext && (
+                <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+              )}
+            </div>
+          ))}
+
+          {/* Current level elbow (├/└ style) */}
+          <div className="relative w-8">
+            {/* vertical segment above elbow */}
+            <div className="absolute left-4 top-0 h-7 w-px bg-border" />
+            {/* vertical segment below elbow only when there are siblings after */}
+            {!isLast && (
+              <div className="absolute left-4 top-7 bottom-0 w-px bg-border" />
+            )}
+            {/* horizontal connector into the comment */}
+            <div className="absolute left-4 top-7 right-0 h-px bg-border" />
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div key={comment.id}>
         <div className="flex">
-          {/* Vertical line for threading */}
-          {depth > 0 && (
-            <div className="flex-shrink-0 w-8 relative">
-              <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-300"></div>
-            </div>
-          )}
+          {renderThreadGutter()}
 
           {/* Comment content */}
           <div className="flex-1">
@@ -615,7 +645,13 @@ const EnhancedCommentSystem = ({
             {/* Render replies */}
             {!isCollapsed && hasReplies && (
               <div className="mt-1">
-                {comment.replies.map(reply => renderComment(reply, depth + 1))}
+                {comment.replies.map((reply, idx) =>
+                  renderComment(reply, {
+                    depth: depth + 1,
+                    ancestorsHasNext: [...ancestorsHasNext, !isLast],
+                    isLast: idx === comment.replies.length - 1,
+                  })
+                )}
               </div>
             )}
           </div>
@@ -821,7 +857,13 @@ const EnhancedCommentSystem = ({
 
       {/* Comments List with Reddit-style threading */}
       <div>
-        {allComments.map((comment) => renderComment(comment, 0))}
+        {allComments.map((comment, idx) =>
+          renderComment(comment, {
+            depth: 0,
+            ancestorsHasNext: [],
+            isLast: idx === allComments.length - 1,
+          })
+        )}
       </div>
 
       {/* Word Learning Popup */}
