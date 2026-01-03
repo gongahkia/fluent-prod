@@ -7,7 +7,6 @@ think this through with me, would it make sense for japanese words that are mean
 """
 
 move the profile pic icon to be top right and to the right of the search icon
-fix the dark theme to actually work and to look good
 fix the font size/remove it
 fix the toast error for broken translation
 fix the broken settings page
