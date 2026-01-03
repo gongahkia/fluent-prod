@@ -3,7 +3,6 @@ import {
   Bell,
   Check,
   Globe,
-  Link2,
   LogOut,
   Moon,
   Shield,
@@ -25,7 +24,6 @@ import {
 } from "@/services/encryptionService"
 import { signOutUser } from "@/services/authService"
 import LearningTab from "./Profile/LearningTab"
-import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 
 const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
   const { currentUser } = useAuth()
@@ -236,12 +234,6 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       title: "Learning Preferences",
       icon: Globe,
       component: <LearningTab formData={formData} handleInputChange={handleInputChange} />
-    },
-    {
-      id: "connections",
-      title: "Connected Services",
-      icon: Link2,
-      component: <ConnectedAccountsTab formData={formData} handleInputChange={handleInputChange} />
     },
     {
       id: "notifications",
