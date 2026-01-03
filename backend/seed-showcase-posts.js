@@ -88,7 +88,7 @@ function writeNdjson(filePath, rows) {
 // Presets
 const PRESETS = {
   showcase: {
-    postsPerSubreddit: 4,
+    postsPerSubreddit: 25,
     concurrencyLimit: 5,
     targetLang: 'ja',
     outFile: 'news-cache.txt',

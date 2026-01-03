@@ -43,7 +43,7 @@
   },
   "settings": {
     "maxSubredditsPerQuery": 11,
-    "postsPerSubreddit": 10,
+    "postsPerSubreddit": 25,
     "shuffleResults": true
   }
 }
