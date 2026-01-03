@@ -467,12 +467,17 @@ function MainApp({
             </div>
 
             <div className="flex-1 flex justify-center px-4">
-              {currentView === 'feed' && isSearchOpen && (
-                <div className="flex items-center gap-2 w-full max-w-3xl">
+              {currentView === 'feed' && isSearchRendered && (
+                <div
+                  className={
+                    "flex items-center gap-2 w-full max-w-3xl origin-center transition-all duration-200 ease-out " +
+                    (isSearchVisible ? "opacity-100 scale-100" : "opacity-0 scale-95")
+                  }
+                >
                   <input
+                    ref={searchInputRef}
                     value={feedSearchQuery}
                     onChange={(e) => setFeedSearchQuery(e.target.value)}
-                    autoFocus
                     placeholder="Search posts, @username, r/subreddit"
                     className="h-9 flex-1 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus-visible:border-orange-300 focus-visible:ring-2 focus-visible:ring-orange-100"
                   />
@@ -492,7 +497,7 @@ function MainApp({
             </div>
 
             <div className="flex items-center space-x-4 flex-shrink-0">
-              {currentView === 'feed' && !isSearchOpen && (
+              {currentView === 'feed' && !isSearchRendered && (
                 <button
                   type="button"
                   className="p-2 rounded-full hover:bg-gray-100 transition-colors"
