@@ -20,4 +20,5 @@ add code in the frontend that calls real reddit posts from those subreddits firs
 optimise fluent for a mobile browser view instead of a web view
 add support for rendering markdown tables, markdown splits "---" like some posts
 add a knowledge graph view under the saved words for how words conceputally relate to each other
-in mobile view, fix the way words are rendere
+in mobile view, fix the way words are rendered where sometimes they appear off-screen/partially cut off
+debug the weird translation bug where sometimes the translated word is provided without parsing/properly rendering. have it render properly without "\" or weird translation glitches

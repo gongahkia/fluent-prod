@@ -80,36 +80,39 @@
 }
 
 .dark {
-  --background: oklch(0.18 0.03 35);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.22 0.04 35);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.22 0.04 35);
-  --popover-foreground: oklch(0.98 0 0);
+  /* Neutral dark palette (keep Fluent's orange accents via primary/accent) */
+  --background: oklch(0.12 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.16 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.16 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+
+  /* Orange accent stays */
   --primary: oklch(0.68 0.18 38);
-  --primary-foreground: oklch(0.18 0.03 35);
-  --secondary: oklch(0.58 0.14 42);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.28 0.05 35);
-  --muted-foreground: oklch(0.68 0.02 40);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.52 0.02 260);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.72 0 0);
   --accent: oklch(0.72 0.16 40);
-  --accent-foreground: oklch(0.18 0.03 35);
+  --accent-foreground: oklch(0.12 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.38 0.06 35);
-  --input: oklch(0.38 0.06 35);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.28 0 0);
   --ring: oklch(0.68 0.18 38);
   --chart-1: oklch(0.68 0.18 38);
   --chart-2: oklch(0.72 0.16 40);
   --chart-3: oklch(0.62 0.14 42);
   --chart-4: oklch(0.75 0.12 45);
   --chart-5: oklch(0.65 0.14 48);
-  --sidebar: oklch(0.22 0.04 35);
-  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar: oklch(0.16 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.68 0.18 38);
-  --sidebar-primary-foreground: oklch(0.18 0.03 35);
-  --sidebar-accent: oklch(0.58 0.14 42);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.38 0.06 35);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.28 0 0);
   --sidebar-ring: oklch(0.68 0.18 38);
 }
 
@@ -121,68 +124,97 @@
     @apply bg-background text-foreground font-sans;
   }
 
-  /* Make legacy gray/white utility usage follow the app theme */
-  .dark {
-    color-scheme: dark;
-  }
-
-  .dark .bg-white {
-    @apply bg-card;
-  }
-
-  .dark .bg-gray-50 {
-    @apply bg-background;
-  }
-
-  .dark .bg-gray-100 {
-    @apply bg-muted;
-  }
-
-  .dark .bg-gray-200 {
-    @apply bg-muted;
-  }
-
-  .dark .border-gray-200 {
-    @apply border-border;
-  }
-
-  .dark .border-gray-300 {
-    @apply border-border;
-  }
-
-  .dark .text-gray-900 {
-    @apply text-foreground;
-  }
-
-  .dark .text-gray-800 {
-    @apply text-foreground;
-  }
-
-  .dark .text-gray-700 {
-    @apply text-muted-foreground;
-  }
-
-  .dark .text-gray-600 {
-    @apply text-muted-foreground;
-  }
-
-  .dark .text-gray-500 {
-    @apply text-muted-foreground;
-  }
-
-  .dark .hover\:bg-gray-100:hover {
-    @apply bg-muted;
-  }
-
-  .dark .hover\:bg-gray-50:hover {
-    @apply bg-muted;
-  }
-
   /* Language-specific font application */
   :lang(ja),
   [lang="ja"],
   .lang-ja {
     font-family: var(--font-japanese);
+  }
+}
+
+/* Make legacy gray/white utility usage follow the app theme.
+   This must live in the utilities layer to override Tailwind's generated utilities. */
+@layer utilities {
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Form controls */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    background-color: var(--card) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark input:disabled,
+  .dark textarea:disabled,
+  .dark select:disabled {
+    background-color: var(--muted) !important;
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark select option {
+    background-color: var(--card);
+    color: var(--foreground);
+  }
+
+  .dark .bg-white {
+    background-color: var(--card) !important;
+  }
+
+  .dark .bg-gray-50 {
+    background-color: var(--background) !important;
+  }
+
+  .dark .bg-gray-100 {
+    background-color: var(--muted) !important;
+  }
+
+  .dark .bg-gray-200 {
+    background-color: var(--muted) !important;
+  }
+
+  .dark .border-gray-200 {
+    border-color: var(--border) !important;
+  }
+
+  .dark .border-gray-300 {
+    border-color: var(--border) !important;
+  }
+
+  .dark .text-gray-900 {
+    color: var(--foreground) !important;
+  }
+
+  .dark .text-gray-800 {
+    color: var(--foreground) !important;
+  }
+
+  .dark .text-gray-700 {
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark .text-gray-600 {
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark .text-gray-500 {
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark .hover\:bg-gray-100:hover {
+    background-color: var(--muted) !important;
+  }
+
+  .dark .hover\:bg-gray-50:hover {
+    background-color: var(--muted) !important;
   }
 }
 

@@ -99,7 +99,9 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
             : "light"
           : preferred
 
-      document.documentElement.classList.toggle("dark", resolved === "dark")
+      const isDark = resolved === "dark"
+      document.documentElement.classList.toggle("dark", isDark)
+      document.body?.classList?.toggle?.("dark", isDark)
       try {
         localStorage.setItem("fluent:theme", preferred)
       } catch {

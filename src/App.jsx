@@ -54,7 +54,9 @@ function App() {
           : "light"
         : preferred
 
-    document.documentElement.classList.toggle("dark", resolved === "dark")
+    const isDark = resolved === "dark"
+    document.documentElement.classList.toggle("dark", isDark)
+    document.body?.classList?.toggle?.("dark", isDark)
 
     // Persist the user's selected mode (including auto)
     try {
