@@ -221,6 +221,15 @@
     background-color: var(--muted) !important;
     box-shadow: 0 0 0 2px var(--ring) !important;
   }
+
+  /* Word highlight readability (light highlight background needs dark text) */
+  .dark .fluent-word-lightbg {
+    color: var(--background) !important;
+  }
+
+  .dark .fluent-word-hover-lightbg:hover {
+    color: var(--background) !important;
+  }
 }
 
 /* Translation slider styles */

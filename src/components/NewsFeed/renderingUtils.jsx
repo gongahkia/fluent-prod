@@ -148,7 +148,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     if (!text) return ""
 
     const englishHoverOnlyClasses =
-      "cursor-pointer hover:bg-orange-50 hover:shadow-sm border-b-2 border-transparent hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block"
+      "fluent-word fluent-word-hover-lightbg cursor-pointer hover:bg-orange-50 hover:shadow-sm border-b-2 border-transparent hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block"
 
     // Check if text is JSON from translation service
     let parsedData = null
@@ -400,8 +400,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                   key={`${segmentIndex}-${wordIndex}`}
                   className={
                     isTranslatedWord
-                      ? "cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
-                      : "cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
+                      ? "fluent-word fluent-word-lightbg cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
+                      : "fluent-word fluent-word-lightbg cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
                   onClick={(e) => handleWordClick(text, isTargetLanguage, { text, postHash: postId, postId }, e)}
                   title={
