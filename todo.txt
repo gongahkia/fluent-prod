@@ -1,4 +1,3 @@
-scrape more posts for each subreddit until it becomes 50 posts per subreddit (or at least try to)
 sync up the languages on the onboarding witn the ones shown on the settings page
 
 feed the below prompt to copilot and demand a fix

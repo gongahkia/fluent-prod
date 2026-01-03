@@ -218,7 +218,7 @@ const NewsFeed = ({
         const defaultQuery = 'japan'
 
         // Load 50 posts initially, then 25 more each time
-        const initialPostLimit = 50;
+        const initialPostLimit = 200;
         const loadMorePostLimit = 25;
 
         const currentOffset = isLoadMore ? offset : 0;
@@ -910,20 +910,6 @@ const NewsFeed = ({
 
       {/* See More Button - DISABLED: All posts shown at once */}
       {/* Loading More indicator - DISABLED: All posts shown at once */}
-
-      {/* No more posts message */}
-      {!loading && !error && displayedPosts.length > 0 && (
-          <div className="text-center py-8 animate-fadeIn">
-            <div className="inline-flex flex-col items-center space-y-2 text-gray-500">
-              <span className="font-medium">
-                No more posts.
-              </span>
-              <span className="text-sm text-gray-400">
-                All {displayedPosts.length} posts have been loaded.
-              </span>
-            </div>
-          </div>
-        )}
 
       {/* Post Settings Modal */}
       {settingsModalPost && (
