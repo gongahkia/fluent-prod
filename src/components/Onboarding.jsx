@@ -1,15 +1,8 @@
-import {
-  BookOpen,
-  ChevronRight,
-  Lightbulb,
-  ChevronDown,
-  ChevronUp,
-  Check,
-} from "lucide-react";
+import subredditsConfig from "@config/subreddits.json";
+import { BookOpen, Check, ChevronDown, ChevronRight, ChevronUp, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FluentLogo } from "@/components/ui/FluentLogo";
-import subredditsConfig from "@config/subreddits.json";
 import {
   NATIVE_LANGUAGE_OPTIONS,
   TARGET_LANGUAGE_OPTIONS,
