@@ -145,7 +145,7 @@ const EnhancedCommentSystem = ({
   }, [])
 
   // Word click functionality
-  const handleWordClick = async (word, isJapanese, context = null) => {
+  const handleWordClick = async (word, isJapanese, context = null, event = null) => {
     const findCommentWithWord = (comments) => {
       for (const comment of comments) {
         if (comment.content.includes(word)) {
@@ -166,6 +166,16 @@ const EnhancedCommentSystem = ({
       fullContext = comment.content
     }
 
+    const anchorEl = event?.currentTarget || event?.target || null
+    const clickPosition = anchorEl
+      ? {
+          x: event?.clientX,
+          y: event?.clientY,
+          anchorEl,
+          elementRect: anchorEl.getBoundingClientRect(),
+        }
+      : null
+
     await sharedHandleWordClick(
       word,
       setSelectedWord,
@@ -173,7 +183,8 @@ const EnhancedCommentSystem = ({
       fullContext,
       null,
       setIsTranslating,
-      userProfile?.targetLanguage || 'Japanese'
+      userProfile?.targetLanguage || 'Japanese',
+      clickPosition
     )
   }
 
@@ -292,7 +303,7 @@ const EnhancedCommentSystem = ({
                 <span
                   key={`${segmentIndex}-${wordIndex}`}
                   className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-                  onClick={() => handleWordClick(wordText, isTargetLanguage, text)}
+                    onClick={(e) => handleWordClick(wordText, isTargetLanguage, text, e)}
                   title={`Click to translate: ${wordText}`}
                   style={{ textDecoration: "none" }}
                 >
@@ -314,7 +325,7 @@ const EnhancedCommentSystem = ({
           <span key={segmentIndex}>
             <span
               className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-              onClick={() => handleWordClick(cleanWord, false, text)}
+              onClick={(e) => handleWordClick(cleanWord, false, text, e)}
               title={`Click to translate: ${cleanWord}`}
               style={{ textDecoration: "none" }}
             >

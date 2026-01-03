@@ -143,7 +143,17 @@ const SinglePostView = ({
     showFeedback("Sugoi!", "")
   }
 
-  const handleWordClick = async (word, isJapanese, context = null) => {
+  const handleWordClick = async (word, isJapanese, context = null, event = null) => {
+    const anchorEl = event?.currentTarget || event?.target || null
+    const clickPosition = anchorEl
+      ? {
+          x: event?.clientX,
+          y: event?.clientY,
+          anchorEl,
+          elementRect: anchorEl.getBoundingClientRect(),
+        }
+      : null
+
     await sharedHandleWordClick(
       word,
       setSelectedWord,
@@ -151,7 +161,8 @@ const SinglePostView = ({
       context,
       null,
       setIsTranslating,
-      userProfile?.targetLanguage || 'Japanese'
+      userProfile?.targetLanguage || 'Japanese',
+      clickPosition
     )
   }
 

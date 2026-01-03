@@ -1,5 +1,5 @@
 import { BookOpen, Check } from "lucide-react"
-import React from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import LoadingSpinner from "../ui/LoadingSpinner"
 import { PronunciationButton } from "../ui/PronunciationButton"
 
@@ -26,9 +26,51 @@ const WordLearningPopup = ({
     return "bg-red-500"                      // Native
   }
 
+  const anchorEl = selectedWord?.clickPosition?.anchorEl || null
+  const [anchorRect, setAnchorRect] = useState(null)
+
+  useEffect(() => {
+    if (!anchorEl) {
+      setAnchorRect(null)
+      return
+    }
+
+    let raf = 0
+
+    const update = () => {
+      raf = 0
+      // If the anchor is gone (virtualized out / unmounted), close the popup.
+      if (!document.contains(anchorEl)) {
+        onClose?.()
+        return
+      }
+      setAnchorRect(anchorEl.getBoundingClientRect())
+    }
+
+    const schedule = () => {
+      if (raf) return
+      raf = window.requestAnimationFrame(update)
+    }
+
+    // Prime immediately
+    schedule()
+
+    window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule)
+
+    return () => {
+      window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+      if (raf) window.cancelAnimationFrame(raf)
+    }
+  }, [anchorEl, onClose])
+
   // Calculate popup position based on click position
   const getPopupPosition = () => {
-    if (!selectedWord?.clickPosition) {
+    const fallbackRect = selectedWord?.clickPosition?.elementRect || null
+    const rect = anchorRect || fallbackRect
+
+    if (!rect) {
       // Fallback to center if no position data
       return {
         position: 'fixed',
@@ -38,7 +80,6 @@ const WordLearningPopup = ({
       }
     }
 
-    const { elementRect } = selectedWord.clickPosition
     const popupWidth = 320
     const popupMaxHeight = 400
     const gap = 12
@@ -55,44 +96,39 @@ const WordLearningPopup = ({
     const safeAreaTop = 20 + stickyTopHeight
     const safeAreaBottom = 64 // Account for mobile bottom bar (h-16 = 64px) + safe area
 
-    // Get scroll position
-    const scrollY = window.pageYOffset || document.documentElement.scrollTop
-    const scrollX = window.pageXOffset || document.documentElement.scrollLeft
-
     let top, left
     let transformOrigin = 'top center'
     let positionAbove = false
 
-    // Calculate absolute position from viewport position + scroll
     // Position below the clicked element by default
-    top = elementRect.bottom + gap + scrollY
+    top = rect.bottom + gap
 
     // If popup would go off bottom of viewport (accounting for safe area), position above instead
-    if (elementRect.bottom + gap + popupMaxHeight > viewportHeight - safeAreaBottom) {
-      top = elementRect.top - gap + scrollY
+    if (rect.bottom + gap + popupMaxHeight > viewportHeight - safeAreaBottom) {
+      top = rect.top - gap
       transformOrigin = 'bottom center'
       positionAbove = true
     }
 
     // If positioning above would go off top (accounting for safe area), adjust
-    if (positionAbove && elementRect.top - gap - popupMaxHeight < safeAreaTop) {
+    if (positionAbove && rect.top - gap - popupMaxHeight < safeAreaTop) {
       // Not enough space above either, position below with limited height
-      top = elementRect.bottom + gap + scrollY
+      top = rect.bottom + gap
       positionAbove = false
       transformOrigin = 'top center'
     }
 
-    // Center horizontally on the clicked element (absolute position)
-    left = elementRect.left + (elementRect.width / 2) + scrollX
+    // Center horizontally on the clicked element
+    left = rect.left + (rect.width / 2)
 
     // Adjust if too far right
-    if (elementRect.left + (popupWidth / 2) > viewportWidth - 20) {
-      left = viewportWidth - popupWidth - 20 + scrollX
+    if (rect.left + (popupWidth / 2) > viewportWidth - 20) {
+      left = viewportWidth - popupWidth - 20
     }
 
     // Adjust if too far left
-    if (elementRect.left - (popupWidth / 2) < 20) {
-      left = 20 + (popupWidth / 2) + scrollX
+    if (rect.left - (popupWidth / 2) < 20) {
+      left = 20 + (popupWidth / 2)
     }
 
     // Calculate available height accounting for safe areas
@@ -100,7 +136,7 @@ const WordLearningPopup = ({
     const maxPopupHeight = Math.min(popupMaxHeight, availableHeight)
 
     return {
-      position: 'absolute',
+      position: 'fixed',
       top: `${top}px`,
       left: `${left}px`,
       transform: positionAbove ? 'translate(-50%, -100%)' : 'translateX(-50%)',

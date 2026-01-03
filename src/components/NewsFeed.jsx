@@ -9,6 +9,7 @@ import {
   MoreVertical,
 } from "lucide-react"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useWindowVirtualizer } from "@tanstack/react-virtual"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { checkApiConfiguration, fetchPosts } from "../services/newsService"
 import { savePost, getSavedPosts } from "../services/firebaseDatabaseService"
@@ -44,7 +45,6 @@ const NewsFeed = ({
   const [, setCurrentPage] = useState(1)
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [showSeeMoreButton, setShowSeeMoreButton] = useState(false)
   const [offset, setOffset] = useState(0)
   const [totalCachedPosts, setTotalCachedPosts] = useState(0)
 
@@ -218,7 +218,7 @@ const NewsFeed = ({
         const defaultQuery = 'japan'
 
         // Load 50 posts initially, then 25 more each time
-        const initialPostLimit = 200;
+        const initialPostLimit = 50;
         const loadMorePostLimit = 25;
 
         const currentOffset = isLoadMore ? offset : 0;
@@ -315,6 +315,7 @@ const NewsFeed = ({
   // Load posts when sources, API status, user level, target language, or search changes
   // Use ref to track if we should reload posts
   const shouldReloadRef = useRef(true)
+  const listRef = useRef(null)
   const prevDepsRef = useRef({
     selectedSources: [],
     apiStatusKeys: [],
@@ -366,43 +367,8 @@ const NewsFeed = ({
     }
   }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, loadPosts])
 
-  // Scroll detection for "see more" button
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.offsetHeight
-
-      // Show "see more" button when user scrolls to bottom 200px
-      const isNearBottom = scrollTop + windowHeight >= documentHeight - 200
-
-      // Don't show button if user is translating
-      if (
-        isNearBottom &&
-        posts.length > 0 &&
-        hasMorePosts &&
-        !loadingMore &&
-        !selectedWord &&
-        !isTranslating
-      ) {
-        setShowSeeMoreButton(true)
-      } else {
-        setShowSeeMoreButton(false)
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [posts.length, hasMorePosts, loadingMore, selectedWord, isTranslating])
-
-  // Function to load more posts
-  const handleLoadMore = () => {
-    // Don't load more if user is actively translating (processing posts or has translation popup open)
-    if (!loadingMore && hasMorePosts && !selectedWord && !isTranslating) {
-      loadPosts(true)
-      setShowSeeMoreButton(false) // Hide button after clicking
-    }
-  }
+  const rawSearchQuery = String(searchQuery || "").trim()
+  const isSearchActive = Boolean(rawSearchQuery)
 
   const showFeedback = (message, icon) => {
     setFeedbackMessage({ message, icon })
@@ -603,11 +569,15 @@ const NewsFeed = ({
 
   const handleWordClick = async (word, isJapanese, context = null, event = null) => {
     // Capture click position if event is provided
-    const clickPosition = event ? {
-      x: event.clientX,
-      y: event.clientY,
-      elementRect: event.target.getBoundingClientRect()
-    } : null
+    const anchorEl = event?.currentTarget || event?.target || null
+    const clickPosition = anchorEl
+      ? {
+          x: event?.clientX,
+          y: event?.clientY,
+          anchorEl,
+          elementRect: anchorEl.getBoundingClientRect(),
+        }
+      : null
 
     await sharedHandleWordClick(
       word,
@@ -641,6 +611,43 @@ const NewsFeed = ({
 
   // Create renderClickableText function using the factory
   const renderClickableText = createRenderClickableText(translationStates, toggleTranslation, handleWordClick, userProfile?.targetLanguage || 'Japanese')
+
+  const scrollMargin = listRef.current?.offsetTop ?? 0
+  const postVirtualizer = useWindowVirtualizer({
+    count: displayedPosts.length,
+    estimateSize: () => 520,
+    overscan: 6,
+    scrollMargin,
+  })
+
+  const virtualPosts = postVirtualizer.getVirtualItems()
+
+  // Infinite-load more posts when nearing the end.
+  // Disabled during search to avoid repeatedly fetching while the filtered list remains short.
+  useEffect(() => {
+    if (isSearchActive) return
+    if (loading || loadingMore) return
+    if (!hasMorePosts) return
+    if (selectedWord || isTranslating) return
+
+    const last = virtualPosts[virtualPosts.length - 1]
+    if (!last) return
+
+    const preloadThreshold = 6
+    if (last.index >= displayedPosts.length - 1 - preloadThreshold) {
+      loadPosts(true)
+    }
+  }, [
+    isSearchActive,
+    loading,
+    loadingMore,
+    hasMorePosts,
+    selectedWord,
+    isTranslating,
+    virtualPosts,
+    displayedPosts.length,
+    loadPosts,
+  ])
 
   if (!selectedCountry) {
     return (
@@ -754,162 +761,199 @@ const NewsFeed = ({
 
       {/* Posts - Unified Feed with Separator Lines */}
       {!loading && !error && displayedPosts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {displayedPosts.map((article, index) => (
-          <div key={article.id || article.url || `post-${index}`}>
-            {/* Article Container - No borders, clean layout */}
-            <div className="p-6">
-              {/* Top Row: @username, timestamp, and action buttons */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-600 text-sm font-medium">
-                    @{article.author || 'user'}
-                  </span>
-                  <span className="text-gray-400 text-sm">•</span>
-                  <span className="text-gray-500 text-sm">
-                    {article.time || new Date(article.publishedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                {/* Action buttons - right side */}
-                <div className="flex items-center space-x-2">
-                  {/* 3-dot menu */}
-                  <button
-                    onClick={() => handleOpenSettings(article)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Post options"
-                  >
-                    <MoreVertical className="w-5 h-5 text-gray-600" />
-                  </button>
-                  {/* Save button */}
-                  <button
-                    onClick={() => handleSavePost(article)}
-                    disabled={savingPost === article.id}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                    title={savedPostIds.has(article.id) ? "Already saved" : "Save post"}
-                  >
-                    {savedPostIds.has(article.id) ? (
-                      <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
-                    ) : (
-                      <Bookmark className="w-5 h-5 text-gray-600" />
-                    )}
-                  </button>
-                </div>
-              </div>
+        <div
+          ref={listRef}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 relative"
+          style={{ height: `${postVirtualizer.getTotalSize()}px` }}
+        >
+          {virtualPosts.map((virtualRow) => {
+            const article = displayedPosts[virtualRow.index]
+            if (!article) return null
 
-              {/* Article Content - Enhanced typography and smooth expansion */}
-              <div className="mb-4">
-                {/* Combined Text Block with improved hierarchy */}
-                {(() => {
-                  const titleText = article.title || '';
-                  const contentText = article.content || '';
-                  const combinedText = titleText + (titleText && contentText ? '. ' : '') + contentText;
-                  const combinedId = `${article.id}-combined`;
-                  const shouldTruncate = shouldTruncateContent(combinedText);
-                  const isExpanded = expandedPosts[article.id];
+            const isLast = virtualRow.index === displayedPosts.length - 1
+            const key = article.id || article.url || virtualRow.key
 
-                  return (
-                    <>
-                      <div
-                        className={`
-                          post-body
-                          ${!isExpanded && shouldTruncate ? 'post-content-truncated' : 'post-content-expanded'}
-                        `}
+            return (
+              <div
+                key={key}
+                data-index={virtualRow.index}
+                ref={postVirtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start - postVirtualizer.options.scrollMargin}px)`,
+                }}
+              >
+                {/* Article Container - No borders, clean layout */}
+                <div className="p-4 sm:p-6">
+                  {/* Top Row: @username, timestamp, and action buttons */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <span className="text-gray-600 text-sm font-medium truncate">
+                        @{article.author || "user"}
+                      </span>
+                      <span className="text-gray-400 text-sm">•</span>
+                      <span className="text-gray-500 text-sm">
+                        {article.time || new Date(article.publishedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {/* Action buttons - right side */}
+                    <div className="flex items-center space-x-2">
+                      {/* 3-dot menu */}
+                      <button
+                        onClick={() => handleOpenSettings(article)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Post options"
                       >
-                        {/* Title portion with emphasis */}
-                        {titleText && (
-                          <div className="post-title">
-                            {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
-                          </div>
+                        <MoreVertical className="w-5 h-5 text-gray-600" />
+                      </button>
+                      {/* Save button */}
+                      <button
+                        onClick={() => handleSavePost(article)}
+                        disabled={savingPost === article.id}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                        title={savedPostIds.has(article.id) ? "Already saved" : "Save post"}
+                      >
+                        {savedPostIds.has(article.id) ? (
+                          <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
+                        ) : (
+                          <Bookmark className="w-5 h-5 text-gray-600" />
                         )}
-                        {/* Content portion */}
-                        {contentText && (
-                          <div>
-                            {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
-                          </div>
-                        )}
-                        {!titleText && !contentText && parseMarkdownContent(combinedText, combinedId, renderClickableText)}
-                      </div>
-                      {shouldTruncate && (
-                        <button
-                          onClick={() => togglePostExpansion(article.id)}
-                          className="text-orange-600 hover:text-orange-700 font-medium mt-3 inline-flex items-center space-x-1 transition-all duration-300 hover:translate-x-1"
-                        >
-                          <span>{isExpanded ? 'See Less' : 'See More'}</span>
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Article Content - Enhanced typography and smooth expansion */}
+                  <div className="mb-4">
+                    {/* Combined Text Block with improved hierarchy */}
+                    {(() => {
+                      const titleText = article.title || ""
+                      const contentText = article.content || ""
+                      const combinedText = titleText + (titleText && contentText ? ". " : "") + contentText
+                      const combinedId = `${article.id}-combined`
+                      const shouldTruncate = shouldTruncateContent(combinedText)
+                      const isExpanded = expandedPosts[article.id]
+
+                      return (
+                        <>
+                          <div
+                            className={`
+                              post-body
+                              ${!isExpanded && shouldTruncate ? "post-content-truncated" : "post-content-expanded"}
+                            `}
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
+                            {/* Title portion with emphasis */}
+                            {titleText && (
+                              <div className="post-title">
+                                {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
+                              </div>
+                            )}
+                            {/* Content portion */}
+                            {contentText && (
+                              <div>
+                                {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
+                              </div>
+                            )}
+                            {!titleText &&
+                              !contentText &&
+                              parseMarkdownContent(combinedText, combinedId, renderClickableText)}
+                          </div>
+                          {shouldTruncate && (
+                            <button
+                              onClick={() => togglePostExpansion(article.id)}
+                              className="text-orange-600 hover:text-orange-700 font-medium mt-3 inline-flex items-center space-x-1 transition-all duration-300 hover:translate-x-1"
+                            >
+                              <span>{isExpanded ? "See Less" : "See More"}</span>
+                              <svg
+                                className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      )
+                    })()}
 
-                {article.image && (
-                  <img
-                    src={article.image}
-                    alt={article.title}
-                    className="w-full h-64 object-cover rounded-lg mt-4 transition-all duration-300 hover:shadow-lg"
-                  />
+                    {article.image && (
+                      <img
+                        src={article.image}
+                        alt={article.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-48 sm:h-64 object-cover rounded-lg mt-4 transition-all duration-300 hover:shadow-lg"
+                      />
+                    )}
+                  </div>
+
+                  {/* Bottom Row: View Comments (left) and "Open in Reddit" (right) */}
+                  <div className="flex items-center justify-between pt-4">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={() => toggleComments(article.id)}
+                        className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>
+                          View Comments ({article.comments || getCommentCount(article.id) || 0})
+                        </span>
+                      </button>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {/* Open in Reddit */}
+                      <a
+                        href={article.externalUrl || article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Comment System */}
+                {showComments[article.id] && (
+                  <div className="border-t border-gray-200">
+                    <EnhancedCommentSystem
+                      articleId={article.id}
+                      postContent={article.content}
+                      postTitle={article.title}
+                      userProfile={userProfile}
+                      userDictionary={userDictionary}
+                      onAddWordToDictionary={onAddWordToDictionary}
+                    />
+                  </div>
                 )}
-              </div>
 
-              {/* Bottom Row: View Comments (left) and "Open in Reddit" (right) */}
-              <div className="flex items-center justify-between pt-4">
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => toggleComments(article.id)}
-                    className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>View Comments ({article.comments || getCommentCount(article.id) || 0})</span>
-                  </button>
-                </div>
-                <div className="flex items-center space-x-3">
-                  {/* Open in Reddit */}
-                  <a
-                    href={article.externalUrl || article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                    </svg>
-                  </a>
-                </div>
+                {/* Separator Line between posts (not after last post) */}
+                {!isLast && <div className="border-b border-gray-200" />}
               </div>
-            </div>
-
-            {/* Enhanced Comment System */}
-            {showComments[article.id] && (
-              <div className="border-t border-gray-200">
-                <EnhancedCommentSystem
-                  articleId={article.id}
-                  postContent={article.content}
-                  postTitle={article.title}
-                  userProfile={userProfile}
-                  userDictionary={userDictionary}
-                  onAddWordToDictionary={onAddWordToDictionary}
-                />
-              </div>
-            )}
-
-            {/* Separator Line between posts (not after last post) */}
-            {index < displayedPosts.length - 1 && (
-              <div className="border-b border-gray-200"></div>
-            )}
-          </div>
-        ))}
+            )
+          })}
         </div>
       )}
 
-      {/* See More Button - DISABLED: All posts shown at once */}
-      {/* Loading More indicator - DISABLED: All posts shown at once */}
+      {!loading && !error && loadingMore && (
+        <div className="flex justify-center py-4">
+          <LoadingSpinner />
+        </div>
+      )}
+
+      {/* Loading more is handled via infinite scroll + virtualization */}
 
       {/* Post Settings Modal */}
       {settingsModalPost && (
