@@ -11,9 +11,10 @@ import {
   Image as ImageIcon,
   X,
 } from "lucide-react"
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { emitToast } from "../lib/toastBus"
+import { isWebLlmEnabled } from "../services/commentAiPrefs"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import SpeechToTextButton from "./ui/SpeechToTextButton"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
@@ -31,6 +32,7 @@ const EnhancedCommentSystem = ({
   userDictionary,
   onAddWordToDictionary,
 }) => {
+  const [isAiEnabled, setIsAiEnabled] = useState(() => isWebLlmEnabled())
   const [showAIHelp, setShowAIHelp] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [selectedWord, setSelectedWord] = useState(null)
@@ -115,11 +117,25 @@ const EnhancedCommentSystem = ({
   }
 
   const handleShowAIHelp = () => {
+    if (!isAiEnabled) return
     setShowAIHelp(!showAIHelp)
     if (!showAIHelp && aiSuggestions.length === 0) {
       fetchAISuggestions()
     }
   }
+
+  // Keep in sync if user enables/disables in this browser (e.g., via login prompt)
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (!event?.key) return
+      if (event.key === "fluent:webllm:enabled") {
+        setIsAiEnabled(isWebLlmEnabled())
+      }
+    }
+
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   // Word click functionality
   const handleWordClick = async (word, isJapanese, context = null) => {
@@ -366,6 +382,11 @@ const EnhancedCommentSystem = ({
 
   // Check grammar before posting
   const checkCommentGrammar = async () => {
+    if (!isAiEnabled) {
+      postCommentDirectly()
+      return
+    }
+
     setIsCheckingGrammar(true)
     try {
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
@@ -680,7 +701,12 @@ const EnhancedCommentSystem = ({
               <div className="flex items-center space-x-3">
                 <button
                   onClick={handleShowAIHelp}
-                  className="flex items-center space-x-1 text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                  disabled={!isAiEnabled}
+                  className={`flex items-center space-x-1 text-sm transition-colors ${
+                    isAiEnabled
+                      ? "text-gray-600 hover:text-orange-600"
+                      : "text-gray-400 cursor-not-allowed opacity-60"
+                  }`}
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>AI Help</span>

@@ -25,6 +25,14 @@ import {
 import { signOutUser } from "./services/authService";
 import { prewarmTranslationCacheFromDictionary } from "./lib/wordDatabase";
 import { addToastListener } from "./lib/toastBus";
+import { emitToast } from "./lib/toastBus";
+import {
+  getDefaultWebLlmModelId,
+  hasAskedWebLlmDownload,
+  isWebLlmEnabled,
+  setAskedWebLlmDownload,
+  setWebLlmEnabled,
+} from "./services/commentAiPrefs";
 import "./App.css";
 
 function App() {
@@ -39,6 +47,104 @@ function App() {
   const [toastState, setToastState] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [lastSeenNotificationsAt, setLastSeenNotificationsAt] = useState(0)
+
+  // WebLLM model readiness notifications + first-login opt-in
+  useEffect(() => {
+    const onReady = (event) => {
+      const model = event?.detail?.model
+      if (!model) return
+      emitToast({ message: `AI model ready (${model})`, icon: "✅" })
+    }
+
+    const onFailed = (event) => {
+      const model = event?.detail?.model
+      const message = event?.detail?.message
+      // Disable AI on this browser if it can't load.
+      setWebLlmEnabled(false)
+      emitToast({
+        message:
+          `AI model couldn't be loaded${model ? ` (${model})` : ""}. ` +
+          (message ? `(${message})` : "AI features disabled."),
+        icon: "⚠️",
+      })
+    }
+
+    window.addEventListener("fluent:webllm:model-ready", onReady)
+    window.addEventListener("fluent:webllm:model-failed", onFailed)
+    return () => {
+      window.removeEventListener("fluent:webllm:model-ready", onReady)
+      window.removeEventListener("fluent:webllm:model-failed", onFailed)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Only prompt once per browser, only after login/profile is loaded.
+    if (!currentUser || !userProfile) return
+    if (hasAskedWebLlmDownload()) return
+
+    const model = getDefaultWebLlmModelId()
+
+    ;(async () => {
+      try {
+        const { hasWebLlmModelInCache, isWebGpuSupported, preloadWebLlmModel } =
+          await import("./services/commentAiService")
+
+        if (!isWebGpuSupported()) {
+          setAskedWebLlmDownload()
+          setWebLlmEnabled(false)
+          emitToast({
+            message: "AI features unavailable on this device/browser (WebGPU not supported).",
+            icon: "⚠️",
+          })
+          return
+        }
+
+        const cached = await hasWebLlmModelInCache(model)
+        if (cached) {
+          setAskedWebLlmDownload()
+          setWebLlmEnabled(true)
+          return
+        }
+
+        const wants = window.confirm(
+          "Enable AI features on this browser? This will download a local AI model to your browser cache."
+        )
+
+        setAskedWebLlmDownload()
+
+        if (!wants) {
+          setWebLlmEnabled(false)
+          return
+        }
+
+        setWebLlmEnabled(true)
+
+        try {
+          await preloadWebLlmModel({ model })
+          // Success toast is also handled by the model-ready event,
+          // but keep this as a safety net in case events are blocked.
+          emitToast({ message: `AI model ready (${model})`, icon: "✅" })
+        } catch (error) {
+          setWebLlmEnabled(false)
+          emitToast({
+            message:
+              `AI model couldn't be loaded (${model}). AI features disabled.` +
+              (error?.message ? ` (${error.message})` : ""),
+            icon: "⚠️",
+          })
+        }
+      } catch (error) {
+        // If anything goes wrong, fail closed (disable) without breaking app.
+        setAskedWebLlmDownload()
+        setWebLlmEnabled(false)
+        emitToast({
+          message: "AI features unavailable on this browser.",
+          icon: "⚠️",
+        })
+        console.error("WebLLM opt-in flow failed:", error)
+      }
+    })()
+  }, [currentUser, userProfile])
 
   // Apply appearance theme (light/dark/auto) globally
   useEffect(() => {

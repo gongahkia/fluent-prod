@@ -5,6 +5,9 @@ import { z } from "zod"
 const DEFAULT_WEBLLM_MODEL =
   import.meta.env.VITE_WEBLLM_MODEL || "Llama-3.2-1B-Instruct-q4f16_1"
 
+const WEBLLM_MODEL_READY_EVENT = "fluent:webllm:model-ready"
+const WEBLLM_MODEL_FAILED_EVENT = "fluent:webllm:model-failed"
+
 const DEFAULT_MAX_CHARS = {
   postTitle: 180,
   postContent: 1400,
@@ -58,21 +61,32 @@ function safeParseJson(text) {
 
 let webLlmEnginePromise = null
 let webLlmModelLoaded = null
+let engineInitProgressCallback = null
 
-async function getWebLlmEngine() {
+export function isWebGpuSupported() {
+  return typeof window !== "undefined" && typeof navigator !== "undefined" && "gpu" in navigator
+}
+
+async function getWebLlmEngine({ initProgressCallback } = {}) {
   if (typeof window === "undefined") {
     throw new Error("WebLLM is only available in the browser")
   }
 
-  if (!("gpu" in navigator)) {
+  if (!isWebGpuSupported()) {
     throw new Error("WebGPU not available")
+  }
+
+  if (typeof initProgressCallback === "function" && !engineInitProgressCallback) {
+    engineInitProgressCallback = initProgressCallback
   }
 
   if (!webLlmEnginePromise) {
     webLlmEnginePromise = (async () => {
       const webllm = await import("@mlc-ai/web-llm")
       // engine is stateful; keep a singleton
-      return new webllm.MLCEngine()
+      return new webllm.MLCEngine({
+        initProgressCallback: engineInitProgressCallback || undefined,
+      })
     })()
   }
 
@@ -84,8 +98,37 @@ async function ensureWebLlmModelLoaded(model = DEFAULT_WEBLLM_MODEL) {
   if (webLlmModelLoaded === model) return { engine, model }
 
   // This downloads model weights on first load; can take a while.
-  await engine.reload(model)
-  webLlmModelLoaded = model
+  const wasLoaded = Boolean(webLlmModelLoaded)
+  try {
+    await engine.reload(model)
+    webLlmModelLoaded = model
+
+    if (!wasLoaded) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent(WEBLLM_MODEL_READY_EVENT, {
+            detail: { model },
+          })
+        )
+      } catch {
+        // ignore
+      }
+    }
+  } catch (error) {
+    try {
+      window.dispatchEvent(
+        new CustomEvent(WEBLLM_MODEL_FAILED_EVENT, {
+          detail: {
+            model,
+            message: error?.message || "Failed to load model",
+          },
+        })
+      )
+    } catch {
+      // ignore
+    }
+    throw error
+  }
   return { engine, model }
 }
 
@@ -108,6 +151,25 @@ async function webLlmChat({
   })
 
   return completion?.choices?.[0]?.message?.content || ""
+}
+
+export async function hasWebLlmModelInCache(model = DEFAULT_WEBLLM_MODEL) {
+  if (typeof window === "undefined") return false
+  const webllm = await import("@mlc-ai/web-llm")
+  return await webllm.hasModelInCache(model)
+}
+
+export async function preloadWebLlmModel({
+  model = DEFAULT_WEBLLM_MODEL,
+  onProgress,
+} = {}) {
+  await getWebLlmEngine({
+    initProgressCallback: typeof onProgress === "function" ? onProgress : undefined,
+  })
+
+  // Triggers download + compile if not cached.
+  await ensureWebLlmModelLoaded(model)
+  return { model }
 }
 
 let langDetectPipelinePromise = null
