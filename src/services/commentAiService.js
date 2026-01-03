@@ -2,8 +2,7 @@ import { PromptTemplate } from "@langchain/core/prompts"
 import { StructuredOutputParser } from "@langchain/core/output_parsers"
 import { z } from "zod"
 
-const DEFAULT_WEBLLM_MODEL =
-  import.meta.env.VITE_WEBLLM_MODEL || "Llama-3.2-1B-Instruct-q4f16_1"
+const ENV_WEBLLM_MODEL = import.meta.env.VITE_WEBLLM_MODEL || null
 
 const WEBLLM_MODEL_READY_EVENT = "fluent:webllm:model-ready"
 const WEBLLM_MODEL_FAILED_EVENT = "fluent:webllm:model-failed"
@@ -67,6 +66,41 @@ export function isWebGpuSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && "gpu" in navigator
 }
 
+export async function resolveWebLlmModelId(preferredModelId) {
+  const webllm = await import("@mlc-ai/web-llm")
+  const modelList = webllm?.prebuiltAppConfig?.model_list || []
+
+  const preferred = preferredModelId || ENV_WEBLLM_MODEL
+
+  const exists = (id) => modelList.some((m) => m?.model_id === id)
+  if (preferred && exists(preferred)) return preferred
+
+  // Prefer small instruct/chat models when possible.
+  const nonEmbed = modelList.filter((m) => {
+    const id = m?.model_id
+    if (typeof id !== "string") return false
+    return !id.toLowerCase().includes("embed")
+  })
+
+  const instructish = nonEmbed.filter((m) => {
+    const id = String(m?.model_id || "").toLowerCase()
+    return id.includes("instruct") || id.includes("chat") || id.includes("it")
+  })
+
+  const candidates = instructish.length > 0 ? instructish : nonEmbed
+  if (candidates.length === 0) {
+    throw new Error("No prebuilt WebLLM models available")
+  }
+
+  const sorted = [...candidates].sort((a, b) => {
+    const av = Number.isFinite(a?.vram_required_MB) ? a.vram_required_MB : Number.POSITIVE_INFINITY
+    const bv = Number.isFinite(b?.vram_required_MB) ? b.vram_required_MB : Number.POSITIVE_INFINITY
+    return av - bv
+  })
+
+  return sorted[0].model_id
+}
+
 async function getWebLlmEngine({ initProgressCallback } = {}) {
   if (typeof window === "undefined") {
     throw new Error("WebLLM is only available in the browser")
@@ -93,21 +127,22 @@ async function getWebLlmEngine({ initProgressCallback } = {}) {
   return webLlmEnginePromise
 }
 
-async function ensureWebLlmModelLoaded(model = DEFAULT_WEBLLM_MODEL) {
+async function ensureWebLlmModelLoaded(model) {
+  const resolvedModel = await resolveWebLlmModelId(model)
   const engine = await getWebLlmEngine()
-  if (webLlmModelLoaded === model) return { engine, model }
+  if (webLlmModelLoaded === resolvedModel) return { engine, model: resolvedModel }
 
   // This downloads model weights on first load; can take a while.
   const wasLoaded = Boolean(webLlmModelLoaded)
   try {
-    await engine.reload(model)
-    webLlmModelLoaded = model
+    await engine.reload(resolvedModel)
+    webLlmModelLoaded = resolvedModel
 
     if (!wasLoaded) {
       try {
         window.dispatchEvent(
           new CustomEvent(WEBLLM_MODEL_READY_EVENT, {
-            detail: { model },
+            detail: { model: resolvedModel },
           })
         )
       } catch {
@@ -119,7 +154,7 @@ async function ensureWebLlmModelLoaded(model = DEFAULT_WEBLLM_MODEL) {
       window.dispatchEvent(
         new CustomEvent(WEBLLM_MODEL_FAILED_EVENT, {
           detail: {
-            model,
+            model: resolvedModel,
             message: error?.message || "Failed to load model",
           },
         })
@@ -129,7 +164,7 @@ async function ensureWebLlmModelLoaded(model = DEFAULT_WEBLLM_MODEL) {
     }
     throw error
   }
-  return { engine, model }
+  return { engine, model: resolvedModel }
 }
 
 async function webLlmChat({
@@ -137,7 +172,7 @@ async function webLlmChat({
   user,
   temperature = 0.3,
   maxTokens = 256,
-  model = DEFAULT_WEBLLM_MODEL,
+  model,
 } = {}) {
   const { engine } = await ensureWebLlmModelLoaded(model)
 
@@ -153,14 +188,15 @@ async function webLlmChat({
   return completion?.choices?.[0]?.message?.content || ""
 }
 
-export async function hasWebLlmModelInCache(model = DEFAULT_WEBLLM_MODEL) {
+export async function hasWebLlmModelInCache(model) {
   if (typeof window === "undefined") return false
+  const resolvedModel = await resolveWebLlmModelId(model)
   const webllm = await import("@mlc-ai/web-llm")
-  return await webllm.hasModelInCache(model)
+  return await webllm.hasModelInCache(resolvedModel)
 }
 
 export async function preloadWebLlmModel({
-  model = DEFAULT_WEBLLM_MODEL,
+  model,
   onProgress,
 } = {}) {
   await getWebLlmEngine({
@@ -168,8 +204,9 @@ export async function preloadWebLlmModel({
   })
 
   // Triggers download + compile if not cached.
-  await ensureWebLlmModelLoaded(model)
-  return { model }
+  const resolvedModel = await resolveWebLlmModelId(model)
+  await ensureWebLlmModelLoaded(resolvedModel)
+  return { model: resolvedModel }
 }
 
 let langDetectPipelinePromise = null

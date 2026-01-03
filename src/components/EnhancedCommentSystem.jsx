@@ -14,7 +14,7 @@ import {
 import React, { useEffect, useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { emitToast } from "../lib/toastBus"
-import { isWebLlmEnabled } from "../services/commentAiPrefs"
+import { addWebLlmEnabledListener, isWebLlmEnabled } from "../services/commentAiPrefs"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import SpeechToTextButton from "./ui/SpeechToTextButton"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
@@ -126,6 +126,10 @@ const EnhancedCommentSystem = ({
 
   // Keep in sync if user enables/disables in this browser (e.g., via login prompt)
   useEffect(() => {
+    const unsubscribe = addWebLlmEnabledListener(() => {
+      setIsAiEnabled(isWebLlmEnabled())
+    })
+
     const onStorage = (event) => {
       if (!event?.key) return
       if (event.key === "fluent:webllm:enabled") {
@@ -134,7 +138,10 @@ const EnhancedCommentSystem = ({
     }
 
     window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
+    return () => {
+      unsubscribe?.()
+      window.removeEventListener("storage", onStorage)
+    }
   }, [])
 
   // Word click functionality

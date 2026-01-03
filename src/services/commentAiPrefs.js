@@ -1,8 +1,9 @@
 const KEY_ASKED = "fluent:webllm:asked"
 const KEY_ENABLED = "fluent:webllm:enabled"
+const ENABLED_EVENT = "fluent:webllm:enabled-changed"
 
 export function getDefaultWebLlmModelId() {
-  return import.meta.env.VITE_WEBLLM_MODEL || "Llama-3.2-1B-Instruct-q4f16_1"
+  return import.meta.env.VITE_WEBLLM_MODEL || ""
 }
 
 export function hasAskedWebLlmDownload() {
@@ -35,4 +36,21 @@ export function setWebLlmEnabled(enabled) {
   } catch {
     // ignore
   }
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent(ENABLED_EVENT, {
+        detail: { enabled: Boolean(enabled) },
+      })
+    )
+  } catch {
+    // ignore
+  }
+}
+
+export function addWebLlmEnabledListener(handler) {
+  if (typeof window === "undefined") return () => {}
+  const wrapped = (event) => handler?.(Boolean(event?.detail?.enabled))
+  window.addEventListener(ENABLED_EVENT, wrapped)
+  return () => window.removeEventListener(ENABLED_EVENT, wrapped)
 }

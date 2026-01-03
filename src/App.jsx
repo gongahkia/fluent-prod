@@ -82,12 +82,18 @@ function App() {
     if (!currentUser || !userProfile) return
     if (hasAskedWebLlmDownload()) return
 
-    const model = getDefaultWebLlmModelId()
-
     ;(async () => {
       try {
-        const { hasWebLlmModelInCache, isWebGpuSupported, preloadWebLlmModel } =
+        const {
+          hasWebLlmModelInCache,
+          isWebGpuSupported,
+          preloadWebLlmModel,
+          resolveWebLlmModelId,
+        } =
           await import("./services/commentAiService")
+
+        const preferred = getDefaultWebLlmModelId()
+        const model = await resolveWebLlmModelId(preferred)
 
         if (!isWebGpuSupported()) {
           setAskedWebLlmDownload()
