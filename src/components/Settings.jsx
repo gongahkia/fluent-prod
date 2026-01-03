@@ -49,7 +49,6 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
     commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
     theme: userProfile?.settings?.appearance?.theme || "light",
-    fontSize: userProfile?.settings?.appearance?.fontSize || "medium",
     // API keys
     redditApiKey: "",
     geminiApiKey: "",
@@ -157,7 +156,6 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           },
           appearance: {
             theme: formData.theme,
-            fontSize: formData.fontSize,
           }
         }
       }
@@ -315,18 +313,6 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
             { value: "light", label: "Light" },
             { value: "dark", label: "Dark" },
             { value: "auto", label: "Auto" },
-          ],
-        },
-        {
-          label: "Font Size",
-          type: "select",
-          name: "fontSize",
-          value: formData.fontSize,
-          options: [
-            { value: "small", label: "Small" },
-            { value: "medium", label: "Medium" },
-            { value: "large", label: "Large" },
-            { value: "xlarge", label: "Extra Large" },
           ],
         },
       ]

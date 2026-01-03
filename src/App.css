@@ -216,6 +216,11 @@
   .dark .hover\:bg-gray-50:hover {
     background-color: var(--muted) !important;
   }
+
+  .dark .word-hover:hover {
+    background-color: var(--muted) !important;
+    box-shadow: 0 0 0 2px var(--ring) !important;
+  }
 }
 
 /* Translation slider styles */
@@ -349,7 +354,7 @@
   left: 0;
   right: 0;
   height: 60px;
-  background: linear-gradient(to bottom, transparent, white);
+  background: linear-gradient(to bottom, transparent, var(--card));
   pointer-events: none;
 }
 
@@ -373,14 +378,14 @@
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.6;
-  color: #111827;
+  color: var(--foreground);
   margin-bottom: 0.5rem;
 }
 
 .post-body {
   font-size: 1rem;
   line-height: 1.75;
-  color: #374151;
+  color: var(--foreground);
 }
 
 /* Better word click hover states */

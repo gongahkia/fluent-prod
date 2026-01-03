@@ -62,7 +62,6 @@ export const AuthProvider = ({ children }) => {
               appearance: {
                 theme: profileResult.data.settings?.appearance?.theme || 'light',
                 accentColor: profileResult.data.settings?.appearance?.accentColor || 'orange',
-                fontSize: profileResult.data.settings?.appearance?.fontSize || 'medium'
               },
               goals: {
                 dailyWords: profileResult.data.settings?.goals?.dailyWords || 10,
@@ -103,7 +102,6 @@ export const AuthProvider = ({ children }) => {
               appearance: {
                 theme: 'light',
                 accentColor: 'orange',
-                fontSize: 'medium'
               },
               goals: {
                 dailyWords: 10,

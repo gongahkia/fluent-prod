@@ -62,7 +62,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
     theme: userProfile?.settings?.appearance?.theme || "light",
-    fontSize: userProfile?.settings?.appearance?.fontSize || "medium",
     // API keys
     redditApiKey: "",
     geminiApiKey: "",
@@ -215,7 +214,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           },
           appearance: {
             theme: formData.theme,
-            fontSize: formData.fontSize,
           }
         }
       }
