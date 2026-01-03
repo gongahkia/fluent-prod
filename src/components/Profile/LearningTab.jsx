@@ -1,5 +1,3 @@
-import React from "react"
-
 export const NATIVE_LANGUAGE_OPTIONS = [
   { value: "English", disabled: false },
   { value: "Chinese", disabled: true },
@@ -22,10 +20,14 @@ const LearningTab = ({ formData, handleInputChange }) => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Language Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="settings-native-language"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Native Language
             </label>
             <select
+              id="settings-native-language"
               name="nativeLanguage"
               value={formData.nativeLanguage}
               onChange={handleInputChange}
@@ -39,10 +41,14 @@ const LearningTab = ({ formData, handleInputChange }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="settings-target-language"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Learning Language
             </label>
             <select
+              id="settings-target-language"
               name="targetLanguage"
               value={formData.targetLanguage}
               onChange={handleInputChange}
@@ -58,10 +64,14 @@ const LearningTab = ({ formData, handleInputChange }) => {
         </div>
 
         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="settings-learning-level"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Current Level
           </label>
           <select
+            id="settings-learning-level"
             name="learningLevel"
             value={formData.learningLevel}
             onChange={handleInputChange}

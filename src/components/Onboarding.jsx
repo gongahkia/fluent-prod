@@ -1,13 +1,12 @@
 import {
   BookOpen,
   ChevronRight,
-  Globe,
   Lightbulb,
   ChevronDown,
   ChevronUp,
   Check,
 } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FluentLogo } from "@/components/ui/FluentLogo";
 import subredditsConfig from "@config/subreddits.json";
@@ -164,6 +163,7 @@ const Onboarding = ({ onComplete }) => {
                   >
                     {step < currentStep ? (
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <title>Completed</title>
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     ) : (
@@ -213,9 +213,9 @@ const Onboarding = ({ onComplete }) => {
             </p>
 
             <div className="text-left mb-8">
-              <label className="block text-lg font-medium text-gray-900 mb-4">
+              <p className="block text-lg font-medium text-gray-900 mb-4">
                 Which language are you familiar with?
-              </label>
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 {NATIVE_LANGUAGE_OPTIONS.map((opt) => {
                   const isSelected = nativeLanguage === opt.value;
@@ -248,9 +248,9 @@ const Onboarding = ({ onComplete }) => {
             </div>
 
             <div className="text-left mb-8">
-              <label className="block text-lg font-medium text-gray-900 mb-4">
+              <p className="block text-lg font-medium text-gray-900 mb-4">
                 Which language do you want to learn?
-              </label>
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 {TARGET_LANGUAGE_OPTIONS.map((opt) => {
                   const isSelected = targetLanguage === opt.value;
@@ -334,12 +334,14 @@ const Onboarding = ({ onComplete }) => {
 
             <div className="relative mb-6">
               <button
+                type="button"
                 onClick={goToPrevious}
                 className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border hover:bg-gray-50"
               >
                 <ChevronRight className="w-5 h-5 rotate-180" />
               </button>
               <button
+                type="button"
                 onClick={goToNext}
                 className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border hover:bg-gray-50"
               >
@@ -412,9 +414,10 @@ const Onboarding = ({ onComplete }) => {
 
             <div className="flex justify-center space-x-2 mb-6">
               {/* FIXED: Use getCurrentPostLevels() for dots */}
-              {getCurrentPostLevels().map((_, index) => (
+              {getCurrentPostLevels().map((post, index) => (
                 <button
-                  key={index}
+                  key={post.level}
+                  type="button"
                   onClick={() => setCurrentCarouselIndex(index)}
                   className={`w-3 h-3 rounded-full transition-all ${
                     currentCarouselIndex === index
@@ -476,13 +479,14 @@ const Onboarding = ({ onComplete }) => {
                     }
                   });
 
-                  return renderItems.map((item, index) => {
+                  return renderItems.map((item, _index) => {
                     if (item.type === 'parent') {
                       const { category, isExpanded, isSelected, hasSubreddits } = item;
 
                       return (
                         <button
                           key={category.name}
+                          type="button"
                           onClick={() => {
                             // Toggle selection
                             setSelectedInterests(prev =>
@@ -523,6 +527,7 @@ const Onboarding = ({ onComplete }) => {
                       return (
                         <button
                           key={subredditKey}
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedInterests(prev =>
