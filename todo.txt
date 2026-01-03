@@ -1,20 +1,19 @@
-sync up the languages on the onboarding witn the ones shown on the settings page
+make the translation not appear over the topbar (per the attached image), it should render below as it does with the bottom bar
 
 feed the below prompt to copilot and demand a fix
-
 """
 addiitonally, is the japanese tokenisation/NER still occuring? to identify groups of japanese characters that should be translated together?
 
 think this through with me, would it make sense for japanese words that are meant to be read together to then be highlighted as one yellow block and when that blcok is clicked, all those words are translated together. for more sane translation instead of the current bit-by-bit approach
 """
 
-add the ability to scrape reddit comments for the cache file workflow, to have that written to the cache file (update schema as necessary) and allow it to render in the comments of each post as well
-prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
 optimise fluent for a mobile browser view instead of a web view
+optimise how fluent is rendering the reddit posts currently on the main dashboard
+prune the entire repository to remove files unnecessary for my new workflow given im using only firebase and vercel now
+add the ability to scrape reddit comments for the cache file workflow, to have that written to the cache file (update schema as necessary) and allow it to render in the comments of each post as well
 add a knowledge graph view under the saved words for how words conceputally relate to each other
 add support for rendering markdown tables, markdown splits "---" like some posts
 in mobile view, fix the way words are rendered where sometimes they appear off-screen/partially cut off
 debug the weird translation bug where sometimes the translated word is provided without parsing/properly rendering. have it render properly without "\" or weird translation glitches
-make the translation pop-up smaller, and it should not appear over the topbar, it should render below as it does with the bottom bar
 add code in the frontend that calls real reddit posts from those subreddits first, and if can't then it fallsback on the aforementioned cache
 fix the pronounciation/audio feature

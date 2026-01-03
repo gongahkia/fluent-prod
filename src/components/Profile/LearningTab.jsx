@@ -1,5 +1,19 @@
 import React from "react"
 
+export const NATIVE_LANGUAGE_OPTIONS = [
+  { value: "English", disabled: false },
+  { value: "Chinese", disabled: true },
+  { value: "Bahasa Indonesia", disabled: true },
+  { value: "Japanese", disabled: true },
+]
+
+export const TARGET_LANGUAGE_OPTIONS = [
+  { value: "English", disabled: true },
+  { value: "Chinese", disabled: true },
+  { value: "Bahasa Indonesia", disabled: true },
+  { value: "Japanese", disabled: false },
+]
+
 const LearningTab = ({ formData, handleInputChange }) => {
   return (
     <div className="space-y-6">
@@ -17,10 +31,11 @@ const LearningTab = ({ formData, handleInputChange }) => {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
-              <option value="English">English</option>
-              <option value="Chinese" disabled>Chinese</option>
-              <option value="Bahasa Indonesia" disabled>Bahasa Indonesia</option>
-              <option value="Japanese" disabled>Japanese</option>
+              {NATIVE_LANGUAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                  {opt.value}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -33,10 +48,11 @@ const LearningTab = ({ formData, handleInputChange }) => {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
             >
-              <option value="English" disabled>English</option>
-              <option value="Chinese" disabled>Chinese</option>
-              <option value="Bahasa Indonesia" disabled>Bahasa Indonesia</option>
-              <option value="Japanese">Japanese</option>
+              {TARGET_LANGUAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                  {opt.value}
+                </option>
+              ))}
             </select>
           </div>
         </div>

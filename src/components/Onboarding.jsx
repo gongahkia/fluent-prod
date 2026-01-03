@@ -11,13 +11,19 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FluentLogo } from "@/components/ui/FluentLogo";
 import subredditsConfig from "@config/subreddits.json";
+import {
+  NATIVE_LANGUAGE_OPTIONS,
+  TARGET_LANGUAGE_OPTIONS,
+} from "./Profile/LearningTab";
 
 const interestCategoriesData = subredditsConfig?.interestCategories || {};
 
+const TOTAL_STEPS = 3;
+
 const Onboarding = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [nativeLanguages, setNativeLanguages] = useState([]);
-  const [targetLanguage, setTargetLanguage] = useState("Japanese");
+  const [nativeLanguage, setNativeLanguage] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState("");
   const [translationLevel, setTranslationLevel] = useState(1);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const [selectedInterests, setSelectedInterests] = useState([]);
@@ -116,11 +122,11 @@ const Onboarding = ({ onComplete }) => {
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
       onComplete({
-        nativeLanguages,
+        nativeLanguages: nativeLanguage ? [nativeLanguage] : [],
         targetLanguage,
         level: translationLevel,
         levelName: getLevelName(translationLevel),
@@ -129,12 +135,8 @@ const Onboarding = ({ onComplete }) => {
     }
   };
 
-  const handleLanguageToggle = (language) => {
-    setNativeLanguages((prev) =>
-      prev.includes(language)
-        ? prev.filter((l) => l !== language)
-        : [...prev, language]
-    );
+  const getLanguageKey = (languageName) => {
+    return (languageName || "").toLowerCase();
   };
 
   return (
@@ -146,7 +148,7 @@ const Onboarding = ({ onComplete }) => {
           <div className="space-y-4">
             {/* Step Dots */}
             <div className="flex items-center justify-center space-x-3">
-              {[1, 2, 3, 4].map((step) => (
+              {[1, 2, 3].map((step) => (
                 <div key={step} className="flex items-center">
                   <div
                     className={`
@@ -168,7 +170,7 @@ const Onboarding = ({ onComplete }) => {
                       step
                     )}
                   </div>
-                  {step < 4 && (
+                  {step < TOTAL_STEPS && (
                     <div
                       className={`
                         w-12 h-1 mx-2 rounded-full transition-all duration-400
@@ -185,20 +187,19 @@ const Onboarding = ({ onComplete }) => {
               <span className={currentStep === 1 ? 'text-orange-600 font-semibold' : ''}>Language</span>
               <span className={currentStep === 2 ? 'text-orange-600 font-semibold' : ''}>Level</span>
               <span className={currentStep === 3 ? 'text-orange-600 font-semibold' : ''}>Interests</span>
-              <span className={currentStep === 4 ? 'text-orange-600 font-semibold' : ''}>Review</span>
             </div>
 
             {/* Progress Bar */}
             <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
               <div
                 className="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-400 ease-out"
-                style={{ width: `${(currentStep / 4) * 100}%` }}
+                style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
               ></div>
             </div>
           </div>
         </div>
 
-        {/* Step 1: Native Language Selection */}
+        {/* Step 1: Language Selection (Settings-synced) */}
         {currentStep === 1 && (
           <div className="text-center">
             <div className="w-24 h-auto mx-auto mb-6">
@@ -213,76 +214,103 @@ const Onboarding = ({ onComplete }) => {
 
             <div className="text-left mb-8">
               <label className="block text-lg font-medium text-gray-900 mb-4">
-                What's your native language(s)?
+                Which language are you familiar with?
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {["English"].map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => handleLanguageToggle(lang)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      nativeLanguages.includes(lang)
-                        ? "border-gray-900 bg-gray-100 text-gray-900"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    {lang}
-                  </button>
-                ))}
+                {NATIVE_LANGUAGE_OPTIONS.map((opt) => {
+                  const isSelected = nativeLanguage === opt.value;
+                  const isDisabled = opt.disabled;
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => setNativeLanguage(opt.value)}
+                      className={`p-3 rounded-lg border-2 transition-all flex items-center justify-between ${
+                        isDisabled
+                          ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                          : isSelected
+                          ? "border-orange-600 bg-orange-50 text-orange-700"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <span>{opt.value}</span>
+                      {isSelected && !isDisabled && (
+                        <span className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            <Button
-              onClick={handleNext}
-              disabled={nativeLanguages.length === 0}
-              className="w-full bg-orange-600 hover:bg-orange-700"
-            >
-              Continue <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Step 2: Target Language Selection */}
-        {currentStep === 2 && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-8 h-8 text-orange-600" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              What do you want to learn?
-            </h2>
-            <p className="text-gray-600 mb-8">
-              Choose your target language to start learning!
-            </p>
 
             <div className="text-left mb-8">
-              <div className="space-y-3">
-                <button
-                  onClick={() => setTargetLanguage("Japanese")}
-                  className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
-                    targetLanguage === "Japanese"
-                      ? "border-orange-600 bg-orange-50 text-orange-700"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="text-left">
-                      <div className="font-medium">Japanese</div>
-                      <div className="text-sm text-gray-500">日本語</div>
-                    </div>
-                  </div>
-                  {targetLanguage === "Japanese" && (
-                    <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </button>
+              <label className="block text-lg font-medium text-gray-900 mb-4">
+                Which language do you want to learn?
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {TARGET_LANGUAGE_OPTIONS.map((opt) => {
+                  const isSelected = targetLanguage === opt.value;
+                  const isDisabled = opt.disabled;
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => setTargetLanguage(opt.value)}
+                      className={`p-3 rounded-lg border-2 transition-all flex items-center justify-between ${
+                        isDisabled
+                          ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
+                          : isSelected
+                          ? "border-orange-600 bg-orange-50 text-orange-700"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <span>{opt.value}</span>
+                      {isSelected && !isDisabled && (
+                        <span className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="text-left mb-8">
+              <p className="text-gray-800 text-lg font-semibold leading-snug">
+                I am familiar with{" "}
+                <span
+                  className={
+                    nativeLanguage
+                      ? "text-orange-600 font-extrabold"
+                      : "text-gray-400 font-extrabold"
+                  }
+                >
+                  {nativeLanguage || "_____"}
+                </span>
+                {" "}and want to learn{" "}
+                <span
+                  className={
+                    targetLanguage
+                      ? "text-orange-600 font-extrabold"
+                      : "text-gray-400 font-extrabold"
+                  }
+                >
+                  {targetLanguage || "_____"}
+                </span>
+                .
+              </p>
             </div>
 
             <Button
               onClick={handleNext}
-              disabled={!targetLanguage}
+              disabled={!nativeLanguage || !targetLanguage}
               className="w-full bg-orange-600 hover:bg-orange-700"
             >
               Continue <ChevronRight className="w-4 h-4 ml-2" />
@@ -290,8 +318,8 @@ const Onboarding = ({ onComplete }) => {
           </div>
         )}
 
-        {/* Step 3: Interactive Translation Demo*/}
-        {currentStep === 3 && (
+        {/* Step 2: Interactive Translation Demo*/}
+        {currentStep === 2 && (
           <div className="text-center">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Lightbulb className="w-8 h-8 text-orange-600" />
@@ -399,8 +427,8 @@ const Onboarding = ({ onComplete }) => {
           </div>
         )}
 
-        {/* Step 4: Interest Selection */}
-        {currentStep === 4 && (
+        {/* Step 3: Interest Selection */}
+        {currentStep === 3 && (
           <div className="text-center">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <BookOpen className="w-8 h-8 text-orange-600" />
@@ -416,7 +444,7 @@ const Onboarding = ({ onComplete }) => {
               <div className="flex flex-wrap gap-2">
                 {/* Get interest categories based on target language */}
                 {(() => {
-                  const languageKey = "japanese";
+                  const languageKey = getLanguageKey(targetLanguage) || "japanese";
                   const categories = interestCategoriesData[languageKey] || [];
 
                   // Flatten categories and their children into a single array for rendering
