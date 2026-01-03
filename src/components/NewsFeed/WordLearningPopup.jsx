@@ -46,7 +46,13 @@ const WordLearningPopup = ({
     const viewportHeight = window.innerHeight
 
     // Account for safe areas on mobile devices (notches, rounded corners)
-    const safeAreaTop = 20 // Typical safe area top
+    // and any sticky top navigation/header so the popup never covers it.
+    const stickyTopEl = document.querySelector('.sticky.top-0')
+    const stickyTopHeight = stickyTopEl
+      ? Math.ceil(stickyTopEl.getBoundingClientRect().height || 0)
+      : 0
+
+    const safeAreaTop = 20 + stickyTopHeight
     const safeAreaBottom = 64 // Account for mobile bottom bar (h-16 = 64px) + safe area
 
     // Get scroll position
@@ -109,13 +115,13 @@ const WordLearningPopup = ({
     <>
       {/* Invisible backdrop for click-outside-to-close */}
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-30"
         onClick={onClose}
       />
 
       {/* Anchored popup */}
       <div
-        className="bg-white rounded-lg shadow-2xl border-2 border-orange-400 p-6 z-50 overflow-y-auto"
+        className="bg-white rounded-lg shadow-2xl border-2 border-orange-400 p-6 z-40 overflow-y-auto"
         style={{
           ...popupStyle,
           width: '320px',
