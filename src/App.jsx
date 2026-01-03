@@ -47,6 +47,17 @@ function App() {
   const [toastState, setToastState] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [lastSeenNotificationsAt, setLastSeenNotificationsAt] = useState(0)
+  const [aiOptInPrompt, setAiOptInPrompt] = useState(null)
+  const webLlmOptInInFlightRef = useRef(false)
+
+  const promptEnableAiToast = (model) => {
+    return new Promise((resolve) => {
+      setAiOptInPrompt({
+        model,
+        resolve,
+      })
+    })
+  }
 
   // WebLLM model readiness notifications + first-login opt-in
   useEffect(() => {
@@ -81,6 +92,9 @@ function App() {
     // Only prompt once per browser, only after login/profile is loaded.
     if (!currentUser || !userProfile) return
     if (hasAskedWebLlmDownload()) return
+    if (webLlmOptInInFlightRef.current) return
+
+    webLlmOptInInFlightRef.current = true
 
     ;(async () => {
       try {
@@ -109,17 +123,17 @@ function App() {
         if (cached) {
           setAskedWebLlmDownload()
           setWebLlmEnabled(true)
+          webLlmOptInInFlightRef.current = false
           return
         }
 
-        const wants = window.confirm(
-          "Enable AI features on this browser? This will download a local AI model to your browser cache."
-        )
+        const wants = await promptEnableAiToast(model)
 
         setAskedWebLlmDownload()
 
         if (!wants) {
           setWebLlmEnabled(false)
+          webLlmOptInInFlightRef.current = false
           return
         }
 
@@ -130,6 +144,7 @@ function App() {
           // Success toast is also handled by the model-ready event,
           // but keep this as a safety net in case events are blocked.
           emitToast({ message: `AI model ready (${model})`, icon: "✅" })
+          webLlmOptInInFlightRef.current = false
         } catch (error) {
           setWebLlmEnabled(false)
           emitToast({
@@ -138,6 +153,7 @@ function App() {
               (error?.message ? ` (${error.message})` : ""),
             icon: "⚠️",
           })
+          webLlmOptInInFlightRef.current = false
         }
       } catch (error) {
         // If anything goes wrong, fail closed (disable) without breaking app.
@@ -148,6 +164,7 @@ function App() {
           icon: "⚠️",
         })
         console.error("WebLLM opt-in flow failed:", error)
+        webLlmOptInInFlightRef.current = false
       }
     })()
   }, [currentUser, userProfile])
@@ -508,6 +525,37 @@ function App() {
           icon={toastState.icon}
           duration={toastState.duration}
           onClose={() => setToastState(null)}
+        />
+      )}
+
+      {aiOptInPrompt && (
+        <Toast
+          message={
+            "Enable AI features on this browser? This will download a local AI model to your browser cache."
+          }
+          icon={"✨"}
+          duration={0}
+          actions={[
+            {
+              label: "Not now",
+              onClick: () => {
+                aiOptInPrompt.resolve(false)
+                setAiOptInPrompt(null)
+              },
+            },
+            {
+              label: "Enable",
+              variant: "primary",
+              onClick: () => {
+                aiOptInPrompt.resolve(true)
+                setAiOptInPrompt(null)
+              },
+            },
+          ]}
+          onClose={() => {
+            aiOptInPrompt.resolve(false)
+            setAiOptInPrompt(null)
+          }}
         />
       )}
       <Routes>
