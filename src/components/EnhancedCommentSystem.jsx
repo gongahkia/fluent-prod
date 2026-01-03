@@ -13,10 +13,12 @@ import {
 } from "lucide-react"
 import React, { useRef, useState } from "react"
 import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
+import { emitToast } from "../lib/toastBus"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import SpeechToTextButton from "./ui/SpeechToTextButton"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
+import { checkGrammarLocal, generateCommentSuggestionsLocal } from "../services/localAiService"
 
 const EnhancedCommentSystem = ({
   articleId,
@@ -55,36 +57,20 @@ const EnhancedCommentSystem = ({
   const fetchAISuggestions = async () => {
     setIsLoadingAI(true)
     try {
-      // Get Gemini API key from localStorage (saved in Profile settings)
-      const geminiApiKey = localStorage.getItem('geminiApiKey') || null
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
-      console.log('Fetching AI suggestions...', { geminiApiKey: geminiApiKey ? 'set' : 'not set', targetLanguage })
-
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const response = await fetch(`${API_BASE_URL}/api/ai/comment-suggestions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          postContent: postContent || 'Interesting post about the target culture.',
-          postTitle: postTitle || '',
-          numberOfSuggestions: 3,
-          geminiApiKey,
-          targetLanguage
-        }),
+      const data = await generateCommentSuggestionsLocal({
+        postContent: postContent || 'Interesting post about the target culture.',
+        postTitle: postTitle || '',
+        numberOfSuggestions: 3,
+        targetLanguage,
       })
 
-      const data = await response.json()
-      console.log('AI response:', data)
-
-      if (data.suggestions && data.suggestions.length > 0) {
-        console.log('Setting suggestions:', data.suggestions)
+      if (data?.suggestions && data.suggestions.length > 0) {
         setAiSuggestions(data.suggestions)
-        setAiModel(data.model || 'Gemini 2.0 Flash (Free)')
+        setAiModel(`Local LLM (${data.model})`)
       } else {
-        console.warn('No suggestions in response, using fallbacks')
+        console.warn('No suggestions from local LLM, using fallbacks')
         // Fallback suggestions based on target language
         const fallbackSuggestions = [
           {
@@ -97,10 +83,14 @@ const EnhancedCommentSystem = ({
           }
         ]
         setAiSuggestions(fallbackSuggestions)
-        setAiModel('Gemini 2.0 Flash (Free)')
+        setAiModel('Local LLM (fallback)')
       }
     } catch (error) {
-      console.error('Failed to fetch AI suggestions:', error)
+      console.error('Failed to generate local AI suggestions:', error)
+      emitToast({
+        message: 'Local AI not available. Using default suggestions.',
+        icon: '⚠️',
+      })
       // Fallback suggestions based on target language
       const fallbackSuggestions = [
         {
@@ -114,7 +104,7 @@ const EnhancedCommentSystem = ({
       ]
       console.log('Using catch block fallbacks:', fallbackSuggestions)
       setAiSuggestions(fallbackSuggestions)
-      setAiModel('Gemini 2.0 Flash (Free)')
+      setAiModel('Local LLM (fallback)')
     }
     setIsLoadingAI(false)
   }
@@ -373,24 +363,17 @@ const EnhancedCommentSystem = ({
   const checkCommentGrammar = async () => {
     setIsCheckingGrammar(true)
     try {
-      const geminiApiKey = localStorage.getItem('geminiApiKey') || null
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const response = await fetch(`${API_BASE_URL}/api/ai/check-grammar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          commentText: commentText.trim(),
-          targetLanguage,
-          geminiApiKey
-        }),
+      const data = await checkGrammarLocal({
+        commentText: commentText.trim(),
+        targetLanguage,
       })
 
-      const data = await response.json()
-      setGrammarCheckResult(data)
+      setGrammarCheckResult({
+        ...data,
+        model: `Local LLM (${data.model})`,
+      })
 
       // Only show modal if there are errors
       if (!data.isCorrect && data.correctedText) {
@@ -400,7 +383,11 @@ const EnhancedCommentSystem = ({
         postCommentDirectly()
       }
     } catch (error) {
-      console.error('Failed to check grammar:', error)
+      console.error('Failed to check grammar locally:', error)
+      emitToast({
+        message: 'Local grammar check unavailable. Posting anyway.',
+        icon: '⚠️',
+      })
       // On error, allow posting anyway
       postCommentDirectly()
     }
