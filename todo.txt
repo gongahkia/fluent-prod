@@ -19,3 +19,5 @@ make the translation pop-up smaller, and it should not appear over the topbar, i
 add code in the frontend that calls real reddit posts from those subreddits first, and if can't then it fallsback on the aforementioned cache
 optimise fluent for a mobile browser view instead of a web view
 add support for rendering markdown tables, markdown splits "---" like some posts
+add a knowledge graph view under the saved words for how words conceputally relate to each other
+in mobile view, fix the way words are rendere

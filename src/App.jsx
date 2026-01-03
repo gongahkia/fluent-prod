@@ -1,9 +1,10 @@
-import { ChevronDown, Search, X } from "lucide-react";
+import { Bell, ChevronDown, Search, X } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { Routes, Route } from "react-router-dom";
 import Auth from "./components/Auth";
 import DictionaryWithPractice from "./components/DictionaryWithPractice";
 import NewsFeed from "./components/NewsFeed";
+import Notifications from "./components/Notifications";
 import Onboarding from "./components/Onboarding";
 import PublicProfile from "./components/PublicProfile";
 import Settings from "./components/Settings";
@@ -36,6 +37,29 @@ function App() {
   const [userDictionary, setUserDictionary] = useState([]);
   const [firebaseError, setFirebaseError] = useState(null);
   const [toastState, setToastState] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+
+  const pushNotification = ({ message, icon = "⚠️", type = "info" } = {}) => {
+    if (!message) return
+
+    setNotifications((prev) => {
+      const next = [
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          message,
+          icon,
+          type,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]
+      return next.slice(0, 200)
+    })
+  }
+
+  const dismissNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
+  }
 
   // Firebase ID tokens auto-refresh; no explicit session refresh needed.
 
@@ -48,8 +72,42 @@ function App() {
         icon: detail.icon,
         duration: detail.duration,
       });
+
+      pushNotification({
+        message: detail.message,
+        icon: detail.icon,
+        type: "toast",
+      })
     });
   }, []);
+
+  // Capture runtime errors into the notifications feed
+  useEffect(() => {
+    const onError = (event) => {
+      const message =
+        event?.error?.message ||
+        event?.message ||
+        "An unexpected error occurred."
+      pushNotification({ message, icon: "⚠️", type: "error" })
+    }
+
+    const onUnhandledRejection = (event) => {
+      const reason = event?.reason
+      const message =
+        (typeof reason === "string" && reason) ||
+        reason?.message ||
+        "An unexpected error occurred."
+      pushNotification({ message, icon: "⚠️", type: "error" })
+    }
+
+    window.addEventListener("error", onError)
+    window.addEventListener("unhandledrejection", onUnhandledRejection)
+
+    return () => {
+      window.removeEventListener("error", onError)
+      window.removeEventListener("unhandledrejection", onUnhandledRejection)
+    }
+  }, [])
 
   // Handle loading screen completion
   const handleLoadingComplete = () => {
@@ -211,6 +269,7 @@ function App() {
     await signOutUser();
     setShowOnboarding(false);
     setCurrentView("feed");
+    setNotifications([])
   };
 
   const addWordToDictionary = async (wordData) => {
@@ -320,6 +379,8 @@ function App() {
               currentView={currentView}
               userDictionary={userDictionary}
               firebaseError={firebaseError}
+              notifications={notifications}
+              dismissNotification={dismissNotification}
               setCurrentView={setCurrentView}
               handleNavigation={handleNavigation}
               handleLogout={handleLogout}
@@ -345,6 +406,8 @@ function MainApp({
   currentView,
   userDictionary,
   firebaseError,
+  notifications,
+  dismissNotification,
   setCurrentView,
   handleNavigation,
   handleLogout,
@@ -417,6 +480,29 @@ function MainApp({
         )}
       </div>
     );
+  }
+
+  // Show notifications feed (in-memory, dismissible)
+  if (currentView === "notifications") {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <Notifications
+          notifications={notifications}
+          onDismiss={dismissNotification}
+          onBack={() => handleNavigation("feed")}
+        />
+
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} />
+
+        {/* Auth Blocked Warning */}
+        {firebaseError && (
+          <AuthBlockedWarning
+            errorInfo={firebaseError}
+            onDismiss={() => setFirebaseError(null)}
+          />
+        )}
+      </div>
+    )
   }
 
   // Show settings page (account configuration with consistent navigation)
@@ -507,6 +593,41 @@ function MainApp({
                   <Search className="w-5 h-5 text-gray-700" />
                 </button>
               )}
+
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Notifications"
+                onClick={() => handleNavigation("notifications")}
+              >
+                <Bell className="w-5 h-5 text-gray-700" />
+              </button>
+
+              <button
+                type="button"
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Profile"
+                onClick={() => handleNavigation("profile")}
+              >
+                {userProfile?.profilePictureUrl ? (
+                  <img
+                    src={userProfile.profilePictureUrl}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold">
+                    {(() => {
+                      const base = userProfile?.name || currentUser?.email || "User"
+                      const parts = String(base).trim().split(/\s+/).filter(Boolean)
+                      const first = parts[0]?.[0] || "U"
+                      const second = parts[1]?.[0] || ""
+                      return (first + second).toUpperCase()
+                    })()}
+                  </div>
+                )}
+              </button>
             </div>
           </div>
         </div>
