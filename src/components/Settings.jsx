@@ -90,6 +90,23 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
+    if (name === "theme") {
+      const preferred = value
+      const resolved =
+        preferred === "auto"
+          ? window.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+            ? "dark"
+            : "light"
+          : preferred
+
+      document.documentElement.classList.toggle("dark", resolved === "dark")
+      try {
+        localStorage.setItem("fluent:theme", preferred)
+      } catch {
+        // ignore
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,

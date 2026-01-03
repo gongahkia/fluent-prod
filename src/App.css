@@ -121,6 +121,63 @@
     @apply bg-background text-foreground font-sans;
   }
 
+  /* Make legacy gray/white utility usage follow the app theme */
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark .bg-white {
+    @apply bg-card;
+  }
+
+  .dark .bg-gray-50 {
+    @apply bg-background;
+  }
+
+  .dark .bg-gray-100 {
+    @apply bg-muted;
+  }
+
+  .dark .bg-gray-200 {
+    @apply bg-muted;
+  }
+
+  .dark .border-gray-200 {
+    @apply border-border;
+  }
+
+  .dark .border-gray-300 {
+    @apply border-border;
+  }
+
+  .dark .text-gray-900 {
+    @apply text-foreground;
+  }
+
+  .dark .text-gray-800 {
+    @apply text-foreground;
+  }
+
+  .dark .text-gray-700 {
+    @apply text-muted-foreground;
+  }
+
+  .dark .text-gray-600 {
+    @apply text-muted-foreground;
+  }
+
+  .dark .text-gray-500 {
+    @apply text-muted-foreground;
+  }
+
+  .dark .hover\:bg-gray-100:hover {
+    @apply bg-muted;
+  }
+
+  .dark .hover\:bg-gray-50:hover {
+    @apply bg-muted;
+  }
+
   /* Language-specific font application */
   :lang(ja),
   [lang="ja"],

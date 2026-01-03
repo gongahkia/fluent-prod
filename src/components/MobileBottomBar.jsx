@@ -40,7 +40,8 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
           const Icon = item.icon
           const isActive =
             currentView === item.id ||
-            (item.id === 'dictionary' && currentView === 'flashcards')
+            (item.id === 'dictionary' && currentView === 'flashcards') ||
+            (item.id === 'feed' && currentView === 'profile')
 
           return (
             <button

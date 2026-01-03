@@ -40,6 +40,30 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [lastSeenNotificationsAt, setLastSeenNotificationsAt] = useState(0)
 
+  // Apply appearance theme (light/dark/auto) globally
+  useEffect(() => {
+    const preferred =
+      userProfile?.settings?.appearance?.theme ||
+      localStorage.getItem("fluent:theme") ||
+      "light"
+
+    const resolved =
+      preferred === "auto"
+        ? window.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+          ? "dark"
+          : "light"
+        : preferred
+
+    document.documentElement.classList.toggle("dark", resolved === "dark")
+
+    // Persist the user's selected mode (including auto)
+    try {
+      localStorage.setItem("fluent:theme", preferred)
+    } catch {
+      // ignore
+    }
+  }, [userProfile?.settings?.appearance?.theme])
+
   const pushNotification = ({ message, icon = "⚠️", type = "info" } = {}) => {
     if (!message) return
 
