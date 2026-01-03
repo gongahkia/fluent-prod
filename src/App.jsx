@@ -427,8 +427,8 @@ function MainApp({
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center h-16">
+            <div className="flex items-center space-x-4 flex-shrink-0">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8">
                   <FluentLogo
@@ -445,41 +445,41 @@ function MainApp({
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              {currentView === 'feed' && (
-                <div className="flex items-center gap-2">
-                  {!isSearchOpen ? (
-                    <button
-                      type="button"
-                      className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                      aria-label="Search"
-                      onClick={() => setIsSearchOpen(true)}
-                    >
-                      <Search className="w-5 h-5 text-gray-700" />
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={feedSearchQuery}
-                        onChange={(e) => setFeedSearchQuery(e.target.value)}
-                        autoFocus
-                        placeholder="Search posts, @username, r/subreddit"
-                        className="h-9 w-56 sm:w-72 md:w-96 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus-visible:border-orange-300 focus-visible:ring-2 focus-visible:ring-orange-100"
-                      />
-                      <button
-                        type="button"
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                        aria-label="Close search"
-                        onClick={() => {
-                          setIsSearchOpen(false)
-                          setFeedSearchQuery("")
-                        }}
-                      >
-                        <X className="w-5 h-5 text-gray-700" />
-                      </button>
-                    </div>
-                  )}
+            <div className="flex-1 flex justify-center px-4">
+              {currentView === 'feed' && isSearchOpen && (
+                <div className="flex items-center gap-2 w-full max-w-3xl">
+                  <input
+                    value={feedSearchQuery}
+                    onChange={(e) => setFeedSearchQuery(e.target.value)}
+                    autoFocus
+                    placeholder="Search posts, @username, r/subreddit"
+                    className="h-9 flex-1 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus-visible:border-orange-300 focus-visible:ring-2 focus-visible:ring-orange-100"
+                  />
+                  <button
+                    type="button"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Close search"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      setFeedSearchQuery("")
+                    }}
+                  >
+                    <X className="w-5 h-5 text-gray-700" />
+                  </button>
                 </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              {currentView === 'feed' && !isSearchOpen && (
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Search"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="w-5 h-5 text-gray-700" />
+                </button>
               )}
             </div>
           </div>
