@@ -18,7 +18,10 @@ import LoadingSpinner from "./ui/LoadingSpinner"
 import SpeechToTextButton from "./ui/SpeechToTextButton"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
-import { checkGrammarLocal, generateCommentSuggestionsLocal } from "../services/localAiService"
+
+async function loadCommentAiService() {
+  return await import("../services/commentAiService")
+}
 
 const EnhancedCommentSystem = ({
   articleId,
@@ -59,6 +62,8 @@ const EnhancedCommentSystem = ({
     try {
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
+      const { generateCommentSuggestionsLocal } = await loadCommentAiService()
+
       const data = await generateCommentSuggestionsLocal({
         postContent: postContent || 'Interesting post about the target culture.',
         postTitle: postTitle || '',
@@ -68,7 +73,7 @@ const EnhancedCommentSystem = ({
 
       if (data?.suggestions && data.suggestions.length > 0) {
         setAiSuggestions(data.suggestions)
-        setAiModel(`Local LLM (${data.model})`)
+        setAiModel(`WebLLM (${data.model})`)
       } else {
         console.warn('No suggestions from local LLM, using fallbacks')
         // Fallback suggestions based on target language
@@ -83,12 +88,12 @@ const EnhancedCommentSystem = ({
           }
         ]
         setAiSuggestions(fallbackSuggestions)
-        setAiModel('Local LLM (fallback)')
+        setAiModel('WebLLM (fallback)')
       }
     } catch (error) {
       console.error('Failed to generate local AI suggestions:', error)
       emitToast({
-        message: 'Local AI not available. Using default suggestions.',
+        message: 'AI not available. Using default suggestions.',
         icon: '⚠️',
       })
       // Fallback suggestions based on target language
@@ -104,7 +109,7 @@ const EnhancedCommentSystem = ({
       ]
       console.log('Using catch block fallbacks:', fallbackSuggestions)
       setAiSuggestions(fallbackSuggestions)
-      setAiModel('Local LLM (fallback)')
+      setAiModel('WebLLM (fallback)')
     }
     setIsLoadingAI(false)
   }
@@ -365,6 +370,8 @@ const EnhancedCommentSystem = ({
     try {
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
 
+      const { checkGrammarLocal } = await loadCommentAiService()
+
       const data = await checkGrammarLocal({
         commentText: commentText.trim(),
         targetLanguage,
@@ -372,7 +379,7 @@ const EnhancedCommentSystem = ({
 
       setGrammarCheckResult({
         ...data,
-        model: `Local LLM (${data.model})`,
+        model: `WebLLM (${data.model})`,
       })
 
       // Only show modal if there are errors
@@ -385,7 +392,7 @@ const EnhancedCommentSystem = ({
     } catch (error) {
       console.error('Failed to check grammar locally:', error)
       emitToast({
-        message: 'Local grammar check unavailable. Posting anyway.',
+        message: 'Grammar check unavailable. Posting anyway.',
         icon: '⚠️',
       })
       // On error, allow posting anyway
