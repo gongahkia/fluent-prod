@@ -38,6 +38,7 @@ function App() {
   const [firebaseError, setFirebaseError] = useState(null);
   const [toastState, setToastState] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [lastSeenNotificationsAt, setLastSeenNotificationsAt] = useState(0)
 
   const pushNotification = ({ message, icon = "⚠️", type = "info" } = {}) => {
     if (!message) return
@@ -59,6 +60,10 @@ function App() {
 
   const dismissNotification = (id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id))
+  }
+
+  const markNotificationsSeen = () => {
+    setLastSeenNotificationsAt(Date.now())
   }
 
   // Firebase ID tokens auto-refresh; no explicit session refresh needed.
@@ -381,6 +386,8 @@ function App() {
               firebaseError={firebaseError}
               notifications={notifications}
               dismissNotification={dismissNotification}
+              lastSeenNotificationsAt={lastSeenNotificationsAt}
+              markNotificationsSeen={markNotificationsSeen}
               setCurrentView={setCurrentView}
               handleNavigation={handleNavigation}
               handleLogout={handleLogout}
@@ -408,6 +415,8 @@ function MainApp({
   firebaseError,
   notifications,
   dismissNotification,
+  lastSeenNotificationsAt,
+  markNotificationsSeen,
   setCurrentView,
   handleNavigation,
   handleLogout,
@@ -449,6 +458,19 @@ function MainApp({
       setFeedSearchQuery("")
     }
   }, [currentView])
+
+  const hasUnreadNotifications =
+    currentView !== "notifications" &&
+    notifications.some((n) => {
+      const t = n?.createdAt ? Date.parse(n.createdAt) : 0
+      return Number.isFinite(t) && t > lastSeenNotificationsAt
+    })
+
+  useEffect(() => {
+    if (currentView === "notifications") {
+      markNotificationsSeen?.()
+    }
+  }, [currentView, markNotificationsSeen])
   // Show authentication if not authenticated
   if (!currentUser) {
     return <Auth onAuthComplete={handleAuthComplete} />;
@@ -596,11 +618,17 @@ function MainApp({
 
               <button
                 type="button"
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
                 aria-label="Notifications"
                 onClick={() => handleNavigation("notifications")}
               >
                 <Bell className="w-5 h-5 text-gray-700" />
+                {hasUnreadNotifications && (
+                  <span
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
 
               <button
