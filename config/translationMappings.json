@@ -34,7 +34,7 @@
       "to": "ja",
       "enabled": true,
       "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
+      "apiProviders": ["mymemory", "libretranslate", "lingva"],
       "priority": 1
     },
     "ja-en": {
@@ -42,7 +42,7 @@
       "to": "en",
       "enabled": true,
       "bidirectional": true,
-      "apiProviders": ["lingva", "mymemory", "libretranslate"],
+      "apiProviders": ["mymemory", "libretranslate", "lingva"],
       "priority": 1
     }
   },

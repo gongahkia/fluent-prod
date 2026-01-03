@@ -36,6 +36,28 @@ function nowIso() {
   return new Date().toISOString()
 }
 
+function stripUndefinedDeep(value) {
+  if (value === undefined) return undefined
+  if (value === null) return null
+
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => stripUndefinedDeep(v))
+      .filter((v) => v !== undefined)
+  }
+
+  if (typeof value === 'object') {
+    const out = {}
+    for (const [key, v] of Object.entries(value)) {
+      const cleaned = stripUndefinedDeep(v)
+      if (cleaned !== undefined) out[key] = cleaned
+    }
+    return out
+  }
+
+  return value
+}
+
 function userDoc(userId) {
   return doc(firestore, 'users', userId)
 }
@@ -174,7 +196,22 @@ export const getUserCredentials = async (userId) => {
 
 export const addWordToDictionary = async (userId, wordData) => {
   try {
-    const wordId = wordData?.id || crypto.randomUUID()
+    const rawId = wordData?.id
+    let wordId = null
+
+    if (typeof rawId === 'string' && rawId.trim()) {
+      wordId = rawId.trim()
+    } else if (typeof rawId === 'number' && Number.isFinite(rawId)) {
+      wordId = String(rawId)
+    }
+
+    if (!wordId) {
+      wordId = globalThis?.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    }
+
+    // Firestore doc IDs cannot include '/'
+    wordId = String(wordId).replaceAll('/', '_')
+
     const payload = {
       ...wordData,
       id: wordId,
@@ -303,9 +340,15 @@ export const getSavedPosts = async (userId) => {
 
 export const savePost = async (userId, postData) => {
   try {
-    const postHash = postData?.postHash || postData?.postId || postData?.id || crypto.randomUUID()
-    const postId = postData?.postId || postData?.id || postHash
-    const payload = {
+    const uuid = globalThis?.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const postHashRaw = postData?.postHash || postData?.postId || postData?.id || uuid
+    const postIdRaw = postData?.postId || postData?.id || postHashRaw
+
+    // Firestore doc IDs must be strings and cannot contain '/'
+    const postHash = String(postHashRaw).replaceAll('/', '_')
+    const postId = String(postIdRaw).replaceAll('/', '_')
+
+    const payload = stripUndefinedDeep({
       ...postData,
       id: postId,
       postId,
@@ -315,7 +358,7 @@ export const savePost = async (userId, postData) => {
       savedAtTs: serverTimestamp(),
       updatedAt: nowIso(),
       updatedAtTs: serverTimestamp(),
-    }
+    })
 
     await setDoc(doc(savedPostsCol(userId), postId), payload, { merge: true })
     return { success: true, data: payload }

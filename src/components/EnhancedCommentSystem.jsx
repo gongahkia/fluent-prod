@@ -514,9 +514,7 @@ const EnhancedCommentSystem = ({
           {indentCols.map((_, idx) => (
             <div key={idx} className="w-6" />
           ))}
-          <div className="relative w-6">
-            <div className="absolute left-3 top-0 bottom-0 w-px bg-border" />
-          </div>
+          <div className="w-6" />
         </div>
       )
     }

@@ -440,7 +440,7 @@ function App() {
 
     // Create word object based on language
     const newWord = {
-      id: Date.now(),
+      id: globalThis?.crypto?.randomUUID?.() || String(Date.now()),
       level: wordData.level || 5,
       english: wordData.english,
       example: wordData.example,
