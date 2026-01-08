@@ -1,6 +1,10 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = 3000;
 const NEWS_CACHE_PATH = path.join(__dirname, '../cache/news-cache.txt');
@@ -39,18 +43,39 @@ const server = http.createServer((req, res) => {
         });
         req.on('end', () => {
             try {
-                const jsonArray = JSON.parse(body);
-                // Convert JSON array back to NDJSON
-                const ndjsonString = jsonArray.map(row => JSON.stringify(row)).join('\n');
-                fs.writeFile(NEWS_CACHE_PATH, ndjsonString, 'utf8', (err) => {
-                    if (err) {
+                const newRecords = JSON.parse(body);
+
+                // Read the old file to compare and log changes
+                fs.readFile(NEWS_CACHE_PATH, 'utf8', (err, oldData) => {
+                    if (err && err.code !== 'ENOENT') {
                         res.writeHead(500, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ message: 'Error writing cache file.' }));
+                        res.end(JSON.stringify({ message: 'Error reading existing cache file for comparison.' }));
                         return;
                     }
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ message: 'Cache updated successfully.' }));
+
+                    const oldRecords = oldData ? oldData.split('\n').filter(line => line.trim() !== '').map(line => JSON.parse(line)) : [];
+                    const oldRecordsMap = new Map(oldRecords.map(rec => [rec.sourceId, rec]));
+
+                    newRecords.forEach(newRecord => {
+                        const oldRecord = oldRecordsMap.get(newRecord.sourceId);
+                        if (oldRecord && JSON.stringify(oldRecord) !== JSON.stringify(newRecord)) {
+                            console.log(`[${new Date().toISOString()}] Record changed: ${newRecord.sourceId}`);
+                        }
+                    });
+
+                    // Convert JSON array back to NDJSON and write to file
+                    const ndjsonString = newRecords.map(row => JSON.stringify(row)).join('\n');
+                    fs.writeFile(NEWS_CACHE_PATH, ndjsonString, 'utf8', (writeErr) => {
+                        if (writeErr) {
+                            res.writeHead(500, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ message: 'Error writing cache file.' }));
+                            return;
+                        }
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ message: 'Cache updated successfully.' }));
+                    });
                 });
+
             } catch (e) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ message: 'Invalid JSON data.' }));

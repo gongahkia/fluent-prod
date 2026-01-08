@@ -3,37 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Cache Editor</title>
+    <title>Fluent Admin</title>
     <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --container-bg: #ffffff;
+            --container-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --input-bg: #ffffff;
+            --input-border: #ced4da;
+            --table-border: #dee2e6;
+            --header-bg: #e9ecef;
+            --focus-outline: #007bff;
+            --focus-bg: #e9f4ff;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --button-hover-bg: #0056b3;
+            --button-secondary-bg: #6c757d;
+            --text-muted: #6c757d;
+        }
+
+        body[data-theme="dark"] {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --container-bg: #1e1e1e;
+            --container-shadow: 0 2px 10px rgba(0,0,0,0.7);
+            --input-bg: #2c2c2c;
+            --input-border: #444444;
+            --table-border: #343a40;
+            --header-bg: #2c2c2c;
+            --focus-outline: #0d6efd;
+            --focus-bg: #2a3b5e;
+            --button-bg: #0d6efd;
+            --button-text: #ffffff;
+            --button-hover-bg: #0b5ed7;
+            --button-secondary-bg: #495057;
+            --text-muted: #adb5bd;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 2rem;
-            background-color: #f8f9fa;
-            color: #212529;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.2s, color 0.2s;
         }
         .container {
-            max-width: 1200px;
+            max-width: 95%;
             margin: auto;
-            background: white;
+            background: var(--container-bg);
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: var(--container-shadow);
+            transition: background-color 0.2s;
         }
         h1 {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 0.5rem;
         }
-        .controls {
+        h1 small {
+            font-size: 1.1rem;
+            font-weight: normal;
+            color: var(--text-muted);
+        }
+        h1 #recordCount {
+            font-size: 1rem;
+            font-weight: normal;
+            color: var(--text-muted);
+        }
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .theme-controls button {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .main-controls {
             display: flex;
             gap: 1rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             align-items: center;
         }
         #searchInput {
             flex-grow: 1;
             padding: 0.75rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
             border-radius: 4px;
             font-size: 1rem;
         }
@@ -43,16 +105,38 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            background-color: #007bff;
-            color: white;
+            background-color: var(--button-bg);
+            color: var(--button-text);
             transition: background-color 0.2s;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--button-hover-bg);
+        }
+        button.secondary {
+            background-color: var(--button-secondary-bg);
         }
         button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
+        }
+        #columnSelectorContainer.hidden #columnSelector {
+            display: none;
+        }
+        #columnSelector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1rem;
+            padding: 1rem;
+            background-color: var(--header-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+        #columnSelector label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
         }
         .table-wrapper {
             overflow-x: auto;
@@ -63,39 +147,53 @@
             margin-top: 1rem;
         }
         th, td {
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--table-border);
             padding: 0.75rem;
             text-align: left;
             vertical-align: top;
             white-space: nowrap;
         }
         th {
-            background-color: #e9ecef;
+            background-color: var(--header-bg);
             position: sticky;
             top: 0;
+            z-index: 1;
         }
-        td[contenteditable="true"] {
-            background-color: #fff;
-            cursor: text;
+        td {
+            background-color: var(--container-bg);
         }
         td[contenteditable="true"]:focus {
-            outline: 2px solid #007bff;
-            background-color: #e9f4ff;
+            outline: 2px solid var(--focus-outline);
+            background-color: var(--focus-bg);
         }
         .status {
             margin-top: 1rem;
-            color: #6c757d;
+            color: var(--text-muted);
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>News Cache Editor</h1>
-        <div class="controls">
+        <h1>Fluent Admin <small>(news-cache.txt editor)</small> <span id="recordCount"></span></h1>
+        
+        <div class="top-controls">
+            <div class="theme-controls">
+                <button data-theme="light" class="secondary">Light</button>
+                <button data-theme="dark" class="secondary">Dark</button>
+            </div>
+            <button id="toggleColumnsButton" class="secondary">Toggle Columns</button>
+        </div>
+
+        <div id="columnSelectorContainer" class="hidden">
+            <div id="columnSelector"></div>
+        </div>
+
+        <div class="main-controls">
             <input type="text" id="searchInput" placeholder="Search across all fields...">
             <button id="saveButton">Save Changes</button>
         </div>
+        
         <div class="table-wrapper">
             <table id="dataTable">
                 <thead></thead>
@@ -111,11 +209,32 @@
         const tableHead = document.querySelector('#dataTable thead');
         const tableBody = document.querySelector('#dataTable tbody');
         const statusDiv = document.getElementById('status');
+        const recordCountSpan = document.getElementById('recordCount');
+        const columnSelectorContainer = document.getElementById('columnSelectorContainer');
+        const columnSelector = document.getElementById('columnSelector');
+        const toggleColumnsButton = document.getElementById('toggleColumnsButton');
+        const themeControls = document.querySelector('.theme-controls');
 
         let data = [];
-        let headers = [];
+        let allHeaders = [];
+        let visibleHeaders = [];
 
+        // --- Theme Handling ---
+        function applyTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('adminTheme', theme);
+        }
+
+        themeControls.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applyTheme(e.target.dataset.theme);
+            }
+        });
+
+        // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('adminTheme') || 'light';
+            applyTheme(savedTheme);
             loadData();
         });
 
@@ -123,35 +242,50 @@
             try {
                 statusDiv.textContent = 'Loading data from server...';
                 const response = await fetch('/api/news-cache');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 data = await response.json();
                 
                 if (data.length > 0) {
+                    const headerSet = new Set();
+                    data.forEach(row => Object.keys(row).forEach(key => headerSet.add(key)));
+                    allHeaders = Array.from(headerSet);
+                    visibleHeaders = allHeaders.slice(0, 10); // Show first 10 columns by default
+
+                    populateColumnSelector();
                     renderTable();
                     statusDiv.textContent = `Loaded ${data.length} records.`;
+                    recordCountSpan.textContent = `(${data.length} records)`;
                 } else {
                     statusDiv.textContent = 'Cache is empty.';
+                    recordCountSpan.textContent = '(0 records)';
                 }
             } catch (error) {
                 console.error("Failed to load data:", error);
                 statusDiv.textContent = `Error loading data: ${error.message}. Make sure the server is running.`;
-                tableBody.innerHTML = '';
-                tableHead.innerHTML = '';
             }
         }
 
-        function renderTable() {
-            const headerSet = new Set();
-            data.forEach(row => Object.keys(row).forEach(key => headerSet.add(key)));
-            headers = Array.from(headerSet);
+        function populateColumnSelector() {
+            columnSelector.innerHTML = allHeaders.map(header => `
+                <label>
+                    <input type="checkbox" value="${header}" ${visibleHeaders.includes(header) ? 'checked' : ''}>
+                    ${header}
+                </label>
+            `).join('');
 
-            tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+            columnSelector.addEventListener('change', () => {
+                visibleHeaders = Array.from(columnSelector.querySelectorAll('input:checked')).map(input => input.value);
+                renderTable();
+            });
+        }
+
+        function renderTable() {
+            tableHead.innerHTML = `<tr>${visibleHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
             tableBody.innerHTML = data.map((row, rowIndex) => `
                 <tr data-row-index="${rowIndex}">
-                    ${headers.map(header => `
+                    ${visibleHeaders.map(header => `
                         <td contenteditable="true" data-key="${header}">
                             ${row[header] !== undefined && row[header] !== null ? (typeof row[header] === 'object' ? JSON.stringify(row[header]) : row[header]) : ''}
                         </td>
@@ -160,12 +294,34 @@
             `).join('');
         }
 
+        // --- Event Listeners ---
+        toggleColumnsButton.addEventListener('click', () => {
+            columnSelectorContainer.classList.toggle('hidden');
+        });
+
+        tableBody.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.tagName === 'TD') {
+                const rowIndex = target.parentElement.dataset.rowIndex;
+                const key = target.dataset.key;
+                let value = target.innerText;
+
+                try {
+                    if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
+                        value = JSON.parse(value);
+                    } else if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) {
+                        value = parseFloat(value);
+                    }
+                } catch (err) { /* Keep as string if parsing fails */ }
+                
+                data[rowIndex][key] = value;
+            }
+        });
+
         searchInput.addEventListener('keyup', () => {
             const searchTerm = searchInput.value.toLowerCase();
-            const rows = tableBody.getElementsByTagName('tr');
-            Array.from(rows).forEach(row => {
-                const rowText = row.textContent.toLowerCase();
-                row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+            Array.from(tableBody.rows).forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
             });
         });
 
@@ -177,50 +333,18 @@
 
             saveButton.disabled = true;
             statusDiv.textContent = 'Saving...';
-
-            const updatedData = [];
-            const tableRows = tableBody.getElementsByTagName('tr');
-
-            Array.from(tableRows).forEach(row => {
-                if(row.style.display !== 'none') { // Only include visible rows if filtering
-                    const newRow = {};
-                    const cells = row.getElementsByTagName('td');
-                    Array.from(cells).forEach(cell => {
-                        const key = cell.dataset.key;
-                        let value = cell.innerText;
-                        try {
-                            if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
-                                value = JSON.parse(value);
-                            } else if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) {
-                                value = parseFloat(value);
-                            }
-                        } catch (e) {
-                            // Keep as string if parsing fails
-                        }
-                        newRow[key] = value;
-                    });
-                    updatedData.push(newRow);
-                }
-            });
             
             try {
                 const response = await fetch('/api/news-cache', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(updatedData),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                 const result = await response.json();
                 statusDiv.textContent = `${result.message} (${new Date().toLocaleTimeString()})`;
-                // Re-load data to ensure consistency
-                setTimeout(loadData, 1000);
-
             } catch (error) {
                 console.error('Failed to save data:', error);
                 statusDiv.textContent = `Error saving data: ${error.message}`;
