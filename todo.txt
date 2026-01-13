@@ -1,3 +1,4 @@
+fix the broken fluent firebase for user accounting with claude code and ensure its back working properly
 add a knowledge graph view under the saved words for how words conceputally relate to each other
 add support for rendering markdown tables, markdown splits "---" like some posts
 
