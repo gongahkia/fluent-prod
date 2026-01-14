@@ -1,3 +1,4 @@
+import logger from './logger.js'
 /**
  * Performance Monitoring Utilities
  * Track and log performance metrics for async operations
@@ -80,6 +81,7 @@ export async function timeAsync(operationName, fn) {
   } catch (error) {
     const metrics = timer.stop()
     logPerformance(metrics, 'warning')
+    logger.error('Error in timed async operation', { error })
     throw error
   }
 }

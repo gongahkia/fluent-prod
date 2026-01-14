@@ -1,3 +1,4 @@
+import logger from './utils/logger.js'
 /**
  * Prune NDJSON cache to a maximum row count, preferring to keep any rows
  * referenced by Firebase users' saved posts.
@@ -106,11 +107,11 @@ async function run() {
   const cachePath = process.env.CACHE_PATH || defaultCachePath
   const maxRows = Number.parseInt(process.env.MAX_ROWS || '500', 10)
 
-  console.log(`Cache: ${cachePath}`)
-  console.log(`Max rows: ${maxRows}`)
+  logger.info(`Cache: ${cachePath}`)
+  logger.info(`Max rows: ${maxRows}`)
 
   if (enforceAllowlist) {
-    console.log(`Subreddit allowlist: ${allowedSubreddits.size} subs (${subredditsConfigPath})`)
+    logger.info(`Subreddit allowlist: ${allowedSubreddits.size} subs (${subredditsConfigPath})`)
   }
 
   const rowsRaw = readNdjson(cachePath).filter((r) => r && typeof r === 'object')
@@ -172,6 +173,6 @@ async function run() {
 }
 
 run().catch((err) => {
-  console.error('Prune failed:', err)
+  logger.error('Prune failed', { error: err })
   process.exit(1)
 })

@@ -1,3 +1,4 @@
+import logger from './utils/logger.js'
 /**
  * Reddit Scrape + Translate Cache Script
  *
@@ -122,7 +123,9 @@ const OUT_FILE = String(argv.outFile || process.env.OUT_FILE || preset.outFile)
 const MAX_NEW_POSTS = toInt(argv.maxNewPosts || process.env.MAX_NEW_POSTS, 200)
 
 if (TARGET_LANG !== 'ja') {
-  throw new Error(`Only Japanese is supported (targetLang must be 'ja'; got ${TARGET_LANG}).`)
+  const err = new Error(`Only Japanese is supported (targetLang must be 'ja'; got ${TARGET_LANG}).`)
+  err.code = 'UNSUPPORTED_LANGUAGE';
+  throw err;
 }
 
 const queryKey = String(argv.query || process.env.QUERY || 'japan')
@@ -133,9 +136,11 @@ const SUBREDDITS = subredditsArg
   : (loadSubredditsFromConfig(queryKey) || preset.subreddits)
 
 if (!SUBREDDITS.length) {
-  throw new Error(
+  const err = new Error(
     `No subreddits configured. Provide --subreddits a,b,c or set QUERY to a key in config/subreddits.json (got QUERY=${queryKey}).`
-  )
+  );
+  err.code = 'NO_SUBREDDITS_CONFIGURED';
+  throw err;
 }
 
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
@@ -292,25 +297,25 @@ function sortNewestFirst(a, b) {
 }
 
 async function run() {
-  console.log('═'.repeat(60))
-  console.log('   REDDIT SCRAPE + TRANSLATE → CACHE (NDJSON)')
-  console.log('═'.repeat(60))
-  console.log('')
+  logger.info('\u2550'.repeat(60))
+  logger.info('   REDDIT SCRAPE + TRANSLATE \u2192 CACHE (NDJSON)')
+  logger.info('\u2550'.repeat(60))
+  logger.info('')
 
-  console.log(`Preset: ${presetName}`)
-  console.log(`query: ${queryKey}`)
-  console.log(`Subreddits: ${SUBREDDITS.length}`)
-  console.log(`postsPerSubreddit: ${POSTS_PER_SUBREDDIT}`)
-  console.log(`targetLang: ${TARGET_LANG}`)
-  console.log(`out: ${OUT_PATH}`)
+  logger.info(`Preset: ${presetName}`)
+  logger.info(`query: ${queryKey}`)
+  logger.info(`Subreddits: ${SUBREDDITS.length}`)
+  logger.info(`postsPerSubreddit: ${POSTS_PER_SUBREDDIT}`)
+  logger.info(`targetLang: ${TARGET_LANG}`)
+  logger.info(`out: ${OUT_PATH}`)
 
   const startTime = Date.now()
 
-  console.log('\nLoading existing cache rows (if any)...')
+  logger.info('\nLoading existing cache rows (if any)...')
   const existingRows = readNdjson(OUT_PATH)
-  console.log(`  Found ${existingRows.length} existing rows`)
+  logger.info(`  Found ${existingRows.length} existing rows`)
 
-  console.log('\nFetching posts from subreddits...')
+  logger.info('\nFetching posts from subreddits...')
   const results = []
   for (let i = 0; i < SUBREDDITS.length; i++) {
     const subreddit = SUBREDDITS[i]
@@ -373,7 +378,7 @@ async function run() {
 run()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('\nCache generation failed:', error)
-    console.error(error.stack)
+    logger.error('Cache generation failed', { error })
+    logger.error(error.stack)
     process.exit(1)
   })

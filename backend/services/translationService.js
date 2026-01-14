@@ -131,15 +131,18 @@ export async function translateText(text, fromLang = 'en', toLang = 'ja') {
         provider: provider || 'fallback'
       }
     } catch (error) {
-      console.error('Translation error:', error.message)
+      logger.error('Translation error', { error });
       return {
+        error: {
+          code: 'TRANSLATION_ERROR',
+          message: error.message
+        },
         original: text,
         translation: text,
         fromLang,
         toLang,
         cached: false,
-        provider: 'fallback',
-        error: error.message
+        provider: 'fallback'
       }
     }
   })
@@ -167,7 +170,7 @@ async function tryLingvaTranslate(text, fromLang, toLang) {
       }
     }
   } catch (error) {
-    console.warn('Lingva Translate failed:', error.message)
+    logger.warn('Lingva Translate failed', { error });
   }
   return null
 }
@@ -297,7 +300,9 @@ async function translateAllWords(text, targetLang = 'ja', sourceLang = 'en') {
  */
 export async function createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
   if (!text || typeof text !== 'string') {
-    throw new Error('Invalid text input')
+    const err = new Error('Invalid text input')
+    err.code = 'INVALID_TEXT_INPUT'
+    throw err
   }
 
   // NOTE: For the cache generator, we translate target-language tokens -> English.
@@ -306,7 +311,9 @@ export async function createMixedLanguageContent(text, userLevel = 5, targetLang
 
   // Validate translation pair (e.g., ja-en)
   if (!isTranslationPairSupported(targetLang, toLang)) {
-    throw new Error(`Translation pair ${targetLang}-${toLang} is not supported`)
+    const err = new Error(`Translation pair ${targetLang}-${toLang} is not supported`)
+    err.code = 'UNSUPPORTED_LANGUAGE_PAIR'
+    throw err
   }
 
   const cleanedText = stripMarkdownFormatting(text)

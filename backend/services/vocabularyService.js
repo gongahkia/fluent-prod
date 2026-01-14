@@ -2,6 +2,7 @@ import nlp from 'compromise'
 import NodeCache from 'node-cache'
 import { translateText } from './translationService.js'
 import { CacheMetrics, startBatchTimer, logPerformance } from '../utils/performanceMonitor.js'
+import logger from '../utils/logger.js'
 import { calculateWordDifficulty } from '../utils/difficultyUtils.js'
 
 // Cache for 1 hour
@@ -38,7 +39,19 @@ export async function detectVocabulary(text) {
   // Start performance timer
   const timer = startBatchTimer('Vocabulary detection', text.length)
 
-  const doc = nlp(text)
+  let doc
+  try {
+    doc = nlp(text)
+  } catch (error) {
+    logger.error('NLP parsing failed', { error })
+    return {
+      error: {
+        code: 'NLP_PARSE_ERROR',
+        message: error.message
+      },
+      vocabulary: []
+    }
+  }
 
   // Extract different word types
   const nouns = doc.nouns().out('array')
