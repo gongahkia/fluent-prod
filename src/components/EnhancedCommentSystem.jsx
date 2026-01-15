@@ -31,6 +31,7 @@ const EnhancedCommentSystem = ({
   userProfile,
   userDictionary,
   onAddWordToDictionary,
+  isGuest,
 }) => {
   const [isAiEnabled, setIsAiEnabled] = useState(() => isWebLlmEnabled())
   const [showAIHelp, setShowAIHelp] = useState(false)
@@ -117,6 +118,10 @@ const EnhancedCommentSystem = ({
   }
 
   const handleShowAIHelp = () => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to use AI help!", icon: "🔒" });
+      return;
+    }
     if (!isAiEnabled) return
     setShowAIHelp(!showAIHelp)
     if (!showAIHelp && aiSuggestions.length === 0) {
@@ -203,6 +208,10 @@ const EnhancedCommentSystem = ({
   }
 
   const handleAddToDictionary = () => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to save words!", icon: "🔒" });
+      return;
+    }
     if (selectedWord) {
       const wordToAdd = {
         japanese: selectedWord.japanese,
@@ -225,6 +234,10 @@ const EnhancedCommentSystem = ({
   }
 
   const handleLikeComment = (commentId) => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to like comments!", icon: "🔒" });
+      return;
+    }
     if (!likedComments.has(commentId)) {
       const findCommentById = (comments, id) => {
         for (const comment of comments) {
@@ -249,6 +262,10 @@ const EnhancedCommentSystem = ({
   }
 
   const handleReplyToComment = (commentId, username) => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to reply!", icon: "🔒" });
+      return;
+    }
     setReplyingTo({ id: commentId, username })
     setCommentText(`@${username} `)
     setTimeout(() => {
@@ -341,6 +358,10 @@ const EnhancedCommentSystem = ({
 
   // Handle file selection for media uploads
   const handleFileSelect = (event) => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to upload media!", icon: "🔒" });
+      return;
+    }
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -384,6 +405,10 @@ const EnhancedCommentSystem = ({
 
   // Handle speech-to-text transcript
   const handleTranscript = (transcript) => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to use speech-to-text!", icon: "🔒" });
+      return;
+    }
     // Append transcript to existing comment text (with space if there's existing text)
     setCommentText((prevText) => {
       if (prevText.trim()) {
@@ -400,6 +425,10 @@ const EnhancedCommentSystem = ({
 
   // Check grammar before posting
   const checkCommentGrammar = async () => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
+      return;
+    }
     if (!isAiEnabled) {
       postCommentDirectly()
       return
@@ -442,6 +471,10 @@ const EnhancedCommentSystem = ({
 
   // Actually post the comment (called after grammar check passes or user confirms)
   const postCommentDirectly = () => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
+      return;
+    }
     setShowGrammarCheck(false)
 
     const newComment = {
@@ -491,6 +524,10 @@ const EnhancedCommentSystem = ({
   }
 
   const handlePostComment = () => {
+    if (isGuest) {
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
+      return;
+    }
     if (commentText.trim() || selectedMedia) {
       // Check grammar before posting if there's text
       if (commentText.trim()) {
