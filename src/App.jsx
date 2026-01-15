@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Search, X } from "lucide-react";
+import { Bell, ChevronDown, Search, X, LogOut } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { Routes, Route } from "react-router-dom";
 import Auth from "./components/Auth";
@@ -831,32 +831,42 @@ function MainApp({
                 )}
               </button>
 
-              <button
-                type="button"
-                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Profile"
-                onClick={() => handleNavigation("profile")}
-                disabled={isGuest}
-              >
-                {userProfile?.profilePictureUrl && !isGuest ? (
-                  <img
-                    src={userProfile.profilePictureUrl}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${isGuest ? 'bg-gray-300 text-gray-500' : 'bg-gray-200 text-gray-700'}`}>
-                    {isGuest ? 'G' : (() => {
-                      const base = userProfile?.name || currentUser?.email || "User"
-                      const parts = String(base).trim().split(/\s+/).filter(Boolean)
-                      const first = parts[0]?.[0] || "U"
-                      const second = parts[1]?.[0] || ""
-                      return (first + second).toUpperCase()
-                    })()}
-                  </div>
-                )}
-              </button>
+              {isGuest ? (
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Exit"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-5 h-5 text-gray-700" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Profile"
+                  onClick={() => handleNavigation("profile")}
+                >
+                  {userProfile?.profilePictureUrl ? (
+                    <img
+                      src={userProfile.profilePictureUrl}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gray-200 text-gray-700">
+                      {(() => {
+                        const base = userProfile?.name || currentUser?.email || "User"
+                        const parts = String(base).trim().split(/\s+/).filter(Boolean)
+                        const first = parts[0]?.[0] || "U"
+                        const second = parts[1]?.[0] || ""
+                        return (first + second).toUpperCase()
+                      })()}
+                    </div>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

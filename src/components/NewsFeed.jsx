@@ -585,7 +585,6 @@ const NewsFeed = ({
   }
 
   const handleWordClick = async (word, isJapanese, context = null, event = null) => {
-    if (isGuest) return;
     // Capture click position if event is provided
     const anchorEl = event?.currentTarget || event?.target || null
     const clickPosition = anchorEl
