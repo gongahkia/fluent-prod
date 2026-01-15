@@ -5,7 +5,7 @@ import { Home, BookOpen, Bookmark } from 'lucide-react'
  * Instagram-style bottom navigation bar
  * Shows: Feed, Saved Words, Saved Posts
  */
-const MobileBottomBar = ({ currentView, onNavigate }) => {
+const MobileBottomBar = ({ currentView, onNavigate, isGuest }) => {
   const navItems = [
     {
       id: 'feed',
@@ -42,26 +42,30 @@ const MobileBottomBar = ({ currentView, onNavigate }) => {
             currentView === item.id ||
             (item.id === 'dictionary' && currentView === 'flashcards') ||
             (item.id === 'feed' && currentView === 'profile')
+          
+          const isDisabled = isGuest && (item.id === 'dictionary' || item.id === 'savedposts');
 
           return (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${
-                isActive ? 'scale-105' : 'scale-100'
-              }`}
+                isActive && !isDisabled ? 'scale-105' : 'scale-100'
+              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
+              disabled={isDisabled}
+              title={isDisabled ? "Sign up to use this feature" : item.label}
             >
               <Icon
                 className={`w-6 h-6 mb-1 transition-all duration-300 ${
-                  isActive ? item.activeColor : item.inactiveColor
+                  isActive && !isDisabled ? item.activeColor : item.inactiveColor
                 }`}
-                strokeWidth={isActive ? 2.5 : 2}
+                strokeWidth={isActive && !isDisabled ? 2.5 : 2}
               />
               <span
                 className={`text-xs font-medium transition-all duration-300 ${
-                  isActive ? item.activeColor : item.inactiveColor
+                  isActive && !isDisabled ? item.activeColor : item.inactiveColor
                 }`}
               >
                 {item.label}

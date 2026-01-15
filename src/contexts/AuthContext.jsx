@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { onAuthStateChange } from '@/services/authService'
+import { onAuthStateChange, signOutUser } from '@/services/authService'
 import { getUserProfile, createUserProfile } from '@/services/firebaseDatabaseService'
 
 const AuthContext = createContext({})
@@ -36,6 +36,20 @@ export const AuthProvider = ({ children }) => {
     })
     setIsGuest(true)
     setLoading(false)
+  }
+
+  const signOut = async () => {
+    if (isGuest) {
+      setCurrentUser(null)
+      setUserProfile(null)
+      setIsGuest(false)
+      // Since we're not reloading the page, explicitly set loading to true and then false 
+      // to ensure all downstream components re-render correctly after guest sign-out.
+      setLoading(true)
+      setTimeout(() => setLoading(false), 0)
+    } else {
+      await signOutUser()
+    }
   }
 
   useEffect(() => {
@@ -176,6 +190,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isGuest,
     signInAsGuest,
+    signOut,
   }
 
   return (

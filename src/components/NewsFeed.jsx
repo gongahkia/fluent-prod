@@ -29,6 +29,7 @@ const NewsFeed = ({
   onAddWordToDictionary,
   userDictionary,
   searchQuery = "",
+  isGuest,
 }) => {
   const { currentUser } = useAuth()
   const [showComments, setShowComments] = useState({})
@@ -122,7 +123,7 @@ const NewsFeed = ({
   // Load saved posts on mount
   useEffect(() => {
     const loadSavedPosts = async () => {
-      if (!currentUser) return
+      if (!currentUser || isGuest) return
 
       try {
         const result = await getSavedPosts(currentUser.id)
@@ -136,7 +137,7 @@ const NewsFeed = ({
     }
 
     loadSavedPosts()
-  }, [currentUser])
+  }, [currentUser, isGuest])
   useEffect(() => {
     if (import.meta.env.VITE_NEWS_MODE === 'cache') {
       // No backend in cache mode
@@ -379,6 +380,10 @@ const NewsFeed = ({
   }
 
   const handleAddToDictionary = () => {
+    if (isGuest) {
+      showFeedback("Sign up to save words!", "🔒");
+      return;
+    }
     if (selectedWord) {
       let wordToAdd
 
@@ -425,6 +430,10 @@ const NewsFeed = ({
   }
 
   const handleSourceSubscribeToggle = (sourceName) => {
+    if (isGuest) {
+      showFeedback("Sign up to subscribe!", "🔒");
+      return;
+    }
     setSubscribedSources((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(sourceName)) {
@@ -458,6 +467,10 @@ const NewsFeed = ({
   }
 
   const toggleComments = (articleId) => {
+    if (isGuest) {
+      showFeedback("Sign up to view comments!", "🔒");
+      return;
+    }
     setShowComments((prev) => ({
       ...prev,
       [articleId]: !prev[articleId],
@@ -465,6 +478,10 @@ const NewsFeed = ({
   }
 
   const handleSavePost = async (article) => {
+    if (isGuest) {
+      showFeedback("Sign up to save posts!", "🔒");
+      return;
+    }
     if (!currentUser) {
       alert('Please sign in to save posts')
       return
@@ -568,6 +585,7 @@ const NewsFeed = ({
   }
 
   const handleWordClick = async (word, isJapanese, context = null, event = null) => {
+    if (isGuest) return;
     // Capture click position if event is provided
     const anchorEl = event?.currentTarget || event?.target || null
     const clickPosition = anchorEl
@@ -812,9 +830,9 @@ const NewsFeed = ({
                       {/* Save button */}
                       <button
                         onClick={() => handleSavePost(article)}
-                        disabled={savingPost === article.id}
+                        disabled={savingPost === article.id || isGuest}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                        title={savedPostIds.has(article.id) ? "Already saved" : "Save post"}
+                        title={isGuest ? "Sign up to save posts" : (savedPostIds.has(article.id) ? "Already saved" : "Save post")}
                       >
                         {savedPostIds.has(article.id) ? (
                           <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
@@ -901,7 +919,9 @@ const NewsFeed = ({
                     <div className="flex items-center space-x-4">
                       <button
                         onClick={() => toggleComments(article.id)}
-                        className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
+                        className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:hover:text-gray-600"
+                        disabled={isGuest}
+                        title={isGuest ? "Sign up to view comments" : "View comments"}
                       >
                         <MessageCircle className="w-4 h-4" />
                         <span>
@@ -935,6 +955,7 @@ const NewsFeed = ({
                       userProfile={userProfile}
                       userDictionary={userDictionary}
                       onAddWordToDictionary={onAddWordToDictionary}
+                      isGuest={isGuest}
                     />
                   </div>
                 )}

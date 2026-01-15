@@ -36,7 +36,7 @@ import {
 import "./App.css";
 
 function App() {
-  const { currentUser, userProfile, setUserProfile } = useAuth();
+  const { currentUser, userProfile, setUserProfile, isGuest, signOut } = useAuth();
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
   const [showPostLoginLoading, setShowPostLoginLoading] = useState(false);
   const [showPostOnboardingLoading, setShowPostOnboardingLoading] = useState(false);
@@ -90,7 +90,7 @@ function App() {
 
   useEffect(() => {
     // Only prompt once per browser, only after login/profile is loaded.
-    if (!currentUser || !userProfile) return
+    if (!currentUser || !userProfile || isGuest) return
     if (hasAskedWebLlmDownload()) return
     if (webLlmOptInInFlightRef.current) return
 
@@ -167,7 +167,7 @@ function App() {
         webLlmOptInInFlightRef.current = false
       }
     })()
-  }, [currentUser, userProfile])
+  }, [currentUser, userProfile, isGuest])
 
   // Apply appearance theme (light/dark/auto) globally
   useEffect(() => {
@@ -287,7 +287,7 @@ function App() {
 
   // Listen to dictionary changes in real-time (language-specific)
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || isGuest) return;
 
     const targetLanguage = 'Japanese'
 
@@ -313,12 +313,12 @@ function App() {
     );
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, isGuest]);
 
   // Ensure target language is Japanese-only.
   // Migrates any legacy profiles that may still have a different target language.
   useEffect(() => {
-    if (!currentUser || !userProfile) return;
+    if (!currentUser || !userProfile || isGuest) return;
     if (userProfile.targetLanguage && userProfile.targetLanguage !== 'Japanese') {
       (async () => {
         try {
@@ -329,12 +329,11 @@ function App() {
         }
       })();
     }
-  }, [currentUser, userProfile, setUserProfile]);
+  }, [currentUser, userProfile, setUserProfile, isGuest]);
 
   // Check if user needs onboarding
   useEffect(() => {
-    // Only run if we have both user and profile loaded
-    if (!currentUser || !userProfile) {
+    if (!currentUser || !userProfile || isGuest) {
       return;
     }
 
@@ -358,9 +357,15 @@ function App() {
       });
       setShowOnboarding(shouldShowOnboarding);
     }
-  }, [currentUser, userProfile, showOnboarding]);
+  }, [currentUser, userProfile, showOnboarding, isGuest]);
 
   const handleAuthComplete = (authData) => {
+    if (authData.isGuest) {
+      setCurrentView("feed");
+      setShowOnboarding(false);
+      return;
+    }
+
     // Auth state is now managed by AuthContext
     // Show loading screen after successful login
     if (authData.isNewUser) {
@@ -372,7 +377,7 @@ function App() {
   };
 
   const handleOnboardingComplete = async (profile) => {
-    if (currentUser) {
+    if (currentUser && !isGuest) {
       // FIXED: Add onboardingCompleted flag to prevent re-triggering
       const profileWithFlag = {
         ...profile,
@@ -417,7 +422,7 @@ function App() {
   };
 
   const handleProfileUpdate = async (updatedProfile) => {
-    if (currentUser) {
+    if (currentUser && !isGuest) {
       // Update user profile in Firebase
       await updateUserProfile(currentUser.id, updatedProfile);
       setUserProfile((prev) => ({ ...prev, ...updatedProfile }));
@@ -426,14 +431,14 @@ function App() {
   };
 
   const handleLogout = async () => {
-    await signOutUser();
+    await signOut();
     setShowOnboarding(false);
     setCurrentView("feed");
     setNotifications([])
   };
 
   const addWordToDictionary = async (wordData) => {
-    if (!currentUser) return;
+    if (!currentUser || isGuest) return;
 
     // Japanese-only
     const targetLang = "Japanese";
@@ -479,7 +484,7 @@ function App() {
   };
 
   const removeWordFromDictionary = async (wordId) => {
-    if (!currentUser) return;
+    if (!currentUser || isGuest) return;
 
     // Remove from Firebase (Firestore)
     // Pass target language to remove from correct collection
@@ -496,6 +501,10 @@ function App() {
   };
 
   const handleNavigation = (view) => {
+    if (isGuest && (view === 'profile' || view === 'settings' || view === 'dictionary' || view === 'savedposts' || view === 'flashcards')) {
+      emitToast({ message: "Sign up to access this feature.", icon: "🔒" });
+      return;
+    }
     // Explore removed; keep any legacy navigation safe.
     setCurrentView(view === 'explore' ? 'feed' : view);
   };
@@ -583,11 +592,320 @@ function App() {
               addWordToDictionary={addWordToDictionary}
               removeWordFromDictionary={removeWordFromDictionary}
               setFirebaseError={setFirebaseError}
+              isGuest={isGuest}
             />
           }
         />
       </Routes>
     </>
+  );
+}
+
+// Extracted main app logic into separate component
+function MainApp({
+  currentUser,
+  userProfile,
+  showOnboarding,
+  currentView,
+  userDictionary,
+  firebaseError,
+  notifications,
+  dismissNotification,
+  lastSeenNotificationsAt,
+  markNotificationsSeen,
+  setCurrentView,
+  handleNavigation,
+  handleLogout,
+  handleAuthComplete,
+  handleOnboardingComplete,
+  handleProfileUpdate,
+  addWordToDictionary,
+  removeWordFromDictionary,
+  setFirebaseError,
+  isGuest,
+}) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isSearchRendered, setIsSearchRendered] = useState(false)
+  const [isSearchVisible, setIsSearchVisible] = useState(false)
+  const [feedSearchQuery, setFeedSearchQuery] = useState("")
+  const searchInputRef = useRef(null)
+
+  // Animate search open/close (keep mounted briefly so the exit animation can play)
+  useEffect(() => {
+    if (!isSearchOpen) return
+    setIsSearchRendered(true)
+    requestAnimationFrame(() => {
+      setIsSearchVisible(true)
+      requestAnimationFrame(() => searchInputRef.current?.focus())
+    })
+  }, [isSearchOpen])
+
+  useEffect(() => {
+    if (isSearchOpen) return
+    if (!isSearchRendered) return
+    setIsSearchVisible(false)
+    const t = setTimeout(() => setIsSearchRendered(false), 200)
+    return () => clearTimeout(t)
+  }, [isSearchOpen, isSearchRendered])
+
+  // Close search when navigating away from the feed
+  useEffect(() => {
+    if (currentView !== 'feed') {
+      setIsSearchOpen(false)
+      setFeedSearchQuery("")
+    }
+  }, [currentView])
+
+  const hasUnreadNotifications =
+    !isGuest &&
+    currentView !== "notifications" &&
+    notifications.some((n) => {
+      const t = n?.createdAt ? Date.parse(n.createdAt) : 0
+      return Number.isFinite(t) && t > lastSeenNotificationsAt
+    })
+
+  useEffect(() => {
+    if (currentView === "notifications") {
+      markNotificationsSeen?.()
+    }
+  }, [currentView, markNotificationsSeen])
+  // Show authentication if not authenticated
+  if (!currentUser) {
+    return <Auth onAuthComplete={handleAuthComplete} />;
+  }
+
+  // Show onboarding for new users
+  if (showOnboarding && !isGuest) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // Show profile page (simplified public view with consistent navigation)
+  if (currentView === "profile") {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <PublicProfile
+          userProfile={userProfile}
+          onBack={() => handleNavigation("feed")}
+          onNavigateToSettings={() => handleNavigation("settings")}
+          isGuest={isGuest}
+        />
+
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} isGuest={isGuest} />
+
+        {/* Auth Blocked Warning */}
+        {firebaseError && (
+          <AuthBlockedWarning
+            errorInfo={firebaseError}
+            onDismiss={() => setFirebaseError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Show notifications feed (in-memory, dismissible)
+  if (currentView === "notifications") {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <Notifications
+          notifications={notifications}
+          onDismiss={dismissNotification}
+          onBack={() => handleNavigation("feed")}
+        />
+
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} isGuest={isGuest} />
+
+        {/* Auth Blocked Warning */}
+        {firebaseError && (
+          <AuthBlockedWarning
+            errorInfo={firebaseError}
+            onDismiss={() => setFirebaseError(null)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Show settings page (account configuration with consistent navigation)
+  if (currentView === "settings") {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <Settings
+          userProfile={userProfile}
+          onProfileUpdate={handleProfileUpdate}
+          onBack={() => handleNavigation("feed")}
+          onLogout={handleLogout}
+        />
+
+        <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} isGuest={isGuest} />
+
+        {/* Auth Blocked Warning */}
+        {firebaseError && (
+          <AuthBlockedWarning
+            errorInfo={firebaseError}
+            onDismiss={() => setFirebaseError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16">
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8">
+                  <FluentLogo
+                    variant="short"
+                    className="w-full h-full"
+                    alt="Fluent"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full border border-orange-300">
+                    BETA
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 flex justify-center px-4">
+              {currentView === 'feed' && isSearchRendered && (
+                <div
+                  className={
+                    "flex items-center gap-2 w-full max-w-3xl origin-center transition-all duration-200 ease-out " +
+                    (isSearchVisible ? "opacity-100 scale-100" : "opacity-0 scale-95")
+                  }
+                >
+                  <input
+                    ref={searchInputRef}
+                    value={feedSearchQuery}
+                    onChange={(e) => setFeedSearchQuery(e.target.value)}
+                    placeholder="Search posts, @username, r/subreddit"
+                    className="h-9 flex-1 rounded-md border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus-visible:border-orange-300 focus-visible:ring-2 focus-visible:ring-orange-100"
+                  />
+                  <button
+                    type="button"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Close search"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      setFeedSearchQuery("")
+                    }}
+                  >
+                    <X className="w-5 h-5 text-gray-700" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              {currentView === 'feed' && !isSearchRendered && (
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Search"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="w-5 h-5 text-gray-700" />
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
+                aria-label="Notifications"
+                onClick={() => handleNavigation("notifications")}
+                disabled={isGuest}
+              >
+                <Bell className={`w-5 h-5 ${isGuest ? 'text-gray-400' : 'text-gray-700'}`} />
+                {hasUnreadNotifications && (
+                  <span
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Profile"
+                onClick={() => handleNavigation("profile")}
+                disabled={isGuest}
+              >
+                {userProfile?.profilePictureUrl && !isGuest ? (
+                  <img
+                    src={userProfile.profilePictureUrl}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${isGuest ? 'bg-gray-300 text-gray-500' : 'bg-gray-200 text-gray-700'}`}>
+                    {isGuest ? 'G' : (() => {
+                      const base = userProfile?.name || currentUser?.email || "User"
+                      const parts = String(base).trim().split(/\s+/).filter(Boolean)
+                      const first = parts[0]?.[0] || "U"
+                      const second = parts[1]?.[0] || ""
+                      return (first + second).toUpperCase()
+                    })()}
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main
+        className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))]"
+      >
+        {/* Render different views based on currentView */}
+        {currentView === "feed" && (
+          <NewsFeed
+            selectedCountry="Japan"
+            userProfile={userProfile}
+            onAddWordToDictionary={addWordToDictionary}
+            userDictionary={userDictionary}
+            searchQuery={feedSearchQuery}
+            isGuest={isGuest}
+          />
+        )}
+
+        {(currentView === "dictionary" || currentView === "flashcards") && (
+          <DictionaryWithPractice
+            userDictionary={userDictionary}
+            onRemoveWord={removeWordFromDictionary}
+            userProfile={userProfile}
+          />
+        )}
+
+        {currentView === "savedposts" && (
+          <SavedPosts
+            userProfile={userProfile}
+            onAddWordToDictionary={addWordToDictionary}
+            userDictionary={userDictionary}
+            isGuest={isGuest}
+          />
+        )}
+      </main>
+
+      <MobileBottomBar currentView={currentView} onNavigate={handleNavigation} isGuest={isGuest} />
+
+      {/* Firebase Blocked Warning */}
+      {firebaseError && (
+        <AuthBlockedWarning
+          errorInfo={firebaseError}
+          onDismiss={() => setFirebaseError(null)}
+        />
+      )}
+    </div>
   );
 }
 
