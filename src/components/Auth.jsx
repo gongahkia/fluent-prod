@@ -3,6 +3,8 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { registerWithEmail, signInWithEmail, signInWithGoogle } from "@/services/authService"
 import { FluentLogo } from "@/components/ui/FluentLogo"
+import GuestWarning from "./GuestWarning"
+import { useAuth } from "@/contexts/AuthContext"
 
 const Auth = ({ onAuthComplete }) => {
   const [isLogin, setIsLogin] = useState(true)
@@ -22,6 +24,8 @@ const Auth = ({ onAuthComplete }) => {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false)
   const [confirmationEmail, setConfirmationEmail] = useState("")
+  const [showGuestWarning, setShowGuestWarning] = useState(false)
+  const { signInAsGuest } = useAuth()
 
   const handleInputChange = (e) => {
     setFormData({
@@ -30,6 +34,11 @@ const Auth = ({ onAuthComplete }) => {
     })
     // Clear error when user starts typing
     if (error) setError("")
+  }
+
+  const handleGuestContinue = () => {
+    signInAsGuest()
+    onAuthComplete({ isGuest: true })
   }
 
   const handleSubmit = async (e) => {
@@ -359,7 +368,7 @@ const Auth = ({ onAuthComplete }) => {
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 grid gap-3">
               <button
                 type="button"
                 disabled
@@ -385,6 +394,14 @@ const Auth = ({ onAuthComplete }) => {
                   />
                 </svg>
                 <span className="ml-2">Google (Soon)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGuestWarning(true)}
+                className="w-full inline-flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <User className="w-5 h-5 mr-2 text-gray-500" />
+                Continue as Guest
               </button>
             </div>
           </div>
@@ -428,6 +445,12 @@ const Auth = ({ onAuthComplete }) => {
           </div>
         )}
       </div>
+
+      <GuestWarning
+        open={showGuestWarning}
+        onContinue={handleGuestContinue}
+        onCancel={() => setShowGuestWarning(false)}
+      />
 
       {/* Terms of Service Modal */}
       {showTOS && (

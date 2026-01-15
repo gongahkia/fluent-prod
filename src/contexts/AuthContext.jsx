@@ -16,9 +16,31 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isGuest, setIsGuest] = useState(false)
   const loadedUserIdRef = useRef(null)
 
+  const signInAsGuest = () => {
+    const guestUser = {
+      id: "guest",
+      uid: "guest",
+      name: "Guest",
+      isGuest: true,
+    }
+    setCurrentUser(guestUser)
+    setUserProfile({
+      name: "Guest",
+      isGuest: true,
+      settings: {
+        appearance: { theme: localStorage.getItem("fluent:theme") || "light" },
+      },
+    })
+    setIsGuest(true)
+    setLoading(false)
+  }
+
   useEffect(() => {
+    if (isGuest) return
+
     // Listen to authentication state changes
     const unsubscribe = onAuthStateChange(async (user) => {
       // Firebase uses user.uid; the existing app uses currentUser.id in many places.
@@ -145,13 +167,15 @@ export const AuthProvider = ({ children }) => {
     })
 
     return unsubscribe
-  }, [])
+  }, [isGuest])
 
   const value = {
     currentUser,
     userProfile,
     setUserProfile,
-    loading
+    loading,
+    isGuest,
+    signInAsGuest,
   }
 
   return (
