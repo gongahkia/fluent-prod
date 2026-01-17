@@ -2,10 +2,11 @@
 
 A language learning platform that helps you learn Japanese through real-world content from Reddit, news sources, and social media.
 
-## Usage
+## Quickstart
 
 ```console
-$ ./dev.sh
+$ pnpm install
+$ pnpm run dev
 ```
 
 ## Cache workflow (GitHub Actions)
