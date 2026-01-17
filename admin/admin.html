@@ -6,137 +6,179 @@
     <title>Fluent Admin</title>
     <style>
         :root {
-            --bg-color: #f8f9fa;
-            --text-color: #212529;
-            --container-bg: #ffffff;
+            --radius: 0.625rem;
+            --background: oklch(0.98 0.01 40);
+            --foreground: oklch(0.25 0.04 30);
+            --card: oklch(1 0 0);
+            --card-foreground: oklch(0.25 0.04 30);
+            --popover: oklch(1 0 0);
+            --popover-foreground: oklch(0.25 0.04 30);
+            --primary: oklch(0.55 0.18 35);
+            --primary-foreground: oklch(0.99 0 0);
+            --secondary: oklch(0.68 0.12 45);
+            --secondary-foreground: oklch(0.99 0 0);
+            --muted: oklch(0.95 0.01 40);
+            --muted-foreground: oklch(0.5 0.03 35);
+            --accent: oklch(0.65 0.16 38);
+            --accent-foreground: oklch(0.99 0 0);
+            --destructive: oklch(0.577 0.245 27.325);
+            --border: oklch(0.88 0.02 40);
+            --input: oklch(0.88 0.02 40);
+            --ring: oklch(0.6 0.18 35);
+
+            --bg-color: var(--background);
+            --text-color: var(--foreground);
+            --container-bg: var(--card);
             --container-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            --input-bg: #ffffff;
-            --input-border: #ced4da;
-            --table-border: #dee2e6;
-            --header-bg: #e9ecef;
-            --focus-outline: #007bff;
-            --focus-bg: #e9f4ff;
-            --button-bg: #007bff;
-            --button-text: #ffffff;
-            --button-hover-bg: #0056b3;
-            --button-secondary-bg: #6c757d;
-            --text-muted: #6c757d;
+            --input-bg: var(--input);
+            --input-border: var(--border);
+            --table-border: var(--border);
+            --header-bg: var(--muted);
+            --focus-outline: var(--ring);
+            --button-bg: var(--primary);
+            --button-text: var(--primary-foreground);
+            --button-hover-bg: oklch(0.5 0.18 35);
+            --button-secondary-bg: var(--secondary);
+            --text-muted: var(--muted-foreground);
         }
 
-        body[data-theme="dark"] {
-            --bg-color: #121212;
-            --text-color: #e0e0e0;
-            --container-bg: #1e1e1e;
-            --container-shadow: 0 2px 10px rgba(0,0,0,0.7);
-            --input-bg: #2c2c2c;
-            --input-border: #444444;
-            --table-border: #343a40;
-            --header-bg: #2c2c2c;
-            --focus-outline: #0d6efd;
-            --focus-bg: #2a3b5e;
-            --button-bg: #0d6efd;
-            --button-text: #ffffff;
-            --button-hover-bg: #0b5ed7;
-            --button-secondary-bg: #495057;
-            --text-muted: #adb5bd;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluent Admin</title>
+    <style>
+        :root {
+            --radius: 0.625rem;
+            --background: oklch(0.98 0.01 40);
+            --foreground: oklch(0.25 0.04 30);
+            --card: oklch(1 0 0);
+            --card-foreground: oklch(0.25 0.04 30);
+            --popover: oklch(1 0 0);
+            --popover-foreground: oklch(0.25 0.04 30);
+            --primary: oklch(0.55 0.18 35);
+            --primary-foreground: oklch(0.99 0 0);
+            --secondary: oklch(0.68 0.12 45);
+            --secondary-foreground: oklch(0.99 0 0);
+            --muted: oklch(0.95 0.01 40);
+            --muted-foreground: oklch(0.5 0.03 35);
+            --accent: oklch(0.65 0.16 38);
+            --accent-foreground: oklch(0.99 0 0);
+            --destructive: oklch(0.577 0.245 27.325);
+            --border: oklch(0.88 0.02 40);
+            --input: oklch(0.88 0.02 40);
+            --ring: oklch(0.6 0.18 35);
+
+            --bg-color: var(--background);
+            --text-color: var(--foreground);
+            --container-bg: var(--card);
+            --container-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --input-bg: var(--input);
+            --input-border: var(--border);
+            --table-border: var(--border);
+            --header-bg: var(--muted);
+            --focus-outline: var(--ring);
+            --button-bg: var(--primary);
+            --button-text: var(--primary-foreground);
+            --button-hover-bg: oklch(0.5 0.18 35);
+            --button-secondary-bg: var(--secondary);
+            --text-muted: var(--muted-foreground);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 2rem;
             background-color: var(--bg-color);
             color: var(--text-color);
-            transition: background-color 0.2s, color 0.2s;
         }
         .container {
             max-width: 95%;
             margin: auto;
-            background: var(--container-bg);
             padding: 2rem;
-            border-radius: 8px;
-            box-shadow: var(--container-shadow);
-            transition: background-color 0.2s;
         }
-        h1 {
-            text-align: center;
-            margin-bottom: 0.5rem;
+        header {
+            background: var(--card);
+            padding: 1rem 2rem;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
-        h1 small {
-            font-size: 1.1rem;
-            font-weight: normal;
-            color: var(--text-muted);
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
         }
-        h1 #recordCount {
+        header h1 small {
             font-size: 1rem;
             font-weight: normal;
             color: var(--text-muted);
         }
-        .top-controls {
+        .header-controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
             gap: 1rem;
+            align-items: center;
         }
-        .theme-controls button {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
+        .main-content {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .main-controls {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            align-items: center;
+            margin-bottom: 1.5rem;
         }
         #searchInput {
-            flex-grow: 1;
+            width: 100%;
             padding: 0.75rem;
             border: 1px solid var(--input-border);
             background-color: var(--input-bg);
             color: var(--text-color);
-            border-radius: 4px;
+            border-radius: var(--radius-md);
             font-size: 1rem;
         }
         button {
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             background-color: var(--button-bg);
             color: var(--button-text);
             transition: background-color 0.2s;
+            font-weight: 500;
         }
         button:hover {
             background-color: var(--button-hover-bg);
         }
         button.secondary {
-            background-color: var(--button-secondary-bg);
+            background-color: var(--secondary);
+            color: var(--secondary-foreground);
         }
         button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
+            opacity: 0.7;
         }
-        #columnSelectorContainer.hidden #columnSelector {
-            display: none;
+        #columnSelectorContainer {
+            margin-bottom: 1.5rem;
+            background-color: var(--muted);
+            padding: 1rem;
+            border-radius: var(--radius);
+            display: none; /* Hidden by default */
         }
         #columnSelector {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem 1rem;
-            padding: 1rem;
-            background-color: var(--header-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            margin-bottom: 1.5rem;
+            gap: 0.5rem 1.5rem;
         }
         #columnSelector label {
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.4rem;
         }
         .table-wrapper {
             overflow-x: auto;
@@ -144,11 +186,10 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
         }
         th, td {
             border: 1px solid var(--table-border);
-            padding: 0.75rem;
+            padding: 0.85rem 1rem;
             text-align: left;
             vertical-align: top;
             white-space: nowrap;
@@ -157,50 +198,150 @@
             background-color: var(--header-bg);
             position: sticky;
             top: 0;
-            z-index: 1;
+            z-index: 10;
         }
-        td {
-            background-color: var(--container-bg);
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s;
         }
-        td[contenteditable="true"]:focus {
-            outline: 2px solid var(--focus-outline);
-            background-color: var(--focus-bg);
+        tbody tr:hover {
+            background-color: var(--muted);
         }
         .status {
             margin-top: 1rem;
             color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+        .modal-content {
+            background-color: var(--card);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        .modal-body .form-group {
+            margin-bottom: 1rem;
+        }
+        .modal-body label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--muted-foreground);
+        }
+        .modal-body input,
+        .modal-body textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .modal-body textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            margin-top: 1.5rem;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Fluent Admin <small>(news-cache.txt editor)</small> <span id="recordCount"></span></h1>
-        
-        <div class="top-controls">
-            <div class="theme-controls">
-                <button data-theme="light" class="secondary">Light</button>
-                <button data-theme="dark" class="secondary">Dark</button>
-            </div>
+    <header>
+        <h1>Fluent Admin <small id="recordCount"></small></h1>
+        <div class="header-controls">
             <button id="toggleColumnsButton" class="secondary">Toggle Columns</button>
+            <button id="saveButton">Save to Server</button>
         </div>
+    </header>
 
-        <div id="columnSelectorContainer" class="hidden">
-            <div id="columnSelector"></div>
-        </div>
+    <div class="container">
+        <div class="main-content">
+            <div class="main-controls">
+                <input type="text" id="searchInput" placeholder="Search across all fields...">
+            </div>
+            
+            <div id="columnSelectorContainer">
+                <div id="columnSelector"></div>
+            </div>
 
-        <div class="main-controls">
-            <input type="text" id="searchInput" placeholder="Search across all fields...">
-            <button id="saveButton">Save Changes</button>
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="status" class="status">Loading data...</div>
         </div>
-        
-        <div class="table-wrapper">
-            <table id="dataTable">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Record</h2>
+                <button id="closeEditModal" class="secondary">&times;</button>
+            </div>
+            <div id="editModalBody" class="modal-body"></div>
+            <div class="modal-footer">
+                <button id="cancelEdit" class="secondary">Cancel</button>
+                <button id="saveEdit">Save Changes</button>
+            </div>
         </div>
-        <div id="status" class="status">Loading data...</div>
+    </div>
+
+    <!-- Confirm Save Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirm Save</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to save all changes to the server?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelConfirm" class="secondary">Cancel</button>
+                <button id="confirmSave">Yes, Save</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -213,28 +354,26 @@
         const columnSelectorContainer = document.getElementById('columnSelectorContainer');
         const columnSelector = document.getElementById('columnSelector');
         const toggleColumnsButton = document.getElementById('toggleColumnsButton');
-        const themeControls = document.querySelector('.theme-controls');
+
+        // Modals
+        const editModal = document.getElementById('editModal');
+        const editModalBody = document.getElementById('editModalBody');
+        const closeEditModal = document.getElementById('closeEditModal');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const saveEdit = document.getElementById('saveEdit');
+
+        const confirmModal = document.getElementById('confirmModal');
+        const cancelConfirm = document.getElementById('cancelConfirm');
+        const confirmSave = document.getElementById('confirmSave');
 
         let data = [];
         let allHeaders = [];
         let visibleHeaders = [];
-
-        // --- Theme Handling ---
-        function applyTheme(theme) {
-            document.body.dataset.theme = theme;
-            localStorage.setItem('adminTheme', theme);
-        }
-
-        themeControls.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                applyTheme(e.target.dataset.theme);
-            }
-        });
+        let currentRowIndex = -1;
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('adminTheme') || 'light';
-            applyTheme(savedTheme);
+            document.body.classList.remove('dark'); // Ensure light mode
             loadData();
         });
 
@@ -249,12 +388,17 @@
                 if (data.length > 0) {
                     const headerSet = new Set();
                     data.forEach(row => Object.keys(row).forEach(key => headerSet.add(key)));
-                    allHeaders = Array.from(headerSet);
-                    visibleHeaders = allHeaders.slice(0, 10); // Show first 10 columns by default
+                    allHeaders = Array.from(headerSet).sort();
+                    const storedHeaders = localStorage.getItem('visibleHeaders');
+                    if (storedHeaders) {
+                        visibleHeaders = JSON.parse(storedHeaders);
+                    } else {
+                        visibleHeaders = allHeaders.slice(0, 10);
+                    }
 
                     populateColumnSelector();
                     renderTable();
-                    statusDiv.textContent = `Loaded ${data.length} records.`;
+                    statusDiv.textContent = `Loaded ${data.length} records. Click a row to edit.`;
                     recordCountSpan.textContent = `(${data.length} records)`;
                 } else {
                     statusDiv.textContent = 'Cache is empty.';
@@ -276,6 +420,7 @@
 
             columnSelector.addEventListener('change', () => {
                 visibleHeaders = Array.from(columnSelector.querySelectorAll('input:checked')).map(input => input.value);
+                localStorage.setItem('visibleHeaders', JSON.stringify(visibleHeaders));
                 renderTable();
             });
         }
@@ -283,49 +428,50 @@
         function renderTable() {
             tableHead.innerHTML = `<tr>${visibleHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
-            tableBody.innerHTML = data.map((row, rowIndex) => `
-                <tr data-row-index="${rowIndex}">
-                    ${visibleHeaders.map(header => `
-                        <td contenteditable="true" data-key="${header}">
-                            ${row[header] !== undefined && row[header] !== null ? (typeof row[header] === 'object' ? JSON.stringify(row[header]) : row[header]) : ''}
-                        </td>
-                    `).join('')}
-                </tr>
-            `).join('');
+            const filteredData = getFilteredData();
+            tableBody.innerHTML = filteredData.map(rowInfo => {
+                const { originalIndex, row } = rowInfo;
+                return `
+                    <tr data-row-index="${originalIndex}">
+                        ${visibleHeaders.map(header => {
+                            const value = row[header];
+                            let displayValue = '';
+                            if (value !== undefined && value !== null) {
+                                displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+                            }
+                            return `<td>${displayValue}</td>`;
+                        }).join('')}
+                    </tr>
+                `
+            }).join('');
         }
 
         // --- Event Listeners ---
         toggleColumnsButton.addEventListener('click', () => {
-            columnSelectorContainer.classList.toggle('hidden');
+            columnSelectorContainer.style.display = columnSelectorContainer.style.display === 'block' ? 'none' : 'block';
         });
 
-        tableBody.addEventListener('input', (e) => {
-            const target = e.target;
-            if (target.tagName === 'TD') {
-                const rowIndex = target.parentElement.dataset.rowIndex;
-                const key = target.dataset.key;
-                let value = target.innerText;
-
-                try {
-                    if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
-                        value = JSON.parse(value);
-                    } else if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) {
-                        value = parseFloat(value);
-                    }
-                } catch (err) { /* Keep as string if parsing fails */ }
-                
-                data[rowIndex][key] = value;
+        tableBody.addEventListener('click', (e) => {
+            const rowEl = e.target.closest('tr');
+            if (rowEl) {
+                currentRowIndex = parseInt(rowEl.dataset.rowIndex, 10);
+                openEditModal(currentRowIndex);
             }
         });
 
-        searchInput.addEventListener('keyup', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            Array.from(tableBody.rows).forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
-            });
+        searchInput.addEventListener('input', renderTable);
+
+        // --- Main Save Logic ---
+        saveButton.addEventListener('click', () => {
+            confirmModal.style.display = 'flex';
         });
 
-        saveButton.addEventListener('click', async () => {
+        cancelConfirm.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+        });
+
+        confirmSave.addEventListener('click', async () => {
+            confirmModal.style.display = 'none';
             if (data.length === 0) {
                 alert("No data to save.");
                 return;
@@ -353,7 +499,93 @@
             }
         });
 
-    </script>
+        // --- Edit Modal Logic ---
+        function openEditModal(rowIndex) {
+            const rowData = data[rowIndex];
+            editModalBody.innerHTML = ''; // Clear previous content
 
+            allHeaders.forEach(key => {
+                const value = rowData[key];
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.textContent = key;
+                formGroup.appendChild(label);
+
+                let input;
+                const stringValue = (value !== undefined && value !== null) 
+                    ? (typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value))
+                    : '';
+
+                if (stringValue.length > 100 || stringValue.includes('\n')) {
+                    input = document.createElement('textarea');
+                    input.rows = 5;
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                }
+                
+                input.name = key;
+                input.value = stringValue;
+                formGroup.appendChild(input);
+                editModalBody.appendChild(formGroup);
+            });
+
+            editModal.style.display = 'flex';
+        }
+
+        function closeEditModalHandler() {
+            editModal.style.display = 'none';
+        }
+
+        closeEditModal.addEventListener('click', closeEditModalHandler);
+        cancelEdit.addEventListener('click', closeEditModalHandler);
+
+        saveEdit.addEventListener('click', () => {
+            if (currentRowIndex === -1) return;
+
+            const inputs = editModalBody.querySelectorAll('input, textarea');
+            const updatedRow = { ...data[currentRowIndex] };
+
+            inputs.forEach(input => {
+                const key = input.name;
+                let value = input.value;
+                try {
+                    // Try to parse back to JSON/number if it looks like it
+                    if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
+                        value = JSON.parse(value);
+                    } else if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) {
+                        const originalType = typeof data[currentRowIndex][key];
+                        if (originalType === 'number') {
+                           value = parseFloat(value);
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Could not parse '${key}' value back to object/number. Saving as string.`, e);
+                }
+                updatedRow[key] = value;
+            });
+
+            data[currentRowIndex] = updatedRow;
+            renderTable();
+            closeEditModalHandler();
+        });
+        
+        // --- Utility Functions ---
+        function getFilteredData() {
+            const searchTerm = searchInput.value.toLowerCase();
+            if (!searchTerm) {
+                return data.map((row, index) => ({ row, originalIndex: index }));
+            }
+            return data
+                .map((row, index) => ({ row, originalIndex: index }))
+                .filter(item => {
+                    return Object.values(item.row).some(value => 
+                        String(value).toLowerCase().includes(searchTerm)
+                    );
+                });
+        }
+    </script>
 </body>
 </html>
