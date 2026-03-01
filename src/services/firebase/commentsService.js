@@ -8,6 +8,7 @@ import {
   getDoc,
   getDocs,
   nowIso,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -352,4 +353,40 @@ export async function listCommentsByPost({
       errorCode: mapped.errorCode,
     }
   }
+}
+
+export function onCommentsChanged(postHash, callback) {
+  if (!postHash || typeof callback !== "function") {
+    return () => undefined
+  }
+
+  const safePostHash = sanitizeFirestoreId(postHash, "post")
+  const q = query(
+    commentsCol(),
+    where("postHash", "==", safePostHash),
+    orderBy("createdAt", "desc")
+  )
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const comments = snap.docs.map((d) => d.data())
+      callback(comments)
+    },
+    (error) => {
+      if (
+        error?.code === "failed-precondition" &&
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("requires an index")
+      ) {
+        console.warn(
+          "Firestore index missing for comments listener; emitting empty list until index is created."
+        )
+        callback([])
+        return
+      }
+      console.error("Comments snapshot listener error:", error)
+    }
+  )
 }
