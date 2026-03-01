@@ -1,4 +1,5 @@
 import { z } from "zod"
+import crypto from "node:crypto"
 
 function json(res, status, payload) {
   res.statusCode = status
@@ -7,6 +8,9 @@ function json(res, status, payload) {
 }
 
 const PROVIDER_TIMEOUT_MS = 3000
+const CACHE_TTL_MS = Number.parseInt(process.env.TRANSLATE_CACHE_TTL_MS || "600000", 10)
+const CACHE_MAX_ENTRIES = Number.parseInt(process.env.TRANSLATE_CACHE_MAX_ENTRIES || "500", 10)
+const translationCache = new Map()
 const requestSchema = z.object({
   text: z.string().trim().min(1),
   fromLang: z.string().trim().min(2).max(12).optional().default("en"),
@@ -32,6 +36,41 @@ function sanitizeTranslation(rawText) {
   text = text.replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1")
 
   return text.normalize("NFKC").trim()
+}
+
+function createCacheKey(text, fromLang, toLang) {
+  return crypto.createHash("sha256").update(`${text}|${fromLang}|${toLang}`).digest("hex")
+}
+
+function readFromCache(key) {
+  const cached = translationCache.get(key)
+  if (!cached) return null
+
+  if (Date.now() >= cached.expiresAt) {
+    translationCache.delete(key)
+    return null
+  }
+
+  // Touch entry to maintain LRU ordering.
+  translationCache.delete(key)
+  translationCache.set(key, cached)
+  return cached
+}
+
+function writeToCache(key, value) {
+  if (translationCache.has(key)) {
+    translationCache.delete(key)
+  }
+
+  translationCache.set(key, {
+    ...value,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  })
+
+  while (translationCache.size > CACHE_MAX_ENTRIES) {
+    const oldestKey = translationCache.keys().next().value
+    translationCache.delete(oldestKey)
+  }
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -114,6 +153,15 @@ export default async function handler(req, res) {
     })
   }
   const { text, fromLang, toLang } = parsedRequest.data
+  const cacheKey = createCacheKey(text, fromLang, toLang)
+
+  const cached = readFromCache(cacheKey)
+  if (cached) {
+    return json(res, 200, responseSchema.parse({
+      translation: cached.translation,
+      provider: cached.provider,
+    }))
+  }
 
   try {
     const providers = [
@@ -133,6 +181,7 @@ export default async function handler(req, res) {
             provider: provider.id,
           })
 
+          writeToCache(cacheKey, parsedResponse)
           return json(res, 200, parsedResponse)
         }
       } catch (error) {
