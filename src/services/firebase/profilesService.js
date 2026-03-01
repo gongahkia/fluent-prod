@@ -9,6 +9,7 @@ import {
   userDoc,
   withFirestoreReadRetry,
   withFirestoreTiming,
+  withFirestoreWrite,
 } from "./shared"
 
 export const createUserProfile = async (userId, profileData) => {
@@ -25,7 +26,7 @@ export const createUserProfile = async (userId, profileData) => {
       emailLower: (profileData?.email || "").toLowerCase(),
     }
 
-    await withFirestoreTiming("set:userProfile", () =>
+    await withFirestoreWrite("set:userProfile", () =>
       setDoc(userDoc(safeUserId), payload, { merge: true })
     )
     return { success: true, data: payload }
@@ -76,7 +77,7 @@ export const updateUserProfile = async (userId, updates) => {
     if (typeof updates?.email === "string")
       patch.emailLower = updates.email.toLowerCase()
 
-    await withFirestoreTiming("set:userProfilePatch", () =>
+    await withFirestoreWrite("set:userProfilePatch", () =>
       setDoc(userDoc(userId), patch, { merge: true })
     )
     return { success: true }
@@ -93,7 +94,7 @@ export const updateUserProfile = async (userId, updates) => {
 
 export const updateUserCredentials = async (userId, encryptedData) => {
   try {
-    await withFirestoreTiming("set:userCredentials", () =>
+    await withFirestoreWrite("set:userCredentials", () =>
       setDoc(
         credentialsDoc(userId),
         {

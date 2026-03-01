@@ -14,6 +14,7 @@ import {
   setDoc,
   updateDoc,
   withFirestoreReadRetry,
+  withFirestoreWrite,
 } from "./shared"
 
 export const createCollection = async (userId, collectionData) => {
@@ -37,9 +38,11 @@ export const createCollection = async (userId, collectionData) => {
       updatedAtTs: serverTimestamp(),
     }
 
-    await setDoc(doc(collectionsCol(userId), collectionId), payload, {
-      merge: true,
-    })
+    await withFirestoreWrite("set:collection", () =>
+      setDoc(doc(collectionsCol(userId), collectionId), payload, {
+        merge: true,
+      })
+    )
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating collection:", error)
@@ -73,14 +76,16 @@ export const getCollections = async (userId) => {
 export const updateCollection = async (userId, collectionId, updates) => {
   try {
     const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
-    await setDoc(
-      doc(collectionsCol(userId), safeCollectionId),
-      {
-        ...updates,
-        updatedAt: nowIso(),
-        updatedAtTs: serverTimestamp(),
-      },
-      { merge: true }
+    await withFirestoreWrite("set:collectionPatch", () =>
+      setDoc(
+        doc(collectionsCol(userId), safeCollectionId),
+        {
+          ...updates,
+          updatedAt: nowIso(),
+          updatedAtTs: serverTimestamp(),
+        },
+        { merge: true }
+      )
     )
     return { success: true }
   } catch (error) {
@@ -97,7 +102,9 @@ export const updateCollection = async (userId, collectionId, updates) => {
 export const deleteCollection = async (userId, collectionId) => {
   try {
     const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
-    await deleteDoc(doc(collectionsCol(userId), safeCollectionId))
+    await withFirestoreWrite("delete:collection", () =>
+      deleteDoc(doc(collectionsCol(userId), safeCollectionId))
+    )
     return { success: true }
   } catch (error) {
     console.error("Error deleting collection:", error)
@@ -114,11 +121,13 @@ export const addWordToCollection = async (userId, collectionId, wordId) => {
   try {
     const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
     const safeWordId = sanitizeFirestoreId(wordId, "word")
-    await updateDoc(doc(collectionsCol(userId), safeCollectionId), {
-      wordIds: arrayUnion(safeWordId),
-      updatedAt: nowIso(),
-      updatedAtTs: serverTimestamp(),
-    })
+    await withFirestoreWrite("update:collectionAddWord", () =>
+      updateDoc(doc(collectionsCol(userId), safeCollectionId), {
+        wordIds: arrayUnion(safeWordId),
+        updatedAt: nowIso(),
+        updatedAtTs: serverTimestamp(),
+      })
+    )
     return { success: true }
   } catch (error) {
     console.error("Error adding word to collection:", error)
@@ -139,11 +148,13 @@ export const removeWordFromCollection = async (
   try {
     const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
     const safeWordId = sanitizeFirestoreId(wordId, "word")
-    await updateDoc(doc(collectionsCol(userId), safeCollectionId), {
-      wordIds: arrayRemove(safeWordId),
-      updatedAt: nowIso(),
-      updatedAtTs: serverTimestamp(),
-    })
+    await withFirestoreWrite("update:collectionRemoveWord", () =>
+      updateDoc(doc(collectionsCol(userId), safeCollectionId), {
+        wordIds: arrayRemove(safeWordId),
+        updatedAt: nowIso(),
+        updatedAtTs: serverTimestamp(),
+      })
+    )
     return { success: true }
   } catch (error) {
     console.error("Error removing word from collection:", error)

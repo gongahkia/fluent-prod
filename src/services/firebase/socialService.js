@@ -13,6 +13,7 @@ import {
   query,
   userDoc,
   withFirestoreReadRetry,
+  withFirestoreWrite,
   writeBatch,
 } from "./shared"
 
@@ -62,7 +63,7 @@ export const followUser = async (userId, targetUserId) => {
       },
       { merge: true }
     )
-    await batch.commit()
+    await withFirestoreWrite("batch:followUser", () => batch.commit())
 
     return { success: true }
   } catch (error) {
@@ -83,7 +84,7 @@ export const unfollowUser = async (userId, targetUserId) => {
     const batch = writeBatch(firestore)
     batch.delete(doc(followingCol(safeUserId), safeTargetUserId))
     batch.delete(doc(followersCol(safeTargetUserId), safeUserId))
-    await batch.commit()
+    await withFirestoreWrite("batch:unfollowUser", () => batch.commit())
 
     return { success: true }
   } catch (error) {
@@ -160,7 +161,7 @@ export const removeFollower = async (userId, followerId) => {
     const batch = writeBatch(firestore)
     batch.delete(doc(followersCol(safeUserId), safeFollowerId))
     batch.delete(doc(followingCol(safeFollowerId), safeUserId))
-    await batch.commit()
+    await withFirestoreWrite("batch:removeFollower", () => batch.commit())
 
     return { success: true }
   } catch (error) {
@@ -194,7 +195,7 @@ export const blockUser = async (userId, targetUserId) => {
     batch.delete(doc(followingCol(safeTargetUserId), safeUserId))
     batch.delete(doc(followersCol(safeTargetUserId), safeUserId))
 
-    await batch.commit()
+    await withFirestoreWrite("batch:blockUser", () => batch.commit())
 
     return { success: true }
   } catch (error) {

@@ -10,21 +10,38 @@ import {
   followingCol,
   savedPostsCol,
   userDoc,
+  withFirestoreWrite,
 } from "./shared"
 
 export const deleteUserAccountData = async (userId) => {
   try {
-    await deleteAllDocsInCollection(dictionaryCol(userId))
-    await deleteAllDocsInCollection(savedPostsCol(userId))
-    await deleteAllDocsInCollection(flashcardsCol(userId))
-    await deleteAllDocsInCollection(followingCol(userId))
-    await deleteAllDocsInCollection(followersCol(userId))
-    await deleteAllDocsInCollection(blockingCol(userId))
+    await withFirestoreWrite("delete:dictionaryWords", () =>
+      deleteAllDocsInCollection(dictionaryCol(userId))
+    )
+    await withFirestoreWrite("delete:savedPosts", () =>
+      deleteAllDocsInCollection(savedPostsCol(userId))
+    )
+    await withFirestoreWrite("delete:flashcards", () =>
+      deleteAllDocsInCollection(flashcardsCol(userId))
+    )
+    await withFirestoreWrite("delete:following", () =>
+      deleteAllDocsInCollection(followingCol(userId))
+    )
+    await withFirestoreWrite("delete:followers", () =>
+      deleteAllDocsInCollection(followersCol(userId))
+    )
+    await withFirestoreWrite("delete:blocking", () =>
+      deleteAllDocsInCollection(blockingCol(userId))
+    )
 
-    await deleteDoc(credentialsDoc(userId)).catch(() => {
+    await withFirestoreWrite("delete:credentials", () =>
+      deleteDoc(credentialsDoc(userId))
+    ).catch(() => {
       // Best effort cleanup
     })
-    await deleteDoc(userDoc(userId)).catch(() => {
+    await withFirestoreWrite("delete:userProfile", () =>
+      deleteDoc(userDoc(userId))
+    ).catch(() => {
       // Best effort cleanup
     })
 

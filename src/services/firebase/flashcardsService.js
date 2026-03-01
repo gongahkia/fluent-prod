@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   setDoc,
   withFirestoreReadRetry,
+  withFirestoreWrite,
 } from "./shared"
 
 export const getFlashcardProgress = async (userId) => {
@@ -35,14 +36,16 @@ export const getFlashcardProgress = async (userId) => {
 export const saveFlashcardProgress = async (userId, wordId, progressData) => {
   try {
     const safeWordId = sanitizeFirestoreId(wordId, "word")
-    await setDoc(
-      doc(flashcardsCol(userId), safeWordId),
-      {
-        ...progressData,
-        updatedAt: nowIso(),
-        updatedAtTs: serverTimestamp(),
-      },
-      { merge: true }
+    await withFirestoreWrite("set:flashcardProgress", () =>
+      setDoc(
+        doc(flashcardsCol(userId), safeWordId),
+        {
+          ...progressData,
+          updatedAt: nowIso(),
+          updatedAtTs: serverTimestamp(),
+        },
+        { merge: true }
+      )
     )
     return { success: true }
   } catch (error) {

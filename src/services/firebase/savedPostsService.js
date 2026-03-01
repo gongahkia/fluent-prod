@@ -12,7 +12,7 @@ import {
   setDoc,
   stripUndefinedDeep,
   withFirestoreReadRetry,
-  withFirestoreTiming,
+  withFirestoreWrite,
 } from "./shared"
 
 export const getSavedPosts = async (userId) => {
@@ -77,7 +77,7 @@ export const savePost = async (userId, postData) => {
       updatedAtTs: serverTimestamp(),
     })
 
-    await withFirestoreTiming("set:savedPost", () =>
+    await withFirestoreWrite("set:savedPost", () =>
       setDoc(doc(savedPostsCol(userId), postId), payload, { merge: true })
     )
     return { success: true, data: payload }
@@ -95,7 +95,7 @@ export const savePost = async (userId, postData) => {
 export const removeSavedPost = async (userId, postId) => {
   try {
     const safePostId = sanitizeFirestoreId(postId, "post")
-    await withFirestoreTiming("delete:savedPost", () =>
+    await withFirestoreWrite("delete:savedPost", () =>
       deleteDoc(doc(savedPostsCol(userId), safePostId))
     )
     return { success: true }

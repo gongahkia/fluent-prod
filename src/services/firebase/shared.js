@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore"
 import { firestore } from "@/lib/firebase"
 import { sanitizeFirestoreId } from "./idUtils"
+import { withFirestoreWriteRetry } from "./retry"
 
 export {
   arrayRemove,
@@ -51,6 +52,12 @@ export async function withFirestoreTiming(operation, fn) {
     const durationMs = Date.now() - startedAt
     console.log("[FirestoreTiming]", { operation, durationMs })
   }
+}
+
+export async function withFirestoreWrite(operation, fn) {
+  return withFirestoreTiming(operation, () =>
+    withFirestoreWriteRetry(operation, fn)
+  )
 }
 
 function isTransientReadError(error) {

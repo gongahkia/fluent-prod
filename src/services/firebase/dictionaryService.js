@@ -14,6 +14,7 @@ import {
   where,
   withFirestoreReadRetry,
   withFirestoreTiming,
+  withFirestoreWrite,
 } from "./shared"
 
 export const addWordToDictionary = async (userId, wordData) => {
@@ -36,7 +37,7 @@ export const addWordToDictionary = async (userId, wordData) => {
       updatedAtTs: serverTimestamp(),
     }
 
-    await withFirestoreTiming("set:dictionaryWord", () =>
+    await withFirestoreWrite("set:dictionaryWord", () =>
       setDoc(doc(dictionaryCol(userId), wordId), payload, { merge: true })
     )
     return { success: true, data: payload }
@@ -54,7 +55,7 @@ export const addWordToDictionary = async (userId, wordData) => {
 export const removeWordFromDictionary = async (userId, wordId) => {
   try {
     const safeWordId = sanitizeFirestoreId(wordId, "word")
-    await withFirestoreTiming("delete:dictionaryWord", () =>
+    await withFirestoreWrite("delete:dictionaryWord", () =>
       deleteDoc(doc(dictionaryCol(userId), safeWordId))
     )
     return { success: true }
