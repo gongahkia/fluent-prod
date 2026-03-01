@@ -1,3 +1,2 @@
-(B) Add a CI workflow `.github/workflows/translation-resilience-tests.yml` that runs new translation resilience tests on pull requests. +infra +testing +dx
 (B) Remove non-roadmap API feed branches from `src/services/newsService.js` and keep cache mode only. +refactor +frontend +stability
 (B) Remove `checkApiConfiguration` usage from `src/components/NewsFeed.jsx` once cache-only mode is enforced. +refactor +frontend +stability
