@@ -4,47 +4,77 @@
 // This app used to call a backend translation API.
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
-import translationMappings from '@config/translationMappings.json'
+import translationMappings from "@config/translationMappings.json"
+import { z } from "zod"
+import { emitTranslationEvent } from "../lib/toastBus"
 import {
-  normalizeTranslationText,
-  passesMinimumTranslationQuality,
-  runFallbackProviders,
-  withTimeout,
-} from './translationPipeline'
-import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
+  deserializeTranslationCache,
+  serializeTranslationCache,
+} from "./translationCacheStorage"
 import {
   ensureProviderCircuitState,
   isCircuitOpen,
   normalizeCircuitProviderId,
   recordCircuitFailure,
   recordCircuitSuccess,
-} from './translationCircuitBreaker'
-import { emitTranslationEvent } from '../lib/toastBus'
-import { z } from 'zod'
-const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
-const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
-const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
-const TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_FAIL_THRESHOLD || '3', 10)
-const TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_COOLDOWN_MS || '30000', 10)
-const TRANSLATION_MAX_CONCURRENT_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_CONCURRENT_REQUESTS || '6', 10)
-const TRANSLATION_MAX_QUEUED_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_QUEUED_REQUESTS || '120', 10)
-const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
-const TRANSLATION_CACHE_STORAGE_KEY = 'fluent.translationService.cache'
+} from "./translationCircuitBreaker"
+import {
+  normalizeTranslationText,
+  passesMinimumTranslationQuality,
+  runFallbackProviders,
+  withTimeout,
+} from "./translationPipeline"
+import {
+  tryLibreTranslate,
+  tryLingva,
+  tryMyMemory,
+} from "./translationProviders"
+
+const TRANSLATE_API_URL =
+  import.meta.env.VITE_TRANSLATE_API_URL || "/api/translate"
+const TRANSLATION_CACHE_TTL_MS = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || "600000",
+  10
+)
+const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || "500",
+  10
+)
+const TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_CB_FAIL_THRESHOLD || "3",
+  10
+)
+const TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_CB_COOLDOWN_MS || "30000",
+  10
+)
+const TRANSLATION_MAX_CONCURRENT_REQUESTS = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_MAX_CONCURRENT_REQUESTS || "6",
+  10
+)
+const TRANSLATION_MAX_QUEUED_REQUESTS = Number.parseInt(
+  import.meta.env.VITE_TRANSLATION_MAX_QUEUED_REQUESTS || "120",
+  10
+)
+const ALLOWED_TRANSLATION_PAIRS = new Set(["en-ja", "ja-en"])
+const TRANSLATION_CACHE_STORAGE_KEY = "fluent.translationService.cache"
 const TRANSLATION_CACHE_SCHEMA_VERSION = 1
-const TRANSLATION_MAPPINGS_VERSION = String(translationMappings?.version || 'unknown')
+const TRANSLATION_MAPPINGS_VERSION = String(
+  translationMappings?.version || "unknown"
+)
 const TranslationResultSchema = z.object({
   translation: z.string().trim().min(1),
 })
 
 export const TRANSLATION_ERROR_CODES = {
-  UNSUPPORTED_LANGUAGE_PAIR: 'UNSUPPORTED_LANGUAGE_PAIR',
+  UNSUPPORTED_LANGUAGE_PAIR: "UNSUPPORTED_LANGUAGE_PAIR",
 }
 
 export class UnsupportedLanguagePairError extends Error {
   constructor(fromLang, toLang) {
     const pairKey = `${fromLang}-${toLang}`
     super(`Translation pair ${pairKey} is not supported`)
-    this.name = 'UnsupportedLanguagePairError'
+    this.name = "UnsupportedLanguagePairError"
     this.code = TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR
     this.errorCode = TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR
     this.pair = pairKey
@@ -100,7 +130,7 @@ function writeToTranslationCache(key, value) {
 
 function hasLocalStorage() {
   try {
-    return typeof window !== 'undefined' && Boolean(window.localStorage)
+    return typeof window !== "undefined" && Boolean(window.localStorage)
   } catch {
     return false
   }
@@ -113,29 +143,16 @@ function loadTranslationCacheOnce() {
 
   try {
     const raw = window.localStorage.getItem(TRANSLATION_CACHE_STORAGE_KEY)
-    if (!raw) return
-    const parsed = JSON.parse(raw)
-    if (parsed?.version !== TRANSLATION_CACHE_SCHEMA_VERSION) return
-    if (parsed?.mappingsVersion !== TRANSLATION_MAPPINGS_VERSION) {
+    const hydrated = deserializeTranslationCache(raw, {
+      schemaVersion: TRANSLATION_CACHE_SCHEMA_VERSION,
+      mappingsVersion: TRANSLATION_MAPPINGS_VERSION,
+      now: Date.now(),
+    })
+    if (hydrated.shouldClear) {
       window.localStorage.removeItem(TRANSLATION_CACHE_STORAGE_KEY)
-      return
     }
-
-    const entries = parsed?.entries && typeof parsed.entries === 'object'
-      ? parsed.entries
-      : {}
-    const now = Date.now()
-
-    for (const [key, entry] of Object.entries(entries)) {
-      if (!entry || typeof entry !== 'object') continue
-      if (typeof entry.expiresAt !== 'number' || entry.expiresAt <= now) continue
-      if (!entry.value || typeof entry.value !== 'string') continue
-
-      translationCache.set(key, {
-        value: entry.value,
-        expiresAt: entry.expiresAt,
-        lastAccessAt: typeof entry.lastAccessAt === 'number' ? entry.lastAccessAt : now,
-      })
+    for (const [key, entry] of hydrated.entries.entries()) {
+      translationCache.set(key, entry)
     }
     trimTranslationCache()
   } catch {
@@ -148,7 +165,7 @@ function trimTranslationCache() {
   const validEntries = []
 
   for (const [key, entry] of translationCache.entries()) {
-    if (!entry || typeof entry !== 'object') {
+    if (!entry || typeof entry !== "object") {
       translationCache.delete(key)
       continue
     }
@@ -159,7 +176,9 @@ function trimTranslationCache() {
     validEntries.push([key, entry])
   }
 
-  validEntries.sort((a, b) => (b[1].lastAccessAt || 0) - (a[1].lastAccessAt || 0))
+  validEntries.sort(
+    (a, b) => (b[1].lastAccessAt || 0) - (a[1].lastAccessAt || 0)
+  )
   const trimmedEntries = validEntries.slice(0, TRANSLATION_CACHE_MAX_ENTRIES)
   translationCache.clear()
   for (const [key, entry] of trimmedEntries) {
@@ -181,32 +200,20 @@ function persistTranslationCache() {
   if (!hasLocalStorage()) return
   trimTranslationCache()
 
-  const entries = {}
-  for (const [key, entry] of translationCache.entries()) {
-    entries[key] = {
-      value: entry.value,
-      expiresAt: entry.expiresAt,
-      lastAccessAt: entry.lastAccessAt || Date.now(),
-    }
-  }
-
   try {
-    window.localStorage.setItem(
-      TRANSLATION_CACHE_STORAGE_KEY,
-      JSON.stringify({
-        version: TRANSLATION_CACHE_SCHEMA_VERSION,
-        mappingsVersion: TRANSLATION_MAPPINGS_VERSION,
-        savedAt: Date.now(),
-        entries,
-      })
-    )
+    const serialized = serializeTranslationCache(translationCache, {
+      schemaVersion: TRANSLATION_CACHE_SCHEMA_VERSION,
+      mappingsVersion: TRANSLATION_MAPPINGS_VERSION,
+      now: Date.now(),
+    })
+    window.localStorage.setItem(TRANSLATION_CACHE_STORAGE_KEY, serialized)
   } catch {
     // Ignore localStorage write failures
   }
 }
 
 function createTranslationCacheKey(text, fromLang, toLang, options = {}) {
-  const postHash = String(options?.postHash || '').trim()
+  const postHash = String(options?.postHash || "").trim()
   const sentenceIndex = Number.isInteger(options?.sentenceIndex)
     ? options.sentenceIndex
     : Number.NaN
@@ -247,7 +254,9 @@ function enqueueTranslationTask(task) {
   }
 
   if (translationRequestQueue.length >= TRANSLATION_MAX_QUEUED_REQUESTS) {
-    return Promise.reject(new Error('Translation request queue is full. Please retry.'))
+    return Promise.reject(
+      new Error("Translation request queue is full. Please retry.")
+    )
   }
 
   return new Promise((resolve, reject) => {
@@ -255,25 +264,26 @@ function enqueueTranslationTask(task) {
   })
 }
 
-function validateTranslationResult(rawTranslation, originalText = '') {
+function validateTranslationResult(rawTranslation, originalText = "") {
   const parsed = TranslationResultSchema.safeParse({
     translation: normalizeTranslationText(rawTranslation),
   })
   if (!parsed.success) return null
-  if (!passesMinimumTranslationQuality(parsed.data.translation, originalText)) return null
+  if (!passesMinimumTranslationQuality(parsed.data.translation, originalText))
+    return null
   return parsed.data.translation
 }
 
 function isTransientError(error) {
-  const message = String(error?.message || '').toLowerCase()
+  const message = String(error?.message || "").toLowerCase()
   return (
-    error?.name === 'AbortError' ||
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('failed to fetch') ||
-    message.includes('503') ||
-    message.includes('502') ||
-    message.includes('429')
+    error?.name === "AbortError" ||
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("failed to fetch") ||
+    message.includes("503") ||
+    message.includes("502") ||
+    message.includes("429")
   )
 }
 
@@ -286,7 +296,10 @@ function deterministicJitter(seed, attempt) {
   return hash % 120
 }
 
-async function withRetry(operation, { maxRetries = 2, baseDelayMs = 200, maxDelayMs = 1200, seed = '' } = {}) {
+async function withRetry(
+  operation,
+  { maxRetries = 2, baseDelayMs = 200, maxDelayMs = 1200, seed = "" } = {}
+) {
   let lastError = null
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
@@ -297,34 +310,39 @@ async function withRetry(operation, { maxRetries = 2, baseDelayMs = 200, maxDela
         throw error
       }
 
-      const expDelay = Math.min(maxDelayMs, baseDelayMs * (2 ** attempt))
-      const delay = Math.min(maxDelayMs, expDelay + deterministicJitter(seed, attempt))
+      const expDelay = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt)
+      const delay = Math.min(
+        maxDelayMs,
+        expDelay + deterministicJitter(seed, attempt)
+      )
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
 
-  throw lastError || new Error('Retry operation failed')
+  throw lastError || new Error("Retry operation failed")
 }
 
 async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
   const { signal, cancel } = withTimeout(timeoutMs)
   try {
     const res = await fetch(TRANSLATE_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, fromLang, toLang }),
       signal,
     })
 
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      throw new Error(body?.message || `Translation proxy failed (${res.status})`)
+      throw new Error(
+        body?.message || `Translation proxy failed (${res.status})`
+      )
     }
 
     const data = await res.json()
     const translation = validateTranslationResult(data?.translation, text)
     if (!translation || translation === text) {
-      throw new Error('Translation proxy returned invalid translation')
+      throw new Error("Translation proxy returned invalid translation")
     }
     return translation
   } finally {
@@ -407,7 +425,7 @@ class TranslationService {
         from: pair.from,
         to: pair.to,
         fromLanguage: this.mappings.languages[pair.from],
-        toLanguage: this.mappings.languages[pair.to]
+        toLanguage: this.mappings.languages[pair.to],
       }))
   }
 
@@ -427,23 +445,32 @@ class TranslationService {
    * @param {string} toLang - Target language code
    * @returns {Promise<string>} Translated text
    */
-  async translateText(text, fromLang = 'en', toLang = 'ja', options = {}) {
+  async translateText(text, fromLang = "en", toLang = "ja", options = {}) {
     const { pair } = this.assertSupportedTranslationPair(fromLang, toLang)
-    const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
+    const providers = pair?.apiProviders || [
+      "lingva",
+      "mymemory",
+      "libretranslate",
+    ]
     const includeMetadata = Boolean(options?.includeMetadata)
-    let successSource = 'proxy'
-    let successProvider = 'proxy'
+    let successSource = "proxy"
+    let successProvider = "proxy"
 
     const timeoutMs = 5000
-    const trimmed = String(text ?? '')
-    if (!trimmed) return ''
-    const requestKey = createTranslationCacheKey(trimmed, fromLang, toLang, options)
+    const trimmed = String(text ?? "")
+    if (!trimmed) return ""
+    const requestKey = createTranslationCacheKey(
+      trimmed,
+      fromLang,
+      toLang,
+      options
+    )
     const cachedValue = readFromTranslationCache(requestKey)
     if (cachedValue) {
       emitTranslationEvent({
-        state: 'success',
-        source: 'cache',
-        provider: 'cache',
+        state: "success",
+        source: "cache",
+        provider: "cache",
         fromLang,
         toLang,
         cacheHit: true,
@@ -451,8 +478,8 @@ class TranslationService {
       if (includeMetadata) {
         return {
           translation: cachedValue,
-          source: 'cache',
-          provider: 'cache',
+          source: "cache",
+          provider: "cache",
           cacheHit: true,
         }
       }
@@ -464,7 +491,7 @@ class TranslationService {
       if (!includeMetadata) return inFlightResult
       return {
         translation: inFlightResult,
-        source: 'inflight',
+        source: "inflight",
         provider: null,
         cacheHit: false,
       }
@@ -476,69 +503,74 @@ class TranslationService {
           () => translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs),
           { seed: requestKey }
         )
-        successSource = 'proxy'
-        successProvider = 'proxy'
+        successSource = "proxy"
+        successProvider = "proxy"
         return proxyResult
       } catch {
-      successSource = 'fallback'
-      successProvider = null
-      emitTranslationEvent({
-        state: 'fallback',
-        source: 'proxy',
-        provider: null,
-        fromLang,
-        toLang,
-        cacheHit: false,
-      })
-      const result = await runFallbackProviders({
-        providers,
-        runProvider: async (provider) => {
-        if (this.isProviderCircuitOpen(provider)) {
-          return null
-        }
+        successSource = "fallback"
+        successProvider = null
+        emitTranslationEvent({
+          state: "fallback",
+          source: "proxy",
+          provider: null,
+          fromLang,
+          toLang,
+          cacheHit: false,
+        })
+        const result = await runFallbackProviders({
+          providers,
+          runProvider: async (provider) => {
+            if (this.isProviderCircuitOpen(provider)) {
+              return null
+            }
 
-        let result = null
-        try {
-          if (provider === 'lingva') {
-            result = await withRetry(
-              () => tryLingva(trimmed, fromLang, toLang, timeoutMs),
-              { seed: `${requestKey}|lingva` }
-            )
-          } else if (provider === 'mymemory') {
-            result = await withRetry(
-              () => tryMyMemory(trimmed, fromLang, toLang, timeoutMs),
-              { seed: `${requestKey}|mymemory` }
-            )
-          } else if (provider === 'libretranslate') {
-            result = await withRetry(
-              () => tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs),
-              { seed: `${requestKey}|libretranslate` }
-            )
-          }
-        } catch {
-          this.recordProviderFailure(provider)
-          return null
-        }
+            let result = null
+            try {
+              if (provider === "lingva") {
+                result = await withRetry(
+                  () => tryLingva(trimmed, fromLang, toLang, timeoutMs),
+                  { seed: `${requestKey}|lingva` }
+                )
+              } else if (provider === "mymemory") {
+                result = await withRetry(
+                  () => tryMyMemory(trimmed, fromLang, toLang, timeoutMs),
+                  { seed: `${requestKey}|mymemory` }
+                )
+              } else if (provider === "libretranslate") {
+                result = await withRetry(
+                  () => tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs),
+                  { seed: `${requestKey}|libretranslate` }
+                )
+              }
+            } catch {
+              this.recordProviderFailure(provider)
+              return null
+            }
 
-          if (result) {
-            const validatedTranslation = validateTranslationResult(result, trimmed)
-            if (validatedTranslation) {
-              this.recordProviderSuccess(provider)
-              successSource = 'fallback'
-              successProvider = provider
-              return validatedTranslation
+            if (result) {
+              const validatedTranslation = validateTranslationResult(
+                result,
+                trimmed
+              )
+              if (validatedTranslation) {
+                this.recordProviderSuccess(provider)
+                successSource = "fallback"
+                successProvider = provider
+                return validatedTranslation
+              }
+              this.recordProviderFailure(provider)
+              return null
             }
             this.recordProviderFailure(provider)
             return null
-          }
-          this.recordProviderFailure(provider)
-          return null
-        },
-      })
-      if (result) return result
+          },
+        })
+        if (result) return result
       }
 
-      throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
+      throw new Error(
+        "Translation failed (proxy and fallback providers unsuccessful)."
+      )
     })
 
     inFlightTranslations.set(requestKey, task)
@@ -546,7 +578,7 @@ class TranslationService {
       const result = await task
       writeToTranslationCache(requestKey, result)
       emitTranslationEvent({
-        state: 'success',
+        state: "success",
         source: successSource,
         provider: successProvider,
         fromLang,
@@ -564,7 +596,7 @@ class TranslationService {
       return result
     } catch (error) {
       emitTranslationEvent({
-        state: 'failure',
+        state: "failure",
         source: successSource,
         provider: successProvider,
         fromLang,
@@ -584,7 +616,7 @@ class TranslationService {
    * @param {string} toLang - Target language code
    * @returns {Promise<Array>} Array of translation results
    */
-  async translateBatch(texts, fromLang = 'en', toLang = 'ja') {
+  async translateBatch(texts, fromLang = "en", toLang = "ja") {
     this.assertSupportedTranslationPair(fromLang, toLang)
 
     try {
@@ -600,7 +632,7 @@ class TranslationService {
       )
       return results
     } catch (error) {
-      console.error('Batch translation error:', error)
+      console.error("Batch translation error:", error)
       return (texts || []).map((t) => ({ original: t, translation: t }))
     }
   }
@@ -613,7 +645,12 @@ class TranslationService {
    * @param {string} sourceLang - Source language code (default: 'en')
    * @returns {Promise<string>} JSON string with text and metadata
    */
-  async createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
+  async createMixedLanguageContent(
+    text,
+    userLevel = 5,
+    targetLang = "ja",
+    sourceLang = "en"
+  ) {
     this.assertSupportedTranslationPair(sourceLang, targetLang)
 
     // Backend-free mode: rely on precomputed mixed-language content in the cache.
@@ -641,7 +678,7 @@ class TranslationService {
    * @returns {boolean} True if text contains Japanese
    */
   containsJapanese(text) {
-    return this.containsLanguageCharacters(text, 'ja')
+    return this.containsLanguageCharacters(text, "ja")
   }
 
   /**
@@ -670,7 +707,9 @@ class TranslationService {
    * @returns {Object} Level configuration
    */
   getLevelConfig(level) {
-    return this.mappings.learningLevels[level] || this.mappings.learningLevels['1']
+    return (
+      this.mappings.learningLevels[level] || this.mappings.learningLevels["1"]
+    )
   }
 
   /**
@@ -691,18 +730,34 @@ class TranslationService {
     return this.mappings.dictionaryFields[languageCode] || {}
   }
 
-  getCachedTranslation(text, fromLang = 'en', toLang = 'ja', options = {}) {
-    const normalizedText = String(text ?? '')
+  getCachedTranslation(text, fromLang = "en", toLang = "ja", options = {}) {
+    const normalizedText = String(text ?? "")
     if (!normalizedText) return null
-    const cacheKey = createTranslationCacheKey(normalizedText, fromLang, toLang, options)
+    const cacheKey = createTranslationCacheKey(
+      normalizedText,
+      fromLang,
+      toLang,
+      options
+    )
     return readFromTranslationCache(cacheKey)
   }
 
-  setCachedTranslation(text, fromLang = 'en', toLang = 'ja', translation, options = {}) {
-    const normalizedText = String(text ?? '')
-    const normalizedTranslation = String(translation ?? '')
+  setCachedTranslation(
+    text,
+    fromLang = "en",
+    toLang = "ja",
+    translation,
+    options = {}
+  ) {
+    const normalizedText = String(text ?? "")
+    const normalizedTranslation = String(translation ?? "")
     if (!normalizedText || !normalizedTranslation) return
-    const cacheKey = createTranslationCacheKey(normalizedText, fromLang, toLang, options)
+    const cacheKey = createTranslationCacheKey(
+      normalizedText,
+      fromLang,
+      toLang,
+      options
+    )
     writeToTranslationCache(cacheKey, normalizedTranslation)
   }
 }
