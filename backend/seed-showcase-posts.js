@@ -150,6 +150,7 @@ if (!SUBREDDITS.length) {
 }
 
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
+const CACHE_SCHEMA_VERSION = 2
 const SUBREDDIT_QUALITY_WEIGHTS = {
   LearnJapanese: 1.25,
   japanese: 1.15,
@@ -298,8 +299,8 @@ function toRow(post) {
   const sourceId = post.id
   const postHash = stablePostHash(sourceId)
   const row = {
-    // v2: no pretranslated/mixed-language fields are stored in cache
-    schemaVersion: 2,
+    // Schema version for forward-compatible cache readers.
+    schemaVersion: CACHE_SCHEMA_VERSION,
     postHash,
     sourceId,
     source: post.source || 'reddit',
