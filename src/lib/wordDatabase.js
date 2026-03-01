@@ -25,6 +25,8 @@ let kuromojinTokenizerPromise = null
 const requestTimestamps = []
 const REQUESTS_PER_MINUTE = 180
 const CLICK_DEBOUNCE_MS = 250
+const READING_SOURCE_KUROMOJIN = "kuromojin"
+const READING_SOURCE_NONE = "none"
 
 function nowMs() {
   return Date.now()
@@ -365,6 +367,9 @@ export const handleWordClick = async (
         const translation = cached.translation
         const readingTarget = isTargetLang ? cleanWord : translation
         const pronunciation = await parseJapaneseReading(readingTarget)
+        const readingSource = pronunciation
+          ? READING_SOURCE_KUROMOJIN
+          : READING_SOURCE_NONE
 
         const level = cleanWord.length <= 4 ? 3 : cleanWord.length <= 7 ? 5 : 7
         const wordData = {
@@ -377,6 +382,7 @@ export const handleWordClick = async (
           isVocabulary: !isTargetLang && isValidVocabularyWord(cleanWord),
           clickPosition,
           postHash: contextPostHash,
+          readingSource,
         }
         wordData.japanese = isTargetLang ? cleanWord : translation
         wordData.hiragana = pronunciation
@@ -391,13 +397,17 @@ export const handleWordClick = async (
 
     let translation,
       pronunciation,
-      contextTranslationResult
+      contextTranslationResult,
+      readingSource = READING_SOURCE_NONE
 
     if (isTargetLang) {
       // Target language to English
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
       const reading = await parseJapaneseReading(cleanWord)
       pronunciation = reading || null
+      readingSource = reading
+        ? READING_SOURCE_KUROMOJIN
+        : READING_SOURCE_NONE
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -409,7 +419,11 @@ export const handleWordClick = async (
     } else {
       // English to target language
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
-      pronunciation = await parseJapaneseReading(translation)
+      const reading = await parseJapaneseReading(translation)
+      pronunciation = reading
+      readingSource = reading
+        ? READING_SOURCE_KUROMOJIN
+        : READING_SOURCE_NONE
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -438,6 +452,7 @@ export const handleWordClick = async (
       isVocabulary: !isTargetLang && isValidVocabularyWord(cleanWord),
       clickPosition: clickPosition, // Add click position for anchored popup
       postHash: contextPostHash,
+      readingSource,
     }
 
     wordData.japanese = isTargetLang ? cleanWord : translation
