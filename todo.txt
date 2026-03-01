@@ -1,4 +1,3 @@
-(B) Replace token-based key derivation with stable UID-based derivation plus random salt in `src/services/encryptionService.js`. +security +data +stability
 (B) Add encrypted payload version metadata in `src/services/encryptionService.js` to support key migration. +security +data +stability
 (B) Add legacy decrypt fallback for existing token-derived credentials in `src/services/encryptionService.js`. +security +data +stability
 (B) Remove plaintext API credential writes to localStorage in `src/components/Settings.jsx`. +security +frontend +stability

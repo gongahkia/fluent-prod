@@ -2,118 +2,144 @@
  * Encryption Service
  *
  * Uses Web Crypto API (AES-GCM) to encrypt sensitive user data before storing in Firebase.
- * This follows industry standards for client-side encryption.
  *
  * IMPORTANT SECURITY NOTES:
- * - Encryption key is derived from the user's Firebase auth token
- * - Each user has their own unique encryption key
+ * - Encryption key is derived from a stable user identifier (UID), not from rotating auth tokens
+ * - Each encrypted payload uses a random salt for PBKDF2 key derivation
  * - Data is encrypted client-side before sending to Firebase
- * - Firebase Firestore rules ensure users can only access their own data
- * - Even if Firestore is compromised, encrypted data cannot be read without the key
  */
 
-/**
- * Derive an encryption key from the user's Firebase auth token
- * This ensures each user has a unique encryption key
- */
-const deriveKey = async (userToken) => {
+const KEY_DERIVATION_ITERATIONS = 100000
+const KEY_DERIVATION_HASH = "SHA-256"
+const SALT_LENGTH = 16
+const IV_LENGTH = 12
+
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== "string") return null
+  const parts = token.split(".")
+  if (parts.length !== 3) return null
+
+  try {
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
+function resolveStableUserId(userIdentity) {
+  const rawIdentity = String(userIdentity || "").trim()
+  if (!rawIdentity) return ""
+
+  const jwtPayload = decodeJwtPayload(rawIdentity)
+  const uidCandidate =
+    jwtPayload?.user_id || jwtPayload?.uid || jwtPayload?.sub || ""
+  return String(uidCandidate || rawIdentity).trim()
+}
+
+const deriveKey = async (userId, salt) => {
   const encoder = new TextEncoder()
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(userToken),
-    { name: 'PBKDF2' },
+    "raw",
+    encoder.encode(userId),
+    { name: "PBKDF2" },
     false,
-    ['deriveBits', 'deriveKey']
+    ["deriveBits", "deriveKey"]
   )
-
-  // Use PBKDF2 with a salt to derive the actual encryption key
-  // Salt is derived from the user token for consistency
-  const salt = encoder.encode(userToken.substring(0, 16).padEnd(16, '0'))
 
   return crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
+      name: "PBKDF2",
+      salt,
+      iterations: KEY_DERIVATION_ITERATIONS,
+      hash: KEY_DERIVATION_HASH,
     },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"]
   )
 }
 
 /**
  * Encrypt data using AES-GCM
  * @param {string} data - The data to encrypt
- * @param {string} userToken - User's Firebase auth token (used to derive key)
- * @returns {Promise<string>} - Base64 encoded encrypted data with IV
+ * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
+ * @returns {Promise<string>} - Base64 encoded payload: [salt][iv][ciphertext]
  */
-export const encryptData = async (data, userToken) => {
-  if (!data || !userToken) {
+export const encryptData = async (data, userIdentity) => {
+  if (!data || !userIdentity) {
     return null
   }
 
   try {
+    const stableUserId = resolveStableUserId(userIdentity)
+    if (!stableUserId) return null
+
     const encoder = new TextEncoder()
-    const key = await deriveKey(userToken)
+    const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
+    const key = await deriveKey(stableUserId, salt)
+    const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
 
-    // Generate a random initialization vector (IV)
-    const iv = crypto.getRandomValues(new Uint8Array(12))
-
-    // Encrypt the data
     const encryptedData = await crypto.subtle.encrypt(
       {
-        name: 'AES-GCM',
-        iv: iv
+        name: "AES-GCM",
+        iv,
       },
       key,
       encoder.encode(data)
     )
 
-    // Combine IV and encrypted data
-    const combined = new Uint8Array(iv.length + encryptedData.byteLength)
-    combined.set(iv, 0)
-    combined.set(new Uint8Array(encryptedData), iv.length)
+    const combined = new Uint8Array(
+      salt.length + iv.length + encryptedData.byteLength
+    )
+    combined.set(salt, 0)
+    combined.set(iv, salt.length)
+    combined.set(new Uint8Array(encryptedData), salt.length + iv.length)
 
-    // Convert to base64 for storage
     return btoa(String.fromCharCode(...combined))
   } catch (error) {
-    console.error('Encryption error:', error)
+    console.error("Encryption error:", error)
     return null
   }
 }
 
 /**
  * Decrypt data using AES-GCM
- * @param {string} encryptedData - Base64 encoded encrypted data with IV
- * @param {string} userToken - User's Firebase auth token (used to derive key)
- * @returns {Promise<string>} - Decrypted data
+ * @param {string} encryptedData - Base64 encoded payload: [salt][iv][ciphertext]
+ * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
+ * @returns {Promise<string|null>} - Decrypted data
  */
-export const decryptData = async (encryptedData, userToken) => {
-  if (!encryptedData || !userToken) {
+export const decryptData = async (encryptedData, userIdentity) => {
+  if (!encryptedData || !userIdentity) {
     return null
   }
 
   try {
-    const decoder = new TextDecoder()
-    const key = await deriveKey(userToken)
+    const stableUserId = resolveStableUserId(userIdentity)
+    if (!stableUserId) return null
 
-    // Convert from base64
+    const decoder = new TextDecoder()
     const combined = new Uint8Array(
-      atob(encryptedData).split('').map(c => c.charCodeAt(0))
+      atob(encryptedData)
+        .split("")
+        .map((c) => c.charCodeAt(0))
     )
 
-    // Extract IV and encrypted data
-    const iv = combined.slice(0, 12)
-    const data = combined.slice(12)
+    if (combined.length <= SALT_LENGTH + IV_LENGTH) {
+      return null
+    }
 
-    // Decrypt the data
+    const salt = combined.slice(0, SALT_LENGTH)
+    const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
+    const data = combined.slice(SALT_LENGTH + IV_LENGTH)
+    const key = await deriveKey(stableUserId, salt)
+
     const decryptedData = await crypto.subtle.decrypt(
       {
-        name: 'AES-GCM',
-        iv: iv
+        name: "AES-GCM",
+        iv,
       },
       key,
       data
@@ -121,7 +147,7 @@ export const decryptData = async (encryptedData, userToken) => {
 
     return decoder.decode(decryptedData)
   } catch (error) {
-    console.error('Decryption error:', error)
+    console.error("Decryption error:", error)
     return null
   }
 }
@@ -129,15 +155,15 @@ export const decryptData = async (encryptedData, userToken) => {
 /**
  * Encrypt sensitive API credentials
  * @param {Object} credentials - Object containing API credentials
- * @param {string} userToken - User's Firebase auth token
+ * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
  * @returns {Promise<Object>} - Object with encrypted credentials
  */
-export const encryptCredentials = async (credentials, userToken) => {
+export const encryptCredentials = async (credentials, userIdentity) => {
   const encrypted = {}
 
   for (const [key, value] of Object.entries(credentials)) {
     if (value) {
-      encrypted[key] = await encryptData(value, userToken)
+      encrypted[key] = await encryptData(value, userIdentity)
     } else {
       encrypted[key] = null
     }
@@ -149,15 +175,18 @@ export const encryptCredentials = async (credentials, userToken) => {
 /**
  * Decrypt sensitive API credentials
  * @param {Object} encryptedCredentials - Object containing encrypted credentials
- * @param {string} userToken - User's Firebase auth token
+ * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
  * @returns {Promise<Object>} - Object with decrypted credentials
  */
-export const decryptCredentials = async (encryptedCredentials, userToken) => {
+export const decryptCredentials = async (
+  encryptedCredentials,
+  userIdentity
+) => {
   const decrypted = {}
 
   for (const [key, value] of Object.entries(encryptedCredentials)) {
     if (value) {
-      decrypted[key] = await decryptData(value, userToken)
+      decrypted[key] = await decryptData(value, userIdentity)
     } else {
       decrypted[key] = null
     }
@@ -170,7 +199,7 @@ export const decryptCredentials = async (encryptedCredentials, userToken) => {
  * Check if data is encrypted (base64 check)
  */
 export const isEncrypted = (data) => {
-  if (!data || typeof data !== 'string') return false
+  if (!data || typeof data !== "string") return false
 
   try {
     return btoa(atob(data)) === data
