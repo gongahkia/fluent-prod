@@ -1,4 +1,3 @@
-(B) Implement `toggleCommentLike` in `commentsService` using per-user reaction docs for idempotency. +comments +data +stability
 (B) Implement `onCommentsChanged` realtime listener in `commentsService` using `onSnapshot`. +comments +data +scaling
 (B) Wire `EnhancedCommentSystem` to load comments from `commentsService` instead of local component state. +comments +frontend +stability
 (B) Wire reply creation in `EnhancedCommentSystem` to persisted `createReply` calls. +comments +frontend +stability

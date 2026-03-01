@@ -5,6 +5,7 @@ import {
   doc,
   fbLimit,
   firestore,
+  getDoc,
   getDocs,
   nowIso,
   orderBy,
@@ -14,6 +15,7 @@ import {
   where,
   withFirestoreReadRetry,
   withFirestoreWrite,
+  writeBatch,
 } from "./shared"
 
 const COMMENTS_COLLECTION = "comments"
@@ -148,6 +150,88 @@ export async function createReply({
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating comment reply:", error)
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
+  }
+}
+
+export async function toggleCommentLike({ commentId, userId } = {}) {
+  if (!commentId || !userId) {
+    return {
+      success: false,
+      error: "commentId and userId are required",
+      errorCode: "COMMENTS_INVALID_INPUT",
+    }
+  }
+
+  const safeCommentId = sanitizeFirestoreId(commentId, "comment")
+  const safeUserId = sanitizeFirestoreId(userId, "user")
+  const reactionRef = commentReactionDoc(safeCommentId, safeUserId)
+  const parentCommentRef = commentDoc(safeCommentId)
+
+  try {
+    const [reactionSnap, commentSnap] = await Promise.all([
+      withFirestoreReadRetry("get:commentReaction", () => getDoc(reactionRef)),
+      withFirestoreReadRetry("get:comment", () => getDoc(parentCommentRef)),
+    ])
+
+    if (!commentSnap.exists()) {
+      return {
+        success: false,
+        error: "Comment not found",
+        errorCode: "COMMENTS_NOT_FOUND",
+      }
+    }
+
+    const alreadyLiked = reactionSnap.exists()
+    const currentLikes = Number(commentSnap.data()?.likesCount || 0)
+    const nextLikes = alreadyLiked
+      ? Math.max(0, currentLikes - 1)
+      : currentLikes + 1
+    const timestamp = nowIso()
+
+    const batch = writeBatch(firestore)
+    if (alreadyLiked) {
+      batch.delete(reactionRef)
+    } else {
+      batch.set(
+        reactionRef,
+        {
+          commentId: safeCommentId,
+          userId: safeUserId,
+          createdAt: timestamp,
+          createdAtTs: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    }
+    batch.set(
+      parentCommentRef,
+      {
+        likesCount: nextLikes,
+        updatedAt: timestamp,
+        updatedAtTs: serverTimestamp(),
+      },
+      { merge: true }
+    )
+
+    await withFirestoreWrite("toggle:commentLike", () => batch.commit())
+
+    return {
+      success: true,
+      data: {
+        commentId: safeCommentId,
+        userId: safeUserId,
+        liked: !alreadyLiked,
+        likesCount: nextLikes,
+      },
+    }
+  } catch (error) {
+    console.error("Error toggling comment like:", error)
     const mapped = mapFirestoreError(error)
     return {
       success: false,
