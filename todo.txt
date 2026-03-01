@@ -1,4 +1,3 @@
-(B) Wire `EnhancedCommentSystem` to load comments from `commentsService` instead of local component state. +comments +frontend +stability
 (B) Wire reply creation in `EnhancedCommentSystem` to persisted `createReply` calls. +comments +frontend +stability
 (B) Wire like actions in `EnhancedCommentSystem` to persisted `toggleCommentLike` calls. +comments +frontend +stability
 (B) Upload comment images to Firebase Storage and persist only download URLs in `commentsService`. +comments +data +security

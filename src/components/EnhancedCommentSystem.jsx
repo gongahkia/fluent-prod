@@ -4,24 +4,66 @@ import {
   ChevronDown,
   ChevronRight,
   Heart,
+  Image as ImageIcon,
+  Loader2,
   MessageCircle,
   Send,
   Sparkles,
-  Loader2,
-  Image as ImageIcon,
   X,
 } from "lucide-react"
 import React, { useEffect, useRef, useState } from "react"
-import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
 import { emitToast } from "../lib/toastBus"
-import { addWebLlmEnabledListener, isWebLlmEnabled } from "../services/commentAiPrefs"
-import LoadingSpinner from "./ui/LoadingSpinner"
-import SpeechToTextButton from "./ui/SpeechToTextButton"
+import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
+import {
+  addWebLlmEnabledListener,
+  isWebLlmEnabled,
+} from "../services/commentAiPrefs"
+import { onCommentsChanged } from "../services/firebase/commentsService"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
+import LoadingSpinner from "./ui/LoadingSpinner"
+import SpeechToTextButton from "./ui/SpeechToTextButton"
 
 async function loadCommentAiService() {
   return await import("../services/commentAiService")
+}
+
+function toDisplayComment(comment = {}) {
+  const userLabel = String(
+    comment?.user || comment?.username || comment?.displayName || "User"
+  )
+  return {
+    ...comment,
+    id: comment?.id || `comment-${Date.now()}`,
+    user: userLabel,
+    likes: Number(comment?.likesCount ?? comment?.likes ?? 0),
+    avatar: comment?.avatar || userLabel.charAt(0).toUpperCase() || "U",
+    profilePictureUrl: comment?.profilePictureUrl || "",
+    parentCommentId: comment?.parentCommentId || null,
+    replies: [],
+  }
+}
+
+function buildCommentTree(comments = []) {
+  const indexedComments = new Map()
+  comments.forEach((rawComment) => {
+    const comment = toDisplayComment(rawComment)
+    indexedComments.set(comment.id, comment)
+  })
+
+  const roots = []
+  indexedComments.forEach((comment) => {
+    if (
+      comment.parentCommentId &&
+      indexedComments.has(comment.parentCommentId)
+    ) {
+      indexedComments.get(comment.parentCommentId).replies.push(comment)
+    } else {
+      roots.push(comment)
+    }
+  })
+
+  return roots
 }
 
 const EnhancedCommentSystem = ({
@@ -47,7 +89,7 @@ const EnhancedCommentSystem = ({
   const [collapsedComments, setCollapsedComments] = useState(new Set())
   const [aiSuggestions, setAiSuggestions] = useState([])
   const [isLoadingAI, setIsLoadingAI] = useState(false)
-  const [aiModel, setAiModel] = useState('')
+  const [aiModel, setAiModel] = useState("")
   const commentInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const [selectedMedia, setSelectedMedia] = useState(null)
@@ -67,13 +109,14 @@ const EnhancedCommentSystem = ({
     aiSuggestionsRequestRef.current = requestId
     setIsLoadingAI(true)
     try {
-      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
+      const targetLanguage = userProfile?.targetLanguage || "Japanese"
 
       const { generateCommentSuggestionsLocal } = await loadCommentAiService()
 
       const data = await generateCommentSuggestionsLocal({
-        postContent: postContent || 'Interesting post about the target culture.',
-        postTitle: postTitle || '',
+        postContent:
+          postContent || "Interesting post about the target culture.",
+        postTitle: postTitle || "",
         numberOfSuggestions: 3,
         targetLanguage,
       })
@@ -83,42 +126,42 @@ const EnhancedCommentSystem = ({
         setAiSuggestions(data.suggestions)
         setAiModel(`WebLLM (${data.model})`)
       } else {
-        console.warn('No suggestions from local LLM, using fallbacks')
+        console.warn("No suggestions from local LLM, using fallbacks")
         // Fallback suggestions based on target language
         const fallbackSuggestions = [
           {
-            text: 'This is interesting! もっと知りたいです。',
-            translation: 'I want to know more.'
+            text: "This is interesting! もっと知りたいです。",
+            translation: "I want to know more.",
           },
           {
-            text: 'Great post! 日本語の勉強になります。',
-            translation: 'This helps with studying Japanese.'
-          }
+            text: "Great post! 日本語の勉強になります。",
+            translation: "This helps with studying Japanese.",
+          },
         ]
         setAiSuggestions(fallbackSuggestions)
-        setAiModel('WebLLM (fallback)')
+        setAiModel("WebLLM (fallback)")
       }
     } catch (error) {
-      console.error('Failed to generate local AI suggestions:', error)
+      console.error("Failed to generate local AI suggestions:", error)
       emitToast({
-        message: 'AI not available. Using default suggestions.',
-        icon: '⚠️',
+        message: "AI not available. Using default suggestions.",
+        icon: "⚠️",
       })
       // Fallback suggestions based on target language
       const fallbackSuggestions = [
         {
-          text: 'This looks amazing! どこですか？',
-          translation: 'Where is this?'
+          text: "This looks amazing! どこですか？",
+          translation: "Where is this?",
         },
         {
-          text: 'Thanks for sharing! 勉強になります。',
-          translation: 'This is educational.'
-        }
+          text: "Thanks for sharing! 勉強になります。",
+          translation: "This is educational.",
+        },
       ]
-      console.log('Using catch block fallbacks:', fallbackSuggestions)
+      console.log("Using catch block fallbacks:", fallbackSuggestions)
       if (requestId !== aiSuggestionsRequestRef.current) return
       setAiSuggestions(fallbackSuggestions)
-      setAiModel('WebLLM (fallback)')
+      setAiModel("WebLLM (fallback)")
     }
     if (requestId === aiSuggestionsRequestRef.current) {
       setIsLoadingAI(false)
@@ -127,8 +170,8 @@ const EnhancedCommentSystem = ({
 
   const handleShowAIHelp = () => {
     if (isGuest) {
-      emitToast({ message: "Sign up to use AI help!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to use AI help!", icon: "🔒" })
+      return
     }
     if (!isAiEnabled) return
     setShowAIHelp(!showAIHelp)
@@ -159,8 +202,28 @@ const EnhancedCommentSystem = ({
     }
   }, [])
 
+  useEffect(() => {
+    if (!articleId) {
+      setComments([])
+      return
+    }
+
+    const unsubscribe = onCommentsChanged(articleId, (loadedComments = []) => {
+      setComments(buildCommentTree(loadedComments))
+    })
+
+    return () => {
+      unsubscribe?.()
+    }
+  }, [articleId])
+
   // Word click functionality
-  const handleWordClick = async (word, isJapanese, context = null, event = null) => {
+  const handleWordClick = async (
+    word,
+    isJapanese,
+    context = null,
+    event = null
+  ) => {
     const findCommentWithWord = (comments) => {
       for (const comment of comments) {
         if (comment.content.includes(word)) {
@@ -198,7 +261,7 @@ const EnhancedCommentSystem = ({
       fullContext,
       null,
       setIsTranslating,
-      userProfile?.targetLanguage || 'Japanese',
+      userProfile?.targetLanguage || "Japanese",
       clickPosition
     )
   }
@@ -219,8 +282,8 @@ const EnhancedCommentSystem = ({
 
   const handleAddToDictionary = () => {
     if (isGuest) {
-      emitToast({ message: "Sign up to save words!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to save words!", icon: "🔒" })
+      return
     }
     if (selectedWord) {
       const wordToAdd = {
@@ -231,7 +294,10 @@ const EnhancedCommentSystem = ({
       }
 
       const isAlreadyInDictionary = userDictionary.some((item) => {
-        return item.japanese === wordToAdd.japanese || item.english === wordToAdd.english
+        return (
+          item.japanese === wordToAdd.japanese ||
+          item.english === wordToAdd.english
+        )
       })
 
       if (!isAlreadyInDictionary) {
@@ -245,8 +311,8 @@ const EnhancedCommentSystem = ({
 
   const handleLikeComment = (commentId) => {
     if (isGuest) {
-      emitToast({ message: "Sign up to like comments!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to like comments!", icon: "🔒" })
+      return
     }
     if (!likedComments.has(commentId)) {
       const findCommentById = (comments, id) => {
@@ -273,8 +339,8 @@ const EnhancedCommentSystem = ({
 
   const handleReplyToComment = (commentId, username) => {
     if (isGuest) {
-      emitToast({ message: "Sign up to reply!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to reply!", icon: "🔒" })
+      return
     }
     setReplyingTo({ id: commentId, username })
     setCommentText(`@${username} `)
@@ -290,7 +356,7 @@ const EnhancedCommentSystem = ({
   }
 
   const toggleCommentCollapse = (commentId) => {
-    setCollapsedComments(prev => {
+    setCollapsedComments((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(commentId)) {
         newSet.delete(commentId)
@@ -311,7 +377,9 @@ const EnhancedCommentSystem = ({
         return <span key={segmentIndex}>{segment}</span>
       }
 
-      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(segment)
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(
+        segment
+      )
       const hasEnglish = /[a-zA-Z]/.test(segment)
 
       if (hasJapanese) {
@@ -319,7 +387,7 @@ const EnhancedCommentSystem = ({
         const words = segmentJapaneseText(segment)
 
         // Japanese is target language if user is learning Japanese
-        const isTargetLanguage = userProfile?.targetLanguage === 'Japanese'
+        const isTargetLanguage = userProfile?.targetLanguage === "Japanese"
 
         return (
           <span key={segmentIndex}>
@@ -330,7 +398,9 @@ const EnhancedCommentSystem = ({
                 <span
                   key={`${segmentIndex}-${wordIndex}`}
                   className="cursor-pointer hover:bg-amber-50 border-b-2 border-transparent hover:border-amber-400 rounded px-1 py-0.5 transition-all duration-200"
-                    onClick={(e) => handleWordClick(wordText, isTargetLanguage, text, e)}
+                  onClick={(e) =>
+                    handleWordClick(wordText, isTargetLanguage, text, e)
+                  }
                   title={`Click to translate: ${wordText}`}
                   style={{ textDecoration: "none" }}
                 >
@@ -369,18 +439,24 @@ const EnhancedCommentSystem = ({
   // Handle file selection for media uploads
   const handleFileSelect = (event) => {
     if (isGuest) {
-      emitToast({ message: "Sign up to upload media!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to upload media!", icon: "🔒" })
+      return
     }
     const file = event.target.files?.[0]
     if (!file) return
 
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ]
     if (!validTypes.includes(file.type)) {
       emitToast({
-        message: 'Please select a valid image file (JPEG, PNG, GIF, or WebP)',
-        icon: '⚠️',
+        message: "Please select a valid image file (JPEG, PNG, GIF, or WebP)",
+        icon: "⚠️",
       })
       return
     }
@@ -389,8 +465,8 @@ const EnhancedCommentSystem = ({
     const maxSize = 5 * 1024 * 1024 // 5MB in bytes
     if (file.size > maxSize) {
       emitToast({
-        message: 'File size must be less than 5MB',
-        icon: '⚠️',
+        message: "File size must be less than 5MB",
+        icon: "⚠️",
       })
       return
     }
@@ -403,7 +479,7 @@ const EnhancedCommentSystem = ({
         file: file,
         type: file.type,
         name: file.name,
-        data: base64String
+        data: base64String,
       })
       setMediaPreview(base64String)
     }
@@ -415,20 +491,20 @@ const EnhancedCommentSystem = ({
     setSelectedMedia(null)
     setMediaPreview(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = ""
     }
   }
 
   // Handle speech-to-text transcript
   const handleTranscript = (transcript) => {
     if (isGuest) {
-      emitToast({ message: "Sign up to use speech-to-text!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to use speech-to-text!", icon: "🔒" })
+      return
     }
     // Append transcript to existing comment text (with space if there's existing text)
     setCommentText((prevText) => {
       if (prevText.trim()) {
-        return prevText + ' ' + transcript
+        return prevText + " " + transcript
       }
       return transcript
     })
@@ -442,8 +518,8 @@ const EnhancedCommentSystem = ({
   // Check grammar before posting
   const checkCommentGrammar = async () => {
     if (isGuest) {
-      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" })
+      return
     }
     if (!isAiEnabled) {
       postCommentDirectly()
@@ -454,7 +530,7 @@ const EnhancedCommentSystem = ({
     grammarRequestRef.current = requestId
     setIsCheckingGrammar(true)
     try {
-      const targetLanguage = userProfile?.targetLanguage || 'Japanese'
+      const targetLanguage = userProfile?.targetLanguage || "Japanese"
 
       const { checkGrammarLocal } = await loadCommentAiService()
 
@@ -478,10 +554,10 @@ const EnhancedCommentSystem = ({
       }
     } catch (error) {
       if (requestId !== grammarRequestRef.current) return
-      console.error('Failed to check grammar locally:', error)
+      console.error("Failed to check grammar locally:", error)
       emitToast({
-        message: 'Grammar check unavailable. Posting anyway.',
-        icon: '⚠️',
+        message: "Grammar check unavailable. Posting anyway.",
+        icon: "⚠️",
       })
       // On error, allow posting anyway
       postCommentDirectly()
@@ -494,8 +570,8 @@ const EnhancedCommentSystem = ({
   // Actually post the comment (called after grammar check passes or user confirms)
   const postCommentDirectly = () => {
     if (isGuest) {
-      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" })
+      return
     }
     setShowGrammarCheck(false)
 
@@ -507,27 +583,29 @@ const EnhancedCommentSystem = ({
       avatar: userProfile?.name?.charAt(0) || "A",
       profilePictureUrl: userProfile?.profilePictureUrl || "",
       replies: [],
-      media: selectedMedia ? {
-        type: selectedMedia.type,
-        data: selectedMedia.data,
-        name: selectedMedia.name
-      } : null
+      media: selectedMedia
+        ? {
+            type: selectedMedia.type,
+            data: selectedMedia.data,
+            name: selectedMedia.name,
+          }
+        : null,
     }
 
     if (replyingTo) {
       // Add as a reply to the specified comment
       const addReply = (comments) => {
-        return comments.map(comment => {
+        return comments.map((comment) => {
           if (comment.id === replyingTo.id) {
             return {
               ...comment,
-              replies: [...comment.replies, newComment]
+              replies: [...comment.replies, newComment],
             }
           }
           if (comment.replies && comment.replies.length > 0) {
             return {
               ...comment,
-              replies: addReply(comment.replies)
+              replies: addReply(comment.replies),
             }
           }
           return comment
@@ -547,8 +625,8 @@ const EnhancedCommentSystem = ({
 
   const handlePostComment = () => {
     if (isGuest) {
-      emitToast({ message: "Sign up to post comments!", icon: "🔒" });
-      return;
+      emitToast({ message: "Sign up to post comments!", icon: "🔒" })
+      return
     }
     if (commentText.trim() || selectedMedia) {
       // Check grammar before posting if there's text
@@ -640,7 +718,8 @@ const EnhancedCommentSystem = ({
                     <>
                       <span className="text-xs text-gray-500">•</span>
                       <span className="text-xs text-gray-500">
-                        {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                        {comment.replies.length}{" "}
+                        {comment.replies.length === 1 ? "reply" : "replies"}
                       </span>
                     </>
                   )}
@@ -680,7 +759,9 @@ const EnhancedCommentSystem = ({
                         <span>{commentLikes[comment.id] || comment.likes}</span>
                       </button>
                       <button
-                        onClick={() => handleReplyToComment(comment.id, comment.user)}
+                        onClick={() =>
+                          handleReplyToComment(comment.id, comment.user)
+                        }
                         className="flex items-center space-x-1 text-xs text-gray-500 hover:text-orange-500"
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
@@ -691,7 +772,6 @@ const EnhancedCommentSystem = ({
                 )}
               </div>
             </div>
-
           </div>
         </div>
 
@@ -810,7 +890,7 @@ const EnhancedCommentSystem = ({
                 </button>
 
                 <SpeechToTextButton
-                  targetLanguage={userProfile?.targetLanguage || 'Japanese'}
+                  targetLanguage={userProfile?.targetLanguage || "Japanese"}
                   onTranscript={handleTranscript}
                 />
 
@@ -825,7 +905,9 @@ const EnhancedCommentSystem = ({
 
               <button
                 onClick={handlePostComment}
-                disabled={(!commentText.trim() && !selectedMedia) || isCheckingGrammar}
+                disabled={
+                  (!commentText.trim() && !selectedMedia) || isCheckingGrammar
+                }
                 className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-1 transition-colors"
               >
                 {isCheckingGrammar ? (
@@ -866,12 +948,17 @@ const EnhancedCommentSystem = ({
             {isLoadingAI ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-amber-600 mr-2" />
-                <span className="text-sm text-amber-700">Generating suggestions...</span>
+                <span className="text-sm text-amber-700">
+                  Generating suggestions...
+                </span>
               </div>
             ) : (
               <div className="space-y-2">
                 {aiSuggestions.map((suggestion, index) => (
-                  <div key={index} className="p-3 bg-white rounded border border-amber-200 hover:border-amber-300 transition-colors">
+                  <div
+                    key={index}
+                    className="p-3 bg-white rounded border border-amber-200 hover:border-amber-300 transition-colors"
+                  >
                     <div className="text-sm text-gray-900 mb-1">
                       {suggestion.text}
                     </div>
@@ -894,16 +981,15 @@ const EnhancedCommentSystem = ({
               </div>
             )}
             <p className="text-xs text-amber-700 mt-3 text-center">
-              AI-generated suggestions to help you practice mixed-language comments
+              AI-generated suggestions to help you practice mixed-language
+              comments
             </p>
           </div>
         )}
       </div>
 
       {/* Comments List with Reddit-style threading */}
-      <div>
-        {allComments.map((comment) => renderComment(comment, 0))}
-      </div>
+      <div>{allComments.map((comment) => renderComment(comment, 0))}</div>
 
       {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
@@ -944,7 +1030,9 @@ const EnhancedCommentSystem = ({
             <div className="space-y-4">
               {/* Original Text */}
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">Your comment:</p>
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  Your comment:
+                </p>
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-gray-900">
                   {grammarCheckResult.originalText}
                 </div>
@@ -953,7 +1041,9 @@ const EnhancedCommentSystem = ({
               {/* Corrected Text */}
               {grammarCheckResult.correctedText && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Suggested correction:</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Suggested correction:
+                  </p>
                   <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-900">
                     {grammarCheckResult.correctedText}
                   </div>
@@ -963,7 +1053,9 @@ const EnhancedCommentSystem = ({
               {/* Explanation */}
               {grammarCheckResult.explanation && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Explanation:</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Explanation:
+                  </p>
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-gray-800">
                     {grammarCheckResult.explanation}
                   </div>
