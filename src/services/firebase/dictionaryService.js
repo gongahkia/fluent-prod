@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   deleteDoc,
@@ -41,7 +42,12 @@ export const addWordToDictionary = async (userId, wordData) => {
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error adding word to dictionary:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -54,7 +60,12 @@ export const removeWordFromDictionary = async (userId, wordId) => {
     return { success: true }
   } catch (error) {
     console.error("Error removing word from dictionary:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -104,7 +115,12 @@ export const getUserDictionary = async (userId, language = null) => {
       }
     }
     console.error("Error getting user dictionary:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 

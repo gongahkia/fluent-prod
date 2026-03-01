@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { sanitizeFirestoreId } from "./idUtils"
 import {
   credentialsDoc,
@@ -30,7 +31,12 @@ export const createUserProfile = async (userId, profileData) => {
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating user profile:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -40,11 +46,20 @@ export const getUserProfile = async (userId) => {
       withFirestoreReadRetry("get:userProfile", () => getDoc(userDoc(userId)))
     )
     if (!snap.exists())
-      return { success: false, error: "User profile not found" }
+      return {
+        success: false,
+        error: "User profile not found",
+        errorCode: "FIRESTORE_NOT_FOUND",
+      }
     return { success: true, data: snap.data() }
   } catch (error) {
     console.error("Error getting user profile:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -67,7 +82,12 @@ export const updateUserProfile = async (userId, updates) => {
     return { success: true }
   } catch (error) {
     console.error("Error updating user profile:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -87,7 +107,12 @@ export const updateUserCredentials = async (userId, encryptedData) => {
     return { success: true }
   } catch (error) {
     console.error("Error updating credentials:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -102,6 +127,11 @@ export const getUserCredentials = async (userId) => {
     return { success: true, data: snap.data()?.encryptedData ?? null }
   } catch (error) {
     console.error("Error getting credentials:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }

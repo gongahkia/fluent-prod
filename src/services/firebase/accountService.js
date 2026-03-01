@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import {
   blockingCol,
   credentialsDoc,
@@ -30,6 +31,11 @@ export const deleteUserAccountData = async (userId) => {
     return { success: true }
   } catch (error) {
     console.error("Error deleting user account data:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }

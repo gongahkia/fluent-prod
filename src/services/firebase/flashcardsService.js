@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { sanitizeFirestoreId } from "./idUtils"
 import {
   doc,
@@ -22,7 +23,12 @@ export const getFlashcardProgress = async (userId) => {
     return { success: true, data: progress }
   } catch (error) {
     console.error("Error getting flashcard progress:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -41,7 +47,12 @@ export const saveFlashcardProgress = async (userId, wordId, progressData) => {
     return { success: true }
   } catch (error) {
     console.error("Error saving flashcard progress:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 

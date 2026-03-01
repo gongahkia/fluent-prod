@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import {
   collection,
   fbLimit,
@@ -46,6 +47,12 @@ export const searchUsers = async (searchTerm) => {
     return { success: true, data: [...merged.values()] }
   } catch (error) {
     console.error("Error searching users:", error)
-    return { success: false, error: error.message, data: [] }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+      data: [],
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   deleteDoc,
@@ -45,7 +46,12 @@ export const getSavedPosts = async (userId) => {
       }
     }
     console.error("Error getting saved posts:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -77,7 +83,12 @@ export const savePost = async (userId, postData) => {
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error saving post:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -90,6 +101,11 @@ export const removeSavedPost = async (userId, postId) => {
     return { success: true }
   } catch (error) {
     console.error("Error removing saved post:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }

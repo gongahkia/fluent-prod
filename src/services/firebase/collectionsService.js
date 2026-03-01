@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   arrayRemove,
@@ -42,7 +43,12 @@ export const createCollection = async (userId, collectionData) => {
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating collection:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -55,7 +61,12 @@ export const getCollections = async (userId) => {
     return { success: true, data: collections }
   } catch (error) {
     console.error("Error getting collections:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -74,7 +85,12 @@ export const updateCollection = async (userId, collectionId, updates) => {
     return { success: true }
   } catch (error) {
     console.error("Error updating collection:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -85,7 +101,12 @@ export const deleteCollection = async (userId, collectionId) => {
     return { success: true }
   } catch (error) {
     console.error("Error deleting collection:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -101,7 +122,12 @@ export const addWordToCollection = async (userId, collectionId, wordId) => {
     return { success: true }
   } catch (error) {
     console.error("Error adding word to collection:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -121,6 +147,11 @@ export const removeWordFromCollection = async (
     return { success: true }
   } catch (error) {
     console.error("Error removing word from collection:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }

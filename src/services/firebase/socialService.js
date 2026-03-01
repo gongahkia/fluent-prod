@@ -1,3 +1,4 @@
+import { mapFirestoreError } from "./errorMapper"
 import { sanitizeFirestoreId } from "./idUtils"
 import {
   blockingCol,
@@ -24,7 +25,13 @@ export const isFollowing = async (userId, targetUserId) => {
     return { success: true, isFollowing: snap.exists() }
   } catch (error) {
     console.error("Error checking follow status:", error)
-    return { success: false, error: error.message, isFollowing: false }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+      isFollowing: false,
+    }
   }
 }
 
@@ -60,7 +67,12 @@ export const followUser = async (userId, targetUserId) => {
     return { success: true }
   } catch (error) {
     console.error("Error following user:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -76,7 +88,12 @@ export const unfollowUser = async (userId, targetUserId) => {
     return { success: true }
   } catch (error) {
     console.error("Error unfollowing user:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -99,7 +116,12 @@ export const getUserFollowers = async (userId) => {
     return { success: true, data: profiles }
   } catch (error) {
     console.error("Error getting followers:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -122,7 +144,12 @@ export const getUserFollowing = async (userId) => {
     return { success: true, data: profiles }
   } catch (error) {
     console.error("Error getting following:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -138,7 +165,12 @@ export const removeFollower = async (userId, followerId) => {
     return { success: true }
   } catch (error) {
     console.error("Error removing follower:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
 
@@ -167,6 +199,11 @@ export const blockUser = async (userId, targetUserId) => {
     return { success: true }
   } catch (error) {
     console.error("Error blocking user:", error)
-    return { success: false, error: error.message }
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
   }
 }
