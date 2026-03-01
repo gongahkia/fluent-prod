@@ -1,4 +1,10 @@
 import crypto from "node:crypto"
+import {
+  recordFallback,
+  recordProviderFailure,
+  recordProviderSuccess,
+  recordRequest,
+} from "./translateMetrics.js"
 
 function json(res, status, payload) {
   res.statusCode = status
@@ -246,6 +252,7 @@ function isRateLimited(ip) {
 
 export default async function handler(req, res) {
   const requestStartedAt = Date.now()
+  recordRequest()
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed" })
   }
@@ -312,6 +319,10 @@ export default async function handler(req, res) {
           })
 
           writeToCache(cacheKey, parsedResponse)
+          recordProviderSuccess(provider.id)
+          if (provider.id !== "lingva") {
+            recordFallback()
+          }
           const requestDurationMs = Date.now() - requestStartedAt
           const latencies = recordRequestLatency(requestDurationMs)
           logEvent("translate.provider.success", {
@@ -329,6 +340,7 @@ export default async function handler(req, res) {
           return json(res, 200, parsedResponse)
         }
       } catch (error) {
+        recordProviderFailure(provider.id, error?.code || "UNKNOWN")
         logEvent("translate.provider.error", {
           provider: provider.id,
           status: error?.status || 502,
@@ -341,6 +353,9 @@ export default async function handler(req, res) {
 
     throw lastError || createProviderError("NO_PROVIDER_SUCCESS", "No provider returned a translation")
   } catch (error) {
+    if ((error?.code || "") === "NO_PROVIDER_SUCCESS") {
+      recordFallback()
+    }
     const requestDurationMs = Date.now() - requestStartedAt
     const latencies = recordRequestLatency(requestDurationMs)
     logEvent("translate.request.error", {
