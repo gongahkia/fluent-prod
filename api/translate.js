@@ -24,6 +24,10 @@ const translationCache = new Map()
 const rateLimitStore = new Map()
 const requestLatencySamples = []
 const VALID_PROVIDERS = new Set(["lingva", "mymemory", "libretranslate"])
+const SUPPORTED_TRANSLATION_PAIRS = new Set(["en-ja", "ja-en"])
+const TRANSLATION_ERROR_CODES = {
+  UNSUPPORTED_LANGUAGE_PAIR: "UNSUPPORTED_LANGUAGE_PAIR",
+}
 const providerCircuitState = new Map()
 
 function createProviderError(code, message, extras = {}) {
@@ -310,7 +314,28 @@ export default async function handler(req, res) {
       issues: parsedRequest.error.issues,
     })
   }
-  const { text, fromLang, toLang } = parsedRequest.data
+  const text = parsedRequest.data.text
+  const fromLang = parsedRequest.data.fromLang.toLowerCase()
+  const toLang = parsedRequest.data.toLang.toLowerCase()
+  const pairKey = `${fromLang}-${toLang}`
+  if (!SUPPORTED_TRANSLATION_PAIRS.has(pairKey)) {
+    const requestDurationMs = Date.now() - requestStartedAt
+    const latencies = recordRequestLatency(requestDurationMs)
+    logEvent("translate.request.invalid_pair", {
+      status: 400,
+      code: TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR,
+      pair: pairKey,
+      durationMs: requestDurationMs,
+      p50Ms: latencies.p50Ms,
+      p95Ms: latencies.p95Ms,
+    })
+    return json(res, 400, {
+      error: "Unsupported translation pair",
+      code: TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR,
+      message: "Only en-ja and ja-en translation pairs are supported",
+    })
+  }
+
   const cacheKey = createCacheKey(text, fromLang, toLang)
 
   const cached = readFromCache(cacheKey)
