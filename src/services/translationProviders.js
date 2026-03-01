@@ -56,6 +56,57 @@ function buildProviderRequest(providerId, text, fromLang, toLang, mappings) {
   return null
 }
 
+export async function tryLingva(
+  text,
+  fromLang,
+  toLang,
+  timeoutMs = 5000,
+  mappings = translationMappings
+) {
+  return requestProviderTranslation(
+    TRANSLATION_PROVIDER_IDS.LINGVA,
+    text,
+    fromLang,
+    toLang,
+    timeoutMs,
+    mappings
+  )
+}
+
+export async function tryMyMemory(
+  text,
+  fromLang,
+  toLang,
+  timeoutMs = 5000,
+  mappings = translationMappings
+) {
+  return requestProviderTranslation(
+    TRANSLATION_PROVIDER_IDS.MYMEMORY,
+    text,
+    fromLang,
+    toLang,
+    timeoutMs,
+    mappings
+  )
+}
+
+export async function tryLibreTranslate(
+  text,
+  fromLang,
+  toLang,
+  timeoutMs = 5000,
+  mappings = translationMappings
+) {
+  return requestProviderTranslation(
+    TRANSLATION_PROVIDER_IDS.LIBRETRANSLATE,
+    text,
+    fromLang,
+    toLang,
+    timeoutMs,
+    mappings
+  )
+}
+
 export async function requestProviderTranslation(
   providerId,
   text,
