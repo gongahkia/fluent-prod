@@ -11,6 +11,14 @@ import { cn } from '@/lib/utils';
 import pronunciationService from '@/services/pronunciationService';
 import Toast from './Toast';
 
+let playbackQueue = Promise.resolve();
+
+function enqueuePlayback(task) {
+  const run = playbackQueue.then(task, task);
+  playbackQueue = run.catch(() => {});
+  return run;
+}
+
 export function PronunciationButton({
   text,
   language = 'English',
@@ -65,21 +73,23 @@ export function PronunciationButton({
     }
 
     try {
-      setIsSpeaking(true);
-      await pronunciationService.speak(text, language, {
-        onStart: () => {
-          setIsSpeaking(true);
-        },
-        onEnd: () => {
-          setIsSpeaking(false);
-        },
-        onError: (err) => {
-          console.error('Pronunciation error:', err);
-          setToastMessage(`Pronunciation failed for ${language}`);
-          setShowToast(true);
-          setError(true);
-          setIsSpeaking(false);
-        },
+      await enqueuePlayback(async () => {
+        setIsSpeaking(true);
+        await pronunciationService.speak(text, language, {
+          onStart: () => {
+            setIsSpeaking(true);
+          },
+          onEnd: () => {
+            setIsSpeaking(false);
+          },
+          onError: (err) => {
+            console.error('Pronunciation error:', err);
+            setToastMessage(`Pronunciation failed for ${language}`);
+            setShowToast(true);
+            setError(true);
+            setIsSpeaking(false);
+          },
+        });
       });
     } catch (err) {
       console.error('Error during pronunciation:', err);
