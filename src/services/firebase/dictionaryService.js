@@ -1,0 +1,156 @@
+import {
+  deleteDoc,
+  dictionaryCol,
+  doc,
+  getDocs,
+  nowIso,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+  withFirestoreReadRetry,
+  withFirestoreTiming,
+} from "./shared"
+
+export const addWordToDictionary = async (userId, wordData) => {
+  try {
+    const rawId = wordData?.id
+    let wordId = null
+
+    if (typeof rawId === "string" && rawId.trim()) {
+      wordId = rawId.trim()
+    } else if (typeof rawId === "number" && Number.isFinite(rawId)) {
+      wordId = String(rawId)
+    }
+
+    if (!wordId) {
+      wordId =
+        globalThis?.crypto?.randomUUID?.() ||
+        `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    }
+
+    wordId = String(wordId).replaceAll("/", "_")
+
+    const payload = {
+      ...wordData,
+      id: wordId,
+      userId,
+      language:
+        wordData?.language ||
+        wordData?.targetLanguage ||
+        wordData?.targetLang ||
+        "Japanese",
+      dateAdded: wordData?.dateAdded || nowIso(),
+      createdAt: wordData?.createdAt || nowIso(),
+      updatedAt: nowIso(),
+      createdAtTs: serverTimestamp(),
+      updatedAtTs: serverTimestamp(),
+    }
+
+    await withFirestoreTiming("set:dictionaryWord", () =>
+      setDoc(doc(dictionaryCol(userId), wordId), payload, { merge: true })
+    )
+    return { success: true, data: payload }
+  } catch (error) {
+    console.error("Error adding word to dictionary:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const removeWordFromDictionary = async (userId, wordId) => {
+  try {
+    await withFirestoreTiming("delete:dictionaryWord", () =>
+      deleteDoc(doc(dictionaryCol(userId), wordId))
+    )
+    return { success: true }
+  } catch (error) {
+    console.error("Error removing word from dictionary:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const getUserDictionary = async (userId, language = null) => {
+  try {
+    const base = dictionaryCol(userId)
+    const q = language
+      ? query(
+          base,
+          where("language", "==", language),
+          orderBy("createdAt", "desc")
+        )
+      : query(base, orderBy("createdAt", "desc"))
+
+    const snap = await withFirestoreTiming("get:dictionaryWords", () =>
+      withFirestoreReadRetry("get:dictionaryWords", () => getDocs(q))
+    )
+    const words = snap.docs.map((d) => d.data())
+    return { success: true, data: words }
+  } catch (error) {
+    if (
+      error?.code === "failed-precondition" &&
+      String(error?.message || "")
+        .toLowerCase()
+        .includes("requires an index")
+    ) {
+      try {
+        const base = dictionaryCol(userId)
+        const fallbackQuery = language
+          ? query(base, where("language", "==", language))
+          : query(base)
+        const fallbackSnap = await withFirestoreReadRetry(
+          "get:dictionaryWords:fallback",
+          () => getDocs(fallbackQuery)
+        )
+        const words = fallbackSnap.docs
+          .map((d) => d.data())
+          .sort((a, b) =>
+            String(b?.createdAt || "").localeCompare(String(a?.createdAt || ""))
+          )
+        return { success: true, data: words, warning: "missing-index-fallback" }
+      } catch {
+        console.warn(
+          "Firestore index missing for dictionary query and fallback failed."
+        )
+        return { success: true, data: [], warning: "missing-index" }
+      }
+    }
+    console.error("Error getting user dictionary:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export const onDictionaryChange = (userId, callback, language = null) => {
+  const base = dictionaryCol(userId)
+  const q = language
+    ? query(
+        base,
+        where("language", "==", language),
+        orderBy("createdAt", "desc")
+      )
+    : query(base, orderBy("createdAt", "desc"))
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const words = snap.docs.map((d) => d.data())
+      callback(words)
+    },
+    (error) => {
+      if (
+        error?.code === "failed-precondition" &&
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("requires an index")
+      ) {
+        console.warn(
+          "Firestore index missing for dictionary listener; emitting empty list until index is created."
+        )
+        callback([])
+        return
+      }
+      console.error("Dictionary snapshot listener error:", error)
+    }
+  )
+}

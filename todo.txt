@@ -1,4 +1,3 @@
-(B) Split Firestore methods in `src/services/firebaseDatabaseService.js` into domain files under `src/services/firebase/`. +data +refactor +stability
 (B) Add shared Firestore ID sanitizer utility at `src/services/firebase/idUtils.js` and use it in all write paths. +data +stability +dx
 (B) Add shared Firestore error mapper at `src/services/firebase/errorMapper.js` and return stable `errorCode` values. +data +stability +dx
 (B) Add write retries with exponential backoff for transient Firestore write errors in `src/services/firebase/retry.js`. +data +stability +scaling
