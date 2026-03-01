@@ -16,6 +16,38 @@ async function translateWithLingva(text, fromLang, toLang) {
   return data?.translation || ""
 }
 
+async function translateWithMyMemory(text, fromLang, toLang) {
+  const baseUrl = process.env.MYMEMORY_BASE_URL || "https://api.mymemory.translated.net/get"
+  const url = `${baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
+  const response = await fetch(url, { method: "GET" })
+  if (!response.ok) {
+    throw new Error(`MyMemory request failed with status ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data?.responseData?.translatedText || ""
+}
+
+async function translateWithLibreTranslate(text, fromLang, toLang) {
+  const baseUrl = process.env.LIBRETRANSLATE_BASE_URL || "https://libretranslate.com/translate"
+  const response = await fetch(baseUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      q: text,
+      source: fromLang,
+      target: toLang,
+      format: "text",
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`LibreTranslate request failed with status ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data?.translatedText || ""
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed" })
@@ -39,12 +71,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    const translation = await translateWithLingva(text, fromLang, toLang)
+    const providers = [
+      { id: "lingva", run: translateWithLingva },
+      { id: "mymemory", run: translateWithMyMemory },
+      { id: "libretranslate", run: translateWithLibreTranslate },
+    ]
 
-    return json(res, 200, {
-      translation,
-      provider: "lingva",
-    })
+    let lastError = null
+    for (const provider of providers) {
+      try {
+        const translation = await provider.run(text, fromLang, toLang)
+        if (translation && translation !== text) {
+          return json(res, 200, {
+            translation,
+            provider: provider.id,
+          })
+        }
+      } catch (error) {
+        lastError = error
+      }
+    }
+
+    throw lastError || new Error("No provider returned a translation")
   } catch (error) {
     return json(res, 502, {
       error: "Translation provider request failed",
