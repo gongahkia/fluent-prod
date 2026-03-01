@@ -12,6 +12,13 @@ import {
   withTimeout,
 } from './translationPipeline'
 import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
+import {
+  ensureProviderCircuitState,
+  isCircuitOpen,
+  normalizeCircuitProviderId,
+  recordCircuitFailure,
+  recordCircuitSuccess,
+} from './translationCircuitBreaker'
 import { emitTranslationEvent } from '../lib/toastBus'
 import { z } from 'zod'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
@@ -332,57 +339,39 @@ class TranslationService {
   }
 
   normalizeProviderId(providerId) {
-    return String(providerId || '').trim().toLowerCase()
+    return normalizeCircuitProviderId(providerId)
   }
 
   getProviderCircuitState(providerId) {
-    const key = this.normalizeProviderId(providerId)
-    if (!this.providerCircuitState.has(key)) {
-      this.providerCircuitState.set(key, {
-        provider: key,
-        failureCount: 0,
-        openUntil: 0,
-        cooldownEndsAt: 0,
-        lastFailureAt: 0,
-        lastSuccessAt: 0,
+    return ensureProviderCircuitState(
+      this.providerCircuitState,
+      this.normalizeProviderId(providerId),
+      {
         failThreshold: TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD,
         cooldownMs: TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS,
-      })
-    }
-    return this.providerCircuitState.get(key)
+      }
+    )
   }
 
   isProviderCircuitOpen(providerId) {
     const state = this.getProviderCircuitState(providerId)
-    return Date.now() < state.openUntil
+    return isCircuitOpen(state)
   }
 
   recordProviderFailure(providerId) {
     const key = this.normalizeProviderId(providerId)
     const state = this.getProviderCircuitState(key)
-    const now = Date.now()
-
-    state.failureCount += 1
-    state.lastFailureAt = now
-
-    if (state.failureCount >= state.failThreshold) {
-      state.cooldownEndsAt = now + state.cooldownMs
-      state.openUntil = state.cooldownEndsAt
-    }
-
-    this.providerCircuitState.set(key, state)
-    return state
+    const nextState = recordCircuitFailure(state)
+    this.providerCircuitState.set(key, nextState)
+    return nextState
   }
 
   recordProviderSuccess(providerId) {
     const key = this.normalizeProviderId(providerId)
     const state = this.getProviderCircuitState(key)
-    state.failureCount = 0
-    state.openUntil = 0
-    state.cooldownEndsAt = 0
-    state.lastSuccessAt = Date.now()
-    this.providerCircuitState.set(key, state)
-    return state
+    const nextState = recordCircuitSuccess(state)
+    this.providerCircuitState.set(key, nextState)
+    return nextState
   }
 
   assertSupportedTranslationPair(fromLang, toLang) {
