@@ -10,6 +10,8 @@ import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProvider
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
+const TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_FAIL_THRESHOLD || '3', 10)
+const TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_COOLDOWN_MS || '30000', 10)
 const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
 
 export const TRANSLATION_ERROR_CODES = {
@@ -146,6 +148,25 @@ async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
 class TranslationService {
   constructor() {
     this.mappings = translationMappings
+    this.providerCircuitState = new Map()
+  }
+
+  normalizeProviderId(providerId) {
+    return String(providerId || '').trim().toLowerCase()
+  }
+
+  getProviderCircuitState(providerId) {
+    const key = this.normalizeProviderId(providerId)
+    if (!this.providerCircuitState.has(key)) {
+      this.providerCircuitState.set(key, {
+        provider: key,
+        failureCount: 0,
+        openUntil: 0,
+        failThreshold: TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD,
+        cooldownMs: TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS,
+      })
+    }
+    return this.providerCircuitState.get(key)
   }
 
   assertSupportedTranslationPair(fromLang, toLang) {
