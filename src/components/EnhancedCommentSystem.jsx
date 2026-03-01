@@ -23,6 +23,7 @@ import {
   onCommentsChanged,
   toggleCommentLike,
 } from "../services/firebase/commentsService"
+import { buildPersistedCommentTree } from "../services/firebase/commentsTree"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 import LoadingSpinner from "./ui/LoadingSpinner"
@@ -30,44 +31,6 @@ import SpeechToTextButton from "./ui/SpeechToTextButton"
 
 async function loadCommentAiService() {
   return await import("../services/commentAiService")
-}
-
-function toDisplayComment(comment = {}) {
-  const userLabel = String(
-    comment?.user || comment?.username || comment?.displayName || "User"
-  )
-  return {
-    ...comment,
-    id: comment?.id || `comment-${Date.now()}`,
-    user: userLabel,
-    likes: Number(comment?.likesCount ?? comment?.likes ?? 0),
-    avatar: comment?.avatar || userLabel.charAt(0).toUpperCase() || "U",
-    profilePictureUrl: comment?.profilePictureUrl || "",
-    parentCommentId: comment?.parentCommentId || null,
-    replies: [],
-  }
-}
-
-function buildCommentTree(comments = []) {
-  const indexedComments = new Map()
-  comments.forEach((rawComment) => {
-    const comment = toDisplayComment(rawComment)
-    indexedComments.set(comment.id, comment)
-  })
-
-  const roots = []
-  indexedComments.forEach((comment) => {
-    if (
-      comment.parentCommentId &&
-      indexedComments.has(comment.parentCommentId)
-    ) {
-      indexedComments.get(comment.parentCommentId).replies.push(comment)
-    } else {
-      roots.push(comment)
-    }
-  })
-
-  return roots
 }
 
 const EnhancedCommentSystem = ({
@@ -215,7 +178,7 @@ const EnhancedCommentSystem = ({
     const unsubscribe = onCommentsChanged(
       articleId,
       (loadedComments = []) => {
-        setComments(buildCommentTree(loadedComments))
+        setComments(buildPersistedCommentTree(loadedComments))
       },
       { viewerUserId: userProfile?.userId }
     )
