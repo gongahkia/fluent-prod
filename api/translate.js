@@ -18,6 +18,22 @@ const responseSchema = z.object({
   provider: z.enum(["lingva", "mymemory", "libretranslate"]),
 })
 
+function sanitizeTranslation(rawText) {
+  let text = String(rawText || "")
+
+  text = text
+    .replace(/\\"/g, "\"")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+
+  // Remove lone surrogate code units that render as malformed unicode.
+  text = text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+  text = text.replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1")
+
+  return text.normalize("NFKC").trim()
+}
+
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS)
@@ -110,9 +126,10 @@ export default async function handler(req, res) {
     for (const provider of providers) {
       try {
         const translation = await provider.run(text, fromLang, toLang)
-        if (translation && translation !== text) {
+        const sanitizedTranslation = sanitizeTranslation(translation)
+        if (sanitizedTranslation && sanitizedTranslation !== text) {
           const parsedResponse = responseSchema.parse({
-            translation,
+            translation: sanitizedTranslation,
             provider: provider.id,
           })
 
