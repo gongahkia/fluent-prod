@@ -25,6 +25,13 @@ const responseSchema = z.object({
   provider: z.enum(["lingva", "mymemory", "libretranslate"]),
 })
 
+function createProviderError(code, message, extras = {}) {
+  const error = new Error(message)
+  error.code = code
+  Object.assign(error, extras)
+  return error
+}
+
 function sanitizeTranslation(rawText) {
   let text = String(rawText || "")
 
@@ -85,6 +92,11 @@ async function fetchWithTimeout(url, options = {}) {
       ...options,
       signal: controller.signal,
     })
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw createProviderError("TIMEOUT", "Provider request timed out")
+    }
+    throw error
   } finally {
     clearTimeout(timeout)
   }
@@ -95,7 +107,11 @@ async function translateWithLingva(text, fromLang, toLang) {
   const url = `${baseUrl}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
   const response = await fetchWithTimeout(url, { method: "GET" })
   if (!response.ok) {
-    throw new Error(`Lingva request failed with status ${response.status}`)
+    throw createProviderError(
+      response.status >= 500 ? "UPSTREAM_5XX" : "UPSTREAM_4XX",
+      `Lingva request failed with status ${response.status}`,
+      { status: response.status }
+    )
   }
 
   const data = await response.json()
@@ -107,7 +123,11 @@ async function translateWithMyMemory(text, fromLang, toLang) {
   const url = `${baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
   const response = await fetchWithTimeout(url, { method: "GET" })
   if (!response.ok) {
-    throw new Error(`MyMemory request failed with status ${response.status}`)
+    throw createProviderError(
+      response.status >= 500 ? "UPSTREAM_5XX" : "UPSTREAM_4XX",
+      `MyMemory request failed with status ${response.status}`,
+      { status: response.status }
+    )
   }
 
   const data = await response.json()
@@ -127,7 +147,11 @@ async function translateWithLibreTranslate(text, fromLang, toLang) {
     }),
   })
   if (!response.ok) {
-    throw new Error(`LibreTranslate request failed with status ${response.status}`)
+    throw createProviderError(
+      response.status >= 500 ? "UPSTREAM_5XX" : "UPSTREAM_4XX",
+      `LibreTranslate request failed with status ${response.status}`,
+      { status: response.status }
+    )
   }
 
   const data = await response.json()
@@ -220,10 +244,11 @@ export default async function handler(req, res) {
       }
     }
 
-    throw lastError || new Error("No provider returned a translation")
+    throw lastError || createProviderError("NO_PROVIDER_SUCCESS", "No provider returned a translation")
   } catch (error) {
     return json(res, 502, {
       error: "Translation provider request failed",
+      code: error?.code || "NO_PROVIDER_SUCCESS",
       message: error?.message || "Unknown error",
     })
   }
