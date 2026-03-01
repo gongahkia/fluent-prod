@@ -1,4 +1,3 @@
-(B) Wire like actions in `EnhancedCommentSystem` to persisted `toggleCommentLike` calls. +comments +frontend +stability
 (B) Upload comment images to Firebase Storage and persist only download URLs in `commentsService`. +comments +data +security
 (B) Enforce comment body length and media constraints in `commentsService` before Firestore writes. +comments +stability +security
 (B) Filter blocked users from comment feeds in `commentsService` query assembly. +comments +data +security

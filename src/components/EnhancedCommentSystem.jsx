@@ -21,6 +21,7 @@ import {
 import {
   createReply,
   onCommentsChanged,
+  toggleCommentLike,
 } from "../services/firebase/commentsService"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
@@ -312,32 +313,42 @@ const EnhancedCommentSystem = ({
     }
   }
 
-  const handleLikeComment = (commentId) => {
+  const handleLikeComment = async (commentId) => {
     if (isGuest) {
       emitToast({ message: "Sign up to like comments!", icon: "🔒" })
       return
     }
-    if (!likedComments.has(commentId)) {
-      const findCommentById = (comments, id) => {
-        for (const comment of comments) {
-          if (comment.id === id) return comment
-          if (comment.replies) {
-            const found = findCommentById(comment.replies, id)
-            if (found) return found
-          }
-        }
-        return null
-      }
-
-      const comment = findCommentById(allComments, commentId)
-      const currentLikes = comment ? comment.likes : 0
-
-      setCommentLikes((prev) => ({
-        ...prev,
-        [commentId]: currentLikes + 1,
-      }))
-      setLikedComments((prev) => new Set([...prev, commentId]))
+    const userId = userProfile?.userId
+    if (!userId) {
+      emitToast({
+        message: "Could not identify user for likes",
+        icon: "⚠️",
+      })
+      return
     }
+
+    const result = await toggleCommentLike({ commentId, userId })
+    if (!result?.success) {
+      emitToast({
+        message: result?.error || "Failed to update like",
+        icon: "⚠️",
+      })
+      return
+    }
+
+    const liked = Boolean(result?.data?.liked)
+    const likesCount = Number(result?.data?.likesCount || 0)
+
+    setCommentLikes((prev) => ({
+      ...prev,
+      [commentId]: likesCount,
+    }))
+    setLikedComments((prev) => {
+      const next = new Set(prev)
+      if (liked) next.add(commentId)
+      else next.delete(commentId)
+      return next
+    })
   }
 
   const handleReplyToComment = (commentId, username) => {
@@ -771,7 +782,7 @@ const EnhancedCommentSystem = ({
                         <Heart
                           className={`w-3.5 h-3.5 ${likedComments.has(comment.id) ? "fill-red-500" : ""}`}
                         />
-                        <span>{commentLikes[comment.id] || comment.likes}</span>
+                        <span>{commentLikes[comment.id] ?? comment.likes}</span>
                       </button>
                       <button
                         onClick={() =>
