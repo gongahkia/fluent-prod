@@ -20,6 +20,7 @@ const japaneseReadingCache = new Map()
 let persistentCacheLoaded = false
 let persistTimer = null
 let kuromojinTokenizerPromise = null
+let activeWordRequestController = null
 
 // Rate limiting (per tab/session)
 const requestTimestamps = []
@@ -30,6 +31,21 @@ const READING_SOURCE_NONE = "none"
 
 function nowMs() {
   return Date.now()
+}
+
+function beginWordRequest() {
+  if (activeWordRequestController) {
+    activeWordRequestController.abort()
+  }
+  const controller = new AbortController()
+  activeWordRequestController = controller
+  return controller
+}
+
+function ensureNotAborted(signal) {
+  if (signal?.aborted) {
+    throw new DOMException("Translation request was aborted", "AbortError")
+  }
 }
 
 function katakanaToHiragana(text) {
@@ -354,6 +370,10 @@ export const handleWordClick = async (
     return
   }
 
+  const requestController = beginWordRequest()
+  const requestSignal = requestController.signal
+  const isActiveRequest = () => activeWordRequestController === requestController
+
   // Set loading state if provided
   if (setLoading) {
     setLoading(true)
@@ -364,9 +384,11 @@ export const handleWordClick = async (
     if (now - lastClickAt < CLICK_DEBOUNCE_MS) {
       const cached = getCachedTranslation(clickKey)
       if (cached?.translation) {
+        ensureNotAborted(requestSignal)
         const translation = cached.translation
         const readingTarget = isTargetLang ? cleanWord : translation
         const pronunciation = await parseJapaneseReading(readingTarget)
+        ensureNotAborted(requestSignal)
         const readingSource = pronunciation
           ? READING_SOURCE_KUROMOJIN
           : READING_SOURCE_NONE
@@ -388,6 +410,7 @@ export const handleWordClick = async (
         wordData.hiragana = pronunciation
         wordData.isJapanese = isTargetLang
         wordData.showJapaneseTranslation = !isTargetLang
+        ensureNotAborted(requestSignal)
         setSelectedWord(wordData)
         return
       }
@@ -403,7 +426,9 @@ export const handleWordClick = async (
     if (isTargetLang) {
       // Target language to English
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
+      ensureNotAborted(requestSignal)
       const reading = await parseJapaneseReading(cleanWord)
+      ensureNotAborted(requestSignal)
       pronunciation = reading || null
       readingSource = reading
         ? READING_SOURCE_KUROMOJIN
@@ -419,7 +444,9 @@ export const handleWordClick = async (
     } else {
       // English to target language
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
+      ensureNotAborted(requestSignal)
       const reading = await parseJapaneseReading(translation)
+      ensureNotAborted(requestSignal)
       pronunciation = reading
       readingSource = reading
         ? READING_SOURCE_KUROMOJIN
@@ -460,15 +487,23 @@ export const handleWordClick = async (
     wordData.isJapanese = isTargetLang
     wordData.showJapaneseTranslation = !isTargetLang
 
+    ensureNotAborted(requestSignal)
     setSelectedWord(wordData)
   } catch (error) {
+    if (error?.name === "AbortError") {
+      return
+    }
     console.error("Translation API failed:", error)
 
     emitToast({ message: "Translation unavailable. Try again.", icon: "⚠️" })
     if (setSelectedWord) setSelectedWord(null)
   } finally {
     // Clear loading state
-    if (setLoading) {
+    const stillActive = isActiveRequest()
+    if (stillActive) {
+      activeWordRequestController = null
+    }
+    if (setLoading && stillActive) {
       setLoading(false)
     }
   }
