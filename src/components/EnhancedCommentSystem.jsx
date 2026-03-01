@@ -378,14 +378,20 @@ const EnhancedCommentSystem = ({
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
     if (!validTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+      emitToast({
+        message: 'Please select a valid image file (JPEG, PNG, GIF, or WebP)',
+        icon: '⚠️',
+      })
       return
     }
 
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024 // 5MB in bytes
     if (file.size > maxSize) {
-      alert('File size must be less than 5MB')
+      emitToast({
+        message: 'File size must be less than 5MB',
+        icon: '⚠️',
+      })
       return
     }
 
