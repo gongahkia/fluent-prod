@@ -17,6 +17,7 @@ const TRANSLATION_MAX_QUEUED_REQUESTS = Number.parseInt(import.meta.env.VITE_TRA
 const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
 const TRANSLATION_CACHE_STORAGE_KEY = 'fluent.translationService.cache'
 const TRANSLATION_CACHE_SCHEMA_VERSION = 1
+const TRANSLATION_MAPPINGS_VERSION = String(translationMappings?.version || 'unknown')
 
 export const TRANSLATION_ERROR_CODES = {
   UNSUPPORTED_LANGUAGE_PAIR: 'UNSUPPORTED_LANGUAGE_PAIR',
@@ -98,6 +99,10 @@ function loadTranslationCacheOnce() {
     if (!raw) return
     const parsed = JSON.parse(raw)
     if (parsed?.version !== TRANSLATION_CACHE_SCHEMA_VERSION) return
+    if (parsed?.mappingsVersion !== TRANSLATION_MAPPINGS_VERSION) {
+      window.localStorage.removeItem(TRANSLATION_CACHE_STORAGE_KEY)
+      return
+    }
 
     const entries = parsed?.entries && typeof parsed.entries === 'object'
       ? parsed.entries
@@ -173,6 +178,7 @@ function persistTranslationCache() {
       TRANSLATION_CACHE_STORAGE_KEY,
       JSON.stringify({
         version: TRANSLATION_CACHE_SCHEMA_VERSION,
+        mappingsVersion: TRANSLATION_MAPPINGS_VERSION,
         savedAt: Date.now(),
         entries,
       })

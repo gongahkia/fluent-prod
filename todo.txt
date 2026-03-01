@@ -1,4 +1,3 @@
-(B) Invalidate persisted translation cache when `config/translationMappings.json` version changes. +translation +stability +scaling
 (B) Add translation result schema validation in `src/services/translationService.js` using `zod`. +translation +stability +data
 (B) Normalize HTML entities in translation responses inside `src/services/translationPipeline.js`. +translation +stability +data
 (B) Add minimum quality heuristics for translation output in `src/services/translationPipeline.js`. +translation +stability +data
