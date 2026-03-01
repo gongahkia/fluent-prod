@@ -1,4 +1,3 @@
-(B) Add intermediate learner mode toggle that defaults to showing Japanese first and English on demand in `src/components/Settings.jsx`. +translation +frontend +philosophy
 (B) Persist intermediate learner mode under `settings.learning.intermediateMode` in Firestore via `updateUserProfile`. +translation +data +philosophy
 (B) Parse Japanese token readings with `kuromojin` in `src/lib/wordDatabase.js` for clicked Japanese words. +translation +frontend +philosophy
 (B) Stop assigning translated text to `hiragana` in `src/lib/wordDatabase.js` when no reading is available. +translation +stability +philosophy

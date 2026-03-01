@@ -49,6 +49,8 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
     commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
     theme: userProfile?.settings?.appearance?.theme || "light",
+    // Learning settings
+    intermediateMode: userProfile?.settings?.learning?.intermediateMode ?? true,
     // API keys
     redditApiKey: "",
     geminiApiKey: "",
@@ -254,7 +256,13 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       id: "learning",
       title: "Learning Preferences",
       icon: Globe,
-      component: <LearningTab formData={formData} handleInputChange={handleInputChange} />
+      component: (
+        <LearningTab
+          formData={formData}
+          handleInputChange={handleInputChange}
+          showIntermediateModeToggle
+        />
+      )
     },
     {
       id: "notifications",
