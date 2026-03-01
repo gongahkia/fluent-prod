@@ -1,4 +1,3 @@
-(B) Add integration tests for credential encryption migration in `src/services/__tests__/encryptionService.migration.test.js`. +testing +security +dx
 (B) Add a CI workflow `.github/workflows/comment-persistence-tests.yml` that runs new comment service tests on pull requests. +infra +testing +dx
 (B) Add a CI workflow `.github/workflows/translation-resilience-tests.yml` that runs new translation resilience tests on pull requests. +infra +testing +dx
 (B) Remove non-roadmap API feed branches from `src/services/newsService.js` and keep cache mode only. +refactor +frontend +stability
