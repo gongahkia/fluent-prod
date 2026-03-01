@@ -6,7 +6,10 @@
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
+const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
+const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
 const inFlightTranslations = new Map()
+const translationCache = new Map()
 
 function normalizeTranslationText(input) {
   let text = String(input ?? '')
@@ -22,6 +25,36 @@ function normalizeTranslationText(input) {
   text = text.replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '$1')
 
   return text.normalize('NFKC').trim()
+}
+
+function readFromTranslationCache(key) {
+  const cached = translationCache.get(key)
+  if (!cached) return null
+
+  if (Date.now() >= cached.expiresAt) {
+    translationCache.delete(key)
+    return null
+  }
+
+  translationCache.delete(key)
+  translationCache.set(key, cached)
+  return cached.value
+}
+
+function writeToTranslationCache(key, value) {
+  if (translationCache.has(key)) {
+    translationCache.delete(key)
+  }
+
+  translationCache.set(key, {
+    value,
+    expiresAt: Date.now() + TRANSLATION_CACHE_TTL_MS,
+  })
+
+  while (translationCache.size > TRANSLATION_CACHE_MAX_ENTRIES) {
+    const oldestKey = translationCache.keys().next().value
+    translationCache.delete(oldestKey)
+  }
 }
 
 function withTimeout(ms) {
@@ -184,6 +217,10 @@ class TranslationService {
     const trimmed = String(text ?? '')
     if (!trimmed) return ''
     const requestKey = `${fromLang}|${toLang}|${trimmed}`
+    const cachedValue = readFromTranslationCache(requestKey)
+    if (cachedValue) {
+      return cachedValue
+    }
 
     if (inFlightTranslations.has(requestKey)) {
       return inFlightTranslations.get(requestKey)
@@ -208,7 +245,9 @@ class TranslationService {
 
     inFlightTranslations.set(requestKey, task)
     try {
-      return await task
+      const result = await task
+      writeToTranslationCache(requestKey, result)
+      return result
     } finally {
       inFlightTranslations.delete(requestKey)
     }
