@@ -18,7 +18,10 @@ import {
   addWebLlmEnabledListener,
   isWebLlmEnabled,
 } from "../services/commentAiPrefs"
-import { onCommentsChanged } from "../services/firebase/commentsService"
+import {
+  createReply,
+  onCommentsChanged,
+} from "../services/firebase/commentsService"
 import { segmentJapaneseText } from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 import LoadingSpinner from "./ui/LoadingSpinner"
@@ -550,7 +553,7 @@ const EnhancedCommentSystem = ({
         setShowGrammarCheck(true)
       } else {
         // If grammar is correct or no target language detected, post directly
-        postCommentDirectly()
+        await postCommentDirectly()
       }
     } catch (error) {
       if (requestId !== grammarRequestRef.current) return
@@ -560,7 +563,7 @@ const EnhancedCommentSystem = ({
         icon: "⚠️",
       })
       // On error, allow posting anyway
-      postCommentDirectly()
+      await postCommentDirectly()
     }
     if (requestId === grammarRequestRef.current) {
       setIsCheckingGrammar(false)
@@ -568,7 +571,7 @@ const EnhancedCommentSystem = ({
   }
 
   // Actually post the comment (called after grammar check passes or user confirms)
-  const postCommentDirectly = () => {
+  const postCommentDirectly = async () => {
     if (isGuest) {
       emitToast({ message: "Sign up to post comments!", icon: "🔒" })
       return
@@ -593,25 +596,37 @@ const EnhancedCommentSystem = ({
     }
 
     if (replyingTo) {
-      // Add as a reply to the specified comment
-      const addReply = (comments) => {
-        return comments.map((comment) => {
-          if (comment.id === replyingTo.id) {
-            return {
-              ...comment,
-              replies: [...comment.replies, newComment],
-            }
-          }
-          if (comment.replies && comment.replies.length > 0) {
-            return {
-              ...comment,
-              replies: addReply(comment.replies),
-            }
-          }
-          return comment
+      const userId = userProfile?.userId
+      if (!articleId || !userId) {
+        emitToast({
+          message: "Could not identify user for reply",
+          icon: "⚠️",
         })
+        return
       }
-      setComments(addReply(comments))
+
+      const replyResult = await createReply({
+        postHash: articleId,
+        userId,
+        parentCommentId: replyingTo.id,
+        content: commentText,
+        media: selectedMedia
+          ? {
+              type: selectedMedia.type,
+              data: selectedMedia.data,
+              name: selectedMedia.name,
+            }
+          : null,
+      })
+
+      if (!replyResult?.success) {
+        emitToast({
+          message: replyResult?.error || "Failed to post reply",
+          icon: "⚠️",
+        })
+        return
+      }
+
       setReplyingTo(null)
     } else {
       setComments([newComment, ...comments])
@@ -623,7 +638,7 @@ const EnhancedCommentSystem = ({
     setTimeout(() => setShowSuccessMessage(""), 2000)
   }
 
-  const handlePostComment = () => {
+  const handlePostComment = async () => {
     if (isGuest) {
       emitToast({ message: "Sign up to post comments!", icon: "🔒" })
       return
@@ -631,10 +646,10 @@ const EnhancedCommentSystem = ({
     if (commentText.trim() || selectedMedia) {
       // Check grammar before posting if there's text
       if (commentText.trim()) {
-        checkCommentGrammar()
+        await checkCommentGrammar()
       } else {
         // If only media, post directly
-        postCommentDirectly()
+        await postCommentDirectly()
       }
     }
   }
