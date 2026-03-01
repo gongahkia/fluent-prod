@@ -4,6 +4,7 @@
 // - Cache mode: reads prebuilt NDJSON from GitHub raw (or /public/cache)
 
 import { loadNdjsonCache } from './cacheNdjsonService'
+import { fetchWithFallback } from './newsServiceFallback'
 
 const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache' | 'hybrid'
 const IS_HYBRID_MODE = NEWS_MODE === 'hybrid'
@@ -223,10 +224,17 @@ export async function fetchPosts(options = {}) {
 
   if (IS_HYBRID_MODE) {
     try {
-      const [apiResult, cacheResult] = await Promise.all([
-        fetchPostsFromApi(),
-        fetchPostsFromCache(options).catch(() => ({ posts: [], metadata: {} })),
-      ])
+      const primaryResult = await fetchWithFallback({
+        fetchPrimary: fetchPostsFromApi,
+        fetchFallback: () => fetchPostsFromCache(options),
+      })
+
+      const apiResult = primaryResult.usedFallback
+        ? { posts: [], metadata: {} }
+        : primaryResult.data
+      const cacheResult = primaryResult.usedFallback
+        ? primaryResult.data
+        : await fetchPostsFromCache(options).catch(() => ({ posts: [], metadata: {} }))
 
       const mergedPosts = mergeAndDedupePosts(apiResult.posts, cacheResult.posts)
       const limit = Number.parseInt(String(options?.limit ?? mergedPosts.length), 10)
@@ -237,6 +245,8 @@ export async function fetchPosts(options = {}) {
           ...(apiResult.metadata || {}),
           mergedWithCache: true,
           mergedCount: limitedPosts.length,
+          fallback: primaryResult.usedFallback ? 'cache' : null,
+          fallbackReason: primaryResult.fallbackReason,
         },
       }
     } catch (error) {
