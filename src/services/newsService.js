@@ -5,7 +5,8 @@
 
 import { loadNdjsonCache } from './cacheNdjsonService'
 
-const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache'
+const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache' | 'hybrid'
+const IS_HYBRID_MODE = NEWS_MODE === 'hybrid'
 
 // In dev mode (VITE_USE_LOCAL_API=true), use localhost. Otherwise use production URL.
 const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
@@ -184,6 +185,10 @@ export async function fetchPosts(options = {}) {
     console.error('News fetch error:', error)
     throw error
   }
+}
+
+export function isHybridNewsMode() {
+  return IS_HYBRID_MODE
 }
 
 /**
