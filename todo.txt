@@ -1,4 +1,3 @@
-(B) Add translation request concurrency limiter in `src/services/translationService.js` with a configurable max queue. +translation +stability +scaling
 (B) Add AbortController cancellation for stale translation requests in `src/lib/wordDatabase.js`. +translation +frontend +stability
 (B) Replace in-memory-only translation cache with versioned localStorage-backed LRU cache in `src/services/translationService.js`. +translation +stability +scaling
 (B) Remove duplicate translation cache code from `src/lib/wordDatabase.js` and call a cache adapter from `src/services/translationService.js`. +translation +refactor +stability

@@ -12,6 +12,8 @@ const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATIO
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
 const TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_FAIL_THRESHOLD || '3', 10)
 const TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CB_COOLDOWN_MS || '30000', 10)
+const TRANSLATION_MAX_CONCURRENT_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_CONCURRENT_REQUESTS || '6', 10)
+const TRANSLATION_MAX_QUEUED_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_QUEUED_REQUESTS || '120', 10)
 const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
 
 export const TRANSLATION_ERROR_CODES = {
@@ -33,6 +35,8 @@ export class UnsupportedLanguagePairError extends Error {
 
 const inFlightTranslations = new Map()
 const translationCache = new Map()
+const translationRequestQueue = []
+let activeTranslationRequests = 0
 
 function readFromTranslationCache(key) {
   const cached = translationCache.get(key)
@@ -75,6 +79,43 @@ function createTranslationCacheKey(text, fromLang, toLang, options = {}) {
   }
 
   return `${fromLang}|${toLang}|${text}`
+}
+
+function runQueuedTranslationTasks() {
+  while (
+    activeTranslationRequests < TRANSLATION_MAX_CONCURRENT_REQUESTS &&
+    translationRequestQueue.length > 0
+  ) {
+    const queued = translationRequestQueue.shift()
+    if (!queued) break
+    executeTranslationTaskWithLimit(queued.task)
+      .then(queued.resolve)
+      .catch(queued.reject)
+  }
+}
+
+function executeTranslationTaskWithLimit(task) {
+  activeTranslationRequests += 1
+  return Promise.resolve()
+    .then(task)
+    .finally(() => {
+      activeTranslationRequests = Math.max(0, activeTranslationRequests - 1)
+      runQueuedTranslationTasks()
+    })
+}
+
+function enqueueTranslationTask(task) {
+  if (activeTranslationRequests < TRANSLATION_MAX_CONCURRENT_REQUESTS) {
+    return executeTranslationTaskWithLimit(task)
+  }
+
+  if (translationRequestQueue.length >= TRANSLATION_MAX_QUEUED_REQUESTS) {
+    return Promise.reject(new Error('Translation request queue is full. Please retry.'))
+  }
+
+  return new Promise((resolve, reject) => {
+    translationRequestQueue.push({ task, resolve, reject })
+  })
 }
 
 function isTransientError(error) {
@@ -275,7 +316,7 @@ class TranslationService {
       return inFlightTranslations.get(requestKey)
     }
 
-    const task = (async () => {
+    const task = enqueueTranslationTask(async () => {
       try {
         return await withRetry(
           () => translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs),
@@ -324,7 +365,7 @@ class TranslationService {
       }
 
       throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
-    })()
+    })
 
     inFlightTranslations.set(requestKey, task)
     try {
