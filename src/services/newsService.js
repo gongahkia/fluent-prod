@@ -1,68 +1,31 @@
-// News Service
-// Supports two modes:
-// - API mode: calls backend (/api/news)
-// - Cache mode: reads prebuilt NDJSON from GitHub raw (or /public/cache)
+// News Service (cache-only mode)
+//
+// News posts are read from a prebuilt NDJSON cache.
+// API and hybrid fetch branches have been removed.
 
-import { loadNdjsonCache } from './cacheNdjsonService'
-import { fetchWithFallback } from './newsServiceFallback'
+import { loadNdjsonCache } from "./cacheNdjsonService"
 
-const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache' | 'hybrid'
-const IS_HYBRID_MODE = NEWS_MODE === 'hybrid'
-const API_NEWS_TIMEOUT_MS = Number.parseInt(import.meta.env.VITE_API_NEWS_TIMEOUT_MS || '7000', 10)
-
-// In dev mode (VITE_USE_LOCAL_API=true), use localhost. Otherwise use production URL.
-const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
-  ? 'http://localhost:3001'
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
+const CACHE_SOURCE_ID = "reddit-cache"
 
 // NDJSON cache URL:
 // Prefer a direct GitHub Raw URL via VITE_GITHUB_CACHE_NDJSON_URL.
 // Fallbacks:
 // - if VITE_GITHUB_CACHE_BASE_URL is set, use `${base}/news-cache.txt`
-// - else use same-origin `/cache/news-cache.txt` (served from public/cache)
+// - else use same-origin `/public/cache/news-cache.txt`
 const CACHE_NDJSON_URL = (() => {
   const direct = import.meta.env.VITE_GITHUB_CACHE_NDJSON_URL
   if (direct) return direct
 
-  const base = (import.meta.env.VITE_GITHUB_CACHE_BASE_URL || '/cache').replace(/\/$/, '')
+  const base = (import.meta.env.VITE_GITHUB_CACHE_BASE_URL || "/cache").replace(
+    /\/$/,
+    ""
+  )
   return `${base}/news-cache.txt`
 })()
 
 function hasJapanese(text) {
   if (!text) return false
   return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
-}
-
-function validateApiNewsResponse(data) {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid API response payload')
-  }
-
-  const posts = Array.isArray(data.posts) ? data.posts : []
-  const metadata = data.metadata && typeof data.metadata === 'object' ? data.metadata : {}
-
-  const normalizedPosts = posts
-    .filter((post) => post && typeof post === 'object')
-    .map((post) => ({
-      ...post,
-      id: post.id || post.postHash || post.sourceId || null,
-      title: typeof post.title === 'string' ? post.title : '',
-      content: typeof post.content === 'string' ? post.content : '',
-    }))
-
-  return { posts: normalizedPosts, metadata }
-}
-
-function mergeAndDedupePosts(primaryPosts = [], secondaryPosts = []) {
-  const map = new Map()
-  for (const post of [...primaryPosts, ...secondaryPosts]) {
-    const key = post?.postHash || post?.id || post?.sourceId
-    if (!key) continue
-    if (!map.has(key)) {
-      map.set(key, post)
-    }
-  }
-  return [...map.values()]
 }
 
 async function fetchPostsFromCache(options = {}) {
@@ -72,18 +35,19 @@ async function fetchPostsFromCache(options = {}) {
     searchQuery = null,
     offset = 0,
     userLevel = null,
-    targetLang = 'ja'
+    targetLang = "ja",
   } = options
 
-  const { rows, sha256, url } = await loadNdjsonCache(CACHE_NDJSON_URL, { revalidate: offset === 0 })
+  const { rows, sha256, url } = await loadNdjsonCache(CACHE_NDJSON_URL, {
+    revalidate: offset === 0,
+  })
 
-  // Map rows → posts with stable ids
   let posts = (Array.isArray(rows) ? rows : []).map((row) => {
     const postHash = row?.postHash || row?.id
-    // Ensure title/content are strings for the renderer.
+
     const toRenderable = (value, fallback) => {
       if (value == null) return fallback
-      if (typeof value === 'string') return value
+      if (typeof value === "string") return value
       try {
         return JSON.stringify(value)
       } catch {
@@ -95,14 +59,14 @@ async function fetchPostsFromCache(options = {}) {
       id: postHash,
       postHash,
       sourceId: row?.sourceId,
-      title: toRenderable(row?.title, ''),
-      content: toRenderable(row?.content, ''),
-      originalTitle: toRenderable(row?.title, ''),
-      originalContent: toRenderable(row?.content, ''),
-      author: row?.author || 'deleted',
+      title: toRenderable(row?.title, ""),
+      content: toRenderable(row?.content, ""),
+      originalTitle: toRenderable(row?.title, ""),
+      originalContent: toRenderable(row?.content, ""),
+      author: row?.author || "deleted",
       url: row?.url,
-      source: row?.source || 'reddit',
-      tags: ['reddit', row?.subreddit].filter(Boolean),
+      source: row?.source || "reddit",
+      tags: ["reddit", row?.subreddit].filter(Boolean),
       subreddit: row?.subreddit || null,
       difficulty: row?.difficulty,
       targetLang: row?.targetLang || targetLang,
@@ -112,7 +76,6 @@ async function fetchPostsFromCache(options = {}) {
     }
   })
 
-  // Search filtering
   if (searchQuery && searchQuery.trim().length > 0) {
     const searchLower = searchQuery.toLowerCase()
     posts = posts.filter((post) => {
@@ -122,8 +85,7 @@ async function fetchPostsFromCache(options = {}) {
     })
   }
 
-  // Prioritize Japanese content when target is Japanese (unless searching)
-  if (targetLang === 'ja' && !(searchQuery && searchQuery.trim().length > 0)) {
+  if (targetLang === "ja" && !(searchQuery && searchQuery.trim().length > 0)) {
     posts = posts.sort((a, b) => {
       const aHas = hasJapanese(a.title) || hasJapanese(a.content)
       const bHas = hasJapanese(b.title) || hasJapanese(b.content)
@@ -133,8 +95,12 @@ async function fetchPostsFromCache(options = {}) {
     })
   }
 
-  // Shuffle for variety (only first page, and only if not searching)
-  if (shuffle && offset === 0 && !(searchQuery && searchQuery.trim().length > 0) && targetLang !== 'ja') {
+  if (
+    shuffle &&
+    offset === 0 &&
+    !(searchQuery && searchQuery.trim().length > 0) &&
+    targetLang !== "ja"
+  ) {
     posts = posts.sort(() => Math.random() - 0.5)
   }
 
@@ -145,7 +111,7 @@ async function fetchPostsFromCache(options = {}) {
     posts: paginated,
     metadata: {
       count: paginated.length,
-      sources: ['reddit'],
+      sources: [CACHE_SOURCE_ID],
       searchQuery: searchQuery || null,
       totalCount,
       hasMore: offset + paginated.length < totalCount,
@@ -153,155 +119,40 @@ async function fetchPostsFromCache(options = {}) {
       userLevel,
       targetLang,
       cacheSha256: sha256,
-      cacheUrl: url
-    }
+      cacheUrl: url,
+      mode: "cache",
+    },
   }
 }
 
 /**
- * Fetch news posts from backend API
+ * Fetch news posts from cache
  * @param {Object} options - Fetch options
- * @param {Array<string>} options.sources - News sources to fetch from
- * @param {string} options.query - Search query
- * @param {number} options.limit - Maximum number of posts
- * @param {boolean} options.shuffle - Whether to shuffle results
- * @param {number} options.offset - Offset for pagination (default: 0)
- * @param {number} options.userLevel - User's learning level (1-5)
- * @param {string} options.targetLang - Target language code (e.g. 'ja')
  * @returns {Promise<Object>} Posts and metadata
  */
 export async function fetchPosts(options = {}) {
-  if (NEWS_MODE === 'cache') {
-    return fetchPostsFromCache(options)
-  }
-
-  const {
-    sources = ['reddit'],
-    query = 'japan',
-    limit = 10,
-    shuffle = true,
-    searchQuery = null,
-    offset = 0,
-    userLevel = null,
-    targetLang = 'ja'
-  } = options
-
-  const body = {
-    sources,
-    query,
-    limit,
-    shuffle,
-    search: searchQuery && searchQuery.trim().length > 0 ? searchQuery.trim() : null,
-    offset,
-    userLevel,
-    targetLang
-  }
-
-  const fetchPostsFromApi = async () => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), API_NEWS_TIMEOUT_MS)
-    let response
-    try {
-      response = await fetch(`${API_BASE_URL}/api/news`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch posts: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return validateApiNewsResponse(data)
-  }
-
-  if (IS_HYBRID_MODE) {
-    try {
-      const primaryResult = await fetchWithFallback({
-        fetchPrimary: fetchPostsFromApi,
-        fetchFallback: () => fetchPostsFromCache(options),
-      })
-
-      const apiResult = primaryResult.usedFallback
-        ? { posts: [], metadata: {} }
-        : primaryResult.data
-      const cacheResult = primaryResult.usedFallback
-        ? primaryResult.data
-        : await fetchPostsFromCache(options).catch(() => ({ posts: [], metadata: {} }))
-
-      const mergedPosts = mergeAndDedupePosts(apiResult.posts, cacheResult.posts)
-      const limit = Number.parseInt(String(options?.limit ?? mergedPosts.length), 10)
-      const limitedPosts = Number.isFinite(limit) ? mergedPosts.slice(0, Math.max(0, limit)) : mergedPosts
-      return {
-        posts: limitedPosts,
-        metadata: {
-          ...(apiResult.metadata || {}),
-          mergedWithCache: true,
-          mergedCount: limitedPosts.length,
-          fallback: primaryResult.usedFallback ? 'cache' : null,
-          fallbackReason: primaryResult.fallbackReason,
-        },
-      }
-    } catch (error) {
-      console.warn('Hybrid mode API fetch failed, falling back to cache:', error)
-      const cached = await fetchPostsFromCache(options)
-      return {
-        ...cached,
-        metadata: {
-          ...(cached.metadata || {}),
-          fallback: 'cache',
-          fallbackReason: error?.message || 'api-fetch-failed',
-        },
-      }
-    }
-  }
-
-  try {
-    return await fetchPostsFromApi()
-  } catch (error) {
-    console.error('News fetch error:', error)
-    throw error
-  }
+  return fetchPostsFromCache(options)
 }
 
 export function isHybridNewsMode() {
-  return IS_HYBRID_MODE
+  return false
 }
 
 /**
- * Check which news sources are available and configured
- * @returns {Promise<Array>} Available news sources
+ * Get available news sources in cache-only mode
+ * @returns {Promise<Array>} Available sources
  */
 export async function checkApiConfiguration() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/news/sources`, {
-      method: 'GET'
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to check API configuration: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return data.sources || []
-  } catch (error) {
-    console.error('API configuration check error:', error)
-    // Don't return fallback - let the app handle the error
-    throw error
-  }
+  return [
+    {
+      id: CACHE_SOURCE_ID,
+      name: "Reddit Cache",
+      enabled: true,
+      mode: "cache",
+    },
+  ]
 }
 
-/**
- * Get available news sources
- * @returns {Promise<Array>} List of available sources
- */
 export async function getAvailableSources() {
   return checkApiConfiguration()
 }
