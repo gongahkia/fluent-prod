@@ -1,4 +1,3 @@
-(B) Remove plaintext API credential writes to localStorage in `src/components/Settings.jsx`. +security +frontend +stability
 (B) Remove plaintext API credential writes to localStorage in `src/components/Profile.jsx`. +security +frontend +stability
 (B) Add unit tests for translation circuit breaker behavior in `src/services/__tests__/translationService.circuitBreaker.test.js`. +testing +translation +dx
 (B) Add unit tests for translation cache version migration in `src/services/__tests__/translationService.cacheVersion.test.js`. +testing +translation +dx

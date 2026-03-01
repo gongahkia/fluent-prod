@@ -9,20 +9,20 @@ import {
   Sun,
   User,
 } from "lucide-react"
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { FluentLogo } from "@/components/ui/FluentLogo"
 import { useAuth } from "@/contexts/AuthContext"
-import {
-  updateUserProfile,
-  updateUserCredentials,
-  getUserCredentials,
-} from "@/services/firebaseDatabaseService"
-import {
-  encryptCredentials,
-  decryptCredentials
-} from "@/services/encryptionService"
 import { signOutUser } from "@/services/authService"
+import {
+  decryptCredentials,
+  encryptCredentials,
+} from "@/services/encryptionService"
+import {
+  getUserCredentials,
+  updateUserCredentials,
+  updateUserProfile,
+} from "@/services/firebaseDatabaseService"
 import LearningTab from "./Profile/LearningTab"
 
 const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
@@ -42,11 +42,13 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
     bannerImage: userProfile?.bannerImage || "",
     selectedTags: userProfile?.selectedTags || [],
     // Privacy settings
-    profileVisibility: userProfile?.settings?.privacy?.profileVisibility || "public",
+    profileVisibility:
+      userProfile?.settings?.privacy?.profileVisibility || "public",
     // Notification settings
     emailNotifications: userProfile?.settings?.notifications?.email ?? true,
     pushNotifications: userProfile?.settings?.notifications?.push ?? true,
-    commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
+    commentNotifications:
+      userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
     theme: userProfile?.settings?.appearance?.theme || "light",
     // Learning settings
@@ -66,23 +68,22 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       if (!currentUser) return
 
       try {
-        const token = await currentUser.getIdToken()
         const result = await getUserCredentials(currentUser.id)
 
         if (result.success && result.data) {
-          const decrypted = await decryptCredentials(result.data, token)
+          const decrypted = await decryptCredentials(
+            result.data,
+            currentUser.id
+          )
 
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            redditApiKey: decrypted.redditApiKey || '',
-            geminiApiKey: decrypted.geminiApiKey || '',
+            redditApiKey: decrypted.redditApiKey || "",
+            geminiApiKey: decrypted.geminiApiKey || "",
           }))
-
-          localStorage.setItem('redditApiKey', decrypted.redditApiKey || '')
-          localStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
         }
       } catch (error) {
-        console.error('Error loading credentials:', error)
+        console.error("Error loading credentials:", error)
       }
     }
 
@@ -123,18 +124,17 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
 
     try {
       const enforcedTargetLanguage = "Japanese"
-      const token = await currentUser.getIdToken()
 
       const credentials = {
         redditApiKey: formData.redditApiKey,
         geminiApiKey: formData.geminiApiKey,
       }
 
-      const encryptedCreds = await encryptCredentials(credentials, token)
+      const encryptedCreds = await encryptCredentials(
+        credentials,
+        currentUser.id
+      )
       await updateUserCredentials(currentUser.id, encryptedCreds)
-
-      localStorage.setItem('redditApiKey', formData.redditApiKey)
-      localStorage.setItem('geminiApiKey', formData.geminiApiKey)
 
       const profileUpdates = {
         name: formData.name,
@@ -162,8 +162,8 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           },
           learning: {
             intermediateMode: Boolean(formData.intermediateMode),
-          }
-        }
+          },
+        },
       }
 
       await updateUserProfile(currentUser.id, profileUpdates)
@@ -178,9 +178,9 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         setShowSuccessPopup(false)
       }, 2000)
     } catch (error) {
-      console.error('Error saving settings:', error)
+      console.error("Error saving settings:", error)
       setIsLoading(false)
-      alert('Error saving settings. Please try again.')
+      alert("Error saving settings. Please try again.")
     }
   }
 
@@ -214,14 +214,15 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           value: formData.email,
           placeholder: "your@email.com",
           disabled: true,
-          help: "Email cannot be changed"
+          help: "Email cannot be changed",
         },
         {
           label: "Bio",
           type: "textarea",
           name: "bio",
           value: formData.bio,
-          placeholder: "Tell others about yourself and your language learning journey...",
+          placeholder:
+            "Tell others about yourself and your language learning journey...",
         },
         {
           label: "Location",
@@ -243,7 +244,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           name: "profilePictureUrl",
           value: formData.profilePictureUrl,
           placeholder: "https://example.com/profile.jpg",
-          help: "Enter a URL for your profile picture"
+          help: "Enter a URL for your profile picture",
         },
         {
           label: "Banner Image URL",
@@ -251,9 +252,9 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           name: "bannerImage",
           value: formData.bannerImage,
           placeholder: "https://example.com/banner.jpg",
-          help: "Enter a URL for your profile banner image"
+          help: "Enter a URL for your profile banner image",
         },
-      ]
+      ],
     },
     {
       id: "learning",
@@ -265,7 +266,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           handleInputChange={handleInputChange}
           showIntermediateModeToggle
         />
-      )
+      ),
     },
     {
       id: "notifications",
@@ -277,23 +278,23 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           type: "checkbox",
           name: "emailNotifications",
           checked: formData.emailNotifications,
-          help: "Receive email updates about your learning progress"
+          help: "Receive email updates about your learning progress",
         },
         {
           label: "Push Notifications",
           type: "checkbox",
           name: "pushNotifications",
           checked: formData.pushNotifications,
-          help: "Get notified about daily goals and streaks"
+          help: "Get notified about daily goals and streaks",
         },
         {
           label: "Comment Notifications",
           type: "checkbox",
           name: "commentNotifications",
           checked: formData.commentNotifications,
-          help: "Notifications when someone replies to your comments"
+          help: "Notifications when someone replies to your comments",
         },
-      ]
+      ],
     },
     {
       id: "privacy",
@@ -307,12 +308,18 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           value: formData.profileVisibility,
           options: [
             { value: "public", label: "Public - Anyone can see your profile" },
-            { value: "friends", label: "Friends Only - Only friends can see your profile" },
-            { value: "private", label: "Private - Only you can see your profile" },
+            {
+              value: "friends",
+              label: "Friends Only - Only friends can see your profile",
+            },
+            {
+              value: "private",
+              label: "Private - Only you can see your profile",
+            },
           ],
-          help: "Control who can see your profile"
+          help: "Control who can see your profile",
         },
-      ]
+      ],
     },
     {
       id: "appearance",
@@ -330,7 +337,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
             { value: "auto", label: "Auto" },
           ],
         },
-      ]
+      ],
     },
   ]
 
@@ -348,11 +355,13 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <div className="w-7 h-7">
-                <FluentLogo variant="short" className="w-full h-full" alt="Fluent" />
+                <FluentLogo
+                  variant="short"
+                  className="w-full h-full"
+                  alt="Fluent"
+                />
               </div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Settings
-              </h1>
+              <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
             </div>
             <Button
               onClick={handleSave}
@@ -375,7 +384,10 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       {/* FIXED: Added tab navigation */}
       <div className="bg-white border-b border-gray-200 sticky top-16 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-2 sm:space-x-8" aria-label="Settings tabs">
+          <nav
+            className="flex space-x-2 sm:space-x-8"
+            aria-label="Settings tabs"
+          >
             {settingsSections.map((section) => {
               const Icon = section.icon
               return (
@@ -404,88 +416,98 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         <div className="space-y-6">
           {/* FIXED: Only render the active tab's content */}
           {settingsSections
-            .filter(section => section.id === activeTab)
+            .filter((section) => section.id === activeTab)
             .map((section) => {
-            const Icon = section.icon
-            return (
-              <div key={section.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-5 h-5 text-gray-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">{section.title}</h2>
+              const Icon = section.icon
+              return (
+                <div
+                  key={section.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                >
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <Icon className="w-5 h-5 text-gray-600" />
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {section.title}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {section.component ? (
+                      section.component
+                    ) : (
+                      <div className="space-y-4">
+                        {section.items?.map((item, index) => (
+                          <div key={index} className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                              {item.label}
+                            </label>
+                            {item.type === "input" && (
+                              <input
+                                type="text"
+                                name={item.name}
+                                value={item.value}
+                                onChange={handleInputChange}
+                                placeholder={item.placeholder}
+                                disabled={item.disabled}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-300"
+                              />
+                            )}
+                            {item.type === "textarea" && (
+                              <textarea
+                                name={item.name}
+                                value={item.value}
+                                onChange={handleInputChange}
+                                placeholder={item.placeholder}
+                                rows="3"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
+                              />
+                            )}
+                            {item.type === "checkbox" && (
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  name={item.name}
+                                  checked={item.checked}
+                                  onChange={handleInputChange}
+                                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 transition-all duration-300"
+                                />
+                                <label className="ml-3 text-sm text-gray-600">
+                                  {item.help}
+                                </label>
+                              </div>
+                            )}
+                            {item.type === "select" && (
+                              <select
+                                name={item.name}
+                                value={item.value}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
+                              >
+                                {item.options?.map((option) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            {item.help && item.type !== "checkbox" && (
+                              <p className="text-xs text-gray-500">
+                                {item.help}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <div className="p-6">
-                  {section.component ? (
-                    section.component
-                  ) : (
-                    <div className="space-y-4">
-                      {section.items?.map((item, index) => (
-                        <div key={index} className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            {item.label}
-                          </label>
-                          {item.type === "input" && (
-                            <input
-                              type="text"
-                              name={item.name}
-                              value={item.value}
-                              onChange={handleInputChange}
-                              placeholder={item.placeholder}
-                              disabled={item.disabled}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-300"
-                            />
-                          )}
-                          {item.type === "textarea" && (
-                            <textarea
-                              name={item.name}
-                              value={item.value}
-                              onChange={handleInputChange}
-                              placeholder={item.placeholder}
-                              rows="3"
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                            />
-                          )}
-                          {item.type === "checkbox" && (
-                            <div className="flex items-center">
-                              <input
-                                type="checkbox"
-                                name={item.name}
-                                checked={item.checked}
-                                onChange={handleInputChange}
-                                className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 transition-all duration-300"
-                              />
-                              <label className="ml-3 text-sm text-gray-600">
-                                {item.help}
-                              </label>
-                            </div>
-                          )}
-                          {item.type === "select" && (
-                            <select
-                              name={item.name}
-                              value={item.value}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                            >
-                              {item.options?.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                          {item.help && item.type !== "checkbox" && (
-                            <p className="text-xs text-gray-500">{item.help}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
 
           {/* Logout Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -523,9 +545,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 animate-scaleIn">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Log Out?
-            </h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Log Out?</h3>
             <p className="text-gray-600 mb-6">
               Are you sure you want to log out of your account?
             </p>
