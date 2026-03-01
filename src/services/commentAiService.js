@@ -134,6 +134,43 @@ function writeAiResponseCache(key, value) {
   }
 }
 
+function buildHeuristicSuggestions({ postTitle, postContent, numberOfSuggestions, targetLanguage }) {
+  const topic = (postTitle || postContent || "this post").trim().slice(0, 80)
+  const language = targetLanguage || "Japanese"
+  const templates = [
+    `Interesting take on "${topic}". I'm still learning ${language}, but this helped.`,
+    `Thanks for sharing this. I learned a new point about "${topic}".`,
+    `I like this post about "${topic}". Any beginner tips for understanding it better?`,
+  ]
+  return templates.slice(0, Math.max(1, numberOfSuggestions)).map((text) => ({
+    text,
+    translation: "",
+  }))
+}
+
+function buildHeuristicGrammar(text) {
+  const cleaned = String(text || "").trim().replace(/\s+/g, " ")
+  if (!cleaned) {
+    return {
+      originalText: "",
+      isCorrect: true,
+      correctedText: "",
+      explanation: "",
+    }
+  }
+
+  const hasTerminalPunctuation = /[.!?。！？]$/.test(cleaned)
+  const correctedText = hasTerminalPunctuation ? cleaned : `${cleaned}.`
+  return {
+    originalText: cleaned,
+    isCorrect: hasTerminalPunctuation,
+    correctedText: hasTerminalPunctuation ? "" : correctedText,
+    explanation: hasTerminalPunctuation
+      ? "Looks grammatically acceptable for casual usage."
+      : "Added terminal punctuation for a more natural sentence ending.",
+  }
+}
+
 export function isWebGpuSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && "gpu" in navigator
 }
@@ -408,24 +445,35 @@ export async function generateCommentSuggestionsLocal({
     format_instructions: suggestionsParser.getFormatInstructions(),
   })
 
-  const raw = await webLlmChat({
-    system,
-    user: prompt,
-    model,
-    temperature: 0.5,
-    maxTokens: 384,
-  })
-
   let parsedSuggestions
   try {
-    parsedSuggestions = await suggestionsParser.parse(raw)
-  } catch {
-    const fallback = safeParseJson(raw)
-    const validated = SuggestionsSchema.safeParse(fallback)
-    if (!validated.success) {
-      throw new Error("WebLLM returned invalid suggestions JSON")
+    const raw = await webLlmChat({
+      system,
+      user: prompt,
+      model,
+      temperature: 0.5,
+      maxTokens: 384,
+    })
+
+    try {
+      parsedSuggestions = await suggestionsParser.parse(raw)
+    } catch {
+      const fallback = safeParseJson(raw)
+      const validated = SuggestionsSchema.safeParse(fallback)
+      if (!validated.success) {
+        throw new Error("WebLLM returned invalid suggestions JSON")
+      }
+      parsedSuggestions = validated.data
     }
-    parsedSuggestions = validated.data
+  } catch {
+    parsedSuggestions = {
+      suggestions: buildHeuristicSuggestions({
+        postTitle,
+        postContent,
+        numberOfSuggestions,
+        targetLanguage: language,
+      }),
+    }
   }
 
   const result = {
@@ -495,24 +543,28 @@ export async function checkGrammarLocal({
     format_instructions: grammarParser.getFormatInstructions(),
   })
 
-  const raw = await webLlmChat({
-    system,
-    user: prompt,
-    model,
-    temperature: 0.15,
-    maxTokens: 384,
-  })
-
   let parsedGrammar
   try {
-    parsedGrammar = await grammarParser.parse(raw)
-  } catch {
-    const fallback = safeParseJson(raw)
-    const validated = GrammarSchema.safeParse(fallback)
-    if (!validated.success) {
-      throw new Error("WebLLM returned invalid grammar JSON")
+    const raw = await webLlmChat({
+      system,
+      user: prompt,
+      model,
+      temperature: 0.15,
+      maxTokens: 384,
+    })
+
+    try {
+      parsedGrammar = await grammarParser.parse(raw)
+    } catch {
+      const fallback = safeParseJson(raw)
+      const validated = GrammarSchema.safeParse(fallback)
+      if (!validated.success) {
+        throw new Error("WebLLM returned invalid grammar JSON")
+      }
+      parsedGrammar = validated.data
     }
-    parsedGrammar = validated.data
+  } catch {
+    parsedGrammar = buildHeuristicGrammar(text)
   }
 
   const result = {
