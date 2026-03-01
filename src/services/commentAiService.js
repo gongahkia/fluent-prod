@@ -6,6 +6,7 @@ const ENV_WEBLLM_MODEL = import.meta.env.VITE_WEBLLM_MODEL || null
 
 const WEBLLM_MODEL_READY_EVENT = "fluent:webllm:model-ready"
 const WEBLLM_MODEL_FAILED_EVENT = "fluent:webllm:model-failed"
+const AI_INFERENCE_TIMEOUT_MS = Number.parseInt(import.meta.env.VITE_AI_INFERENCE_TIMEOUT_MS || "15000", 10)
 
 const DEFAULT_MAX_CHARS = {
   postTitle: 180,
@@ -61,6 +62,7 @@ function safeParseJson(text) {
 let webLlmEnginePromise = null
 let webLlmModelLoaded = null
 let engineInitProgressCallback = null
+let activeInferenceRun = null
 
 export function isWebGpuSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && "gpu" in navigator
@@ -175,17 +177,44 @@ async function webLlmChat({
   model,
 } = {}) {
   const { engine } = await ensureWebLlmModelLoaded(model)
+  const run = { cancelled: false }
+  if (activeInferenceRun) {
+    activeInferenceRun.cancelled = true
+  }
+  activeInferenceRun = run
 
-  const completion = await engine.chat.completions.create({
-    messages: [
-      { role: "system", content: system || "" },
-      { role: "user", content: user || "" },
-    ],
-    temperature,
-    max_tokens: maxTokens,
-  })
+  let timeoutId = null
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        run.cancelled = true
+        reject(new Error("AI inference timeout"))
+      }, AI_INFERENCE_TIMEOUT_MS)
+    })
 
-  return completion?.choices?.[0]?.message?.content || ""
+    const completion = await Promise.race([
+      engine.chat.completions.create({
+        messages: [
+          { role: "system", content: system || "" },
+          { role: "user", content: user || "" },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+      }),
+      timeoutPromise,
+    ])
+
+    if (run.cancelled) {
+      throw new Error("AI inference cancelled")
+    }
+
+    return completion?.choices?.[0]?.message?.content || ""
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+    if (activeInferenceRun === run) {
+      activeInferenceRun = null
+    }
+  }
 }
 
 export async function hasWebLlmModelInCache(model) {
