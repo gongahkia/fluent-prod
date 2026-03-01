@@ -21,3 +21,9 @@ export function normalizeTranslationText(input) {
 
   return text.normalize('NFKC').trim()
 }
+
+export function withTimeout(ms) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), ms)
+  return { signal: controller.signal, cancel: () => clearTimeout(timeout) }
+}

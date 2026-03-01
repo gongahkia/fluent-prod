@@ -5,7 +5,7 @@
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
-import { normalizeTranslationText, runFallbackProviders } from './translationPipeline'
+import { normalizeTranslationText, runFallbackProviders, withTimeout } from './translationPipeline'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
@@ -82,12 +82,6 @@ async function withRetry(operation, { maxRetries = 2, baseDelayMs = 200, maxDela
   }
 
   throw lastError || new Error('Retry operation failed')
-}
-
-function withTimeout(ms) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), ms)
-  return { signal: controller.signal, cancel: () => clearTimeout(timeout) }
 }
 
 async function tryLingva(text, fromLang, toLang, timeoutMs) {
