@@ -12,6 +12,14 @@ let inMemory = {
   loadedAt: null,
 }
 
+let ndjsonTelemetry = {
+  totalLines: 0,
+  parsedRows: 0,
+  rejectedRows: 0,
+  invalidJsonRows: 0,
+  invalidSchemaRows: 0,
+}
+
 async function sha256Hex(text) {
   // Browser crypto
   if (globalThis.crypto?.subtle) {
@@ -28,17 +36,52 @@ async function sha256Hex(text) {
   return `fallback-${hash}`
 }
 
+function isValidCacheRow(row) {
+  if (!row || typeof row !== 'object') return false
+  if (!row.postHash || typeof row.postHash !== 'string') return false
+  if (!row.sourceId || typeof row.sourceId !== 'string') return false
+  if (typeof row.title !== 'string') return false
+  if (typeof row.content !== 'string') return false
+  if (typeof row.schemaVersion !== 'number') return false
+  return true
+}
+
 function parseNdjson(text) {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   const rows = []
+
+  ndjsonTelemetry = {
+    totalLines: lines.length,
+    parsedRows: 0,
+    rejectedRows: 0,
+    invalidJsonRows: 0,
+    invalidSchemaRows: 0,
+  }
+
   for (const line of lines) {
+    let parsed = null
     try {
-      rows.push(JSON.parse(line))
+      parsed = JSON.parse(line)
     } catch {
-      // ignore malformed
+      ndjsonTelemetry.invalidJsonRows += 1
+      ndjsonTelemetry.rejectedRows += 1
+      continue
     }
+
+    if (!isValidCacheRow(parsed)) {
+      ndjsonTelemetry.invalidSchemaRows += 1
+      ndjsonTelemetry.rejectedRows += 1
+      continue
+    }
+
+    rows.push(parsed)
+    ndjsonTelemetry.parsedRows += 1
   }
   return rows
+}
+
+export function getNdjsonTelemetry() {
+  return { ...ndjsonTelemetry }
 }
 
 export async function loadNdjsonCache(url, { revalidate = true } = {}) {
@@ -87,6 +130,7 @@ export async function loadNdjsonCache(url, { revalidate = true } = {}) {
       bytes: text.length,
       rows: rows.length,
       sha256,
+      telemetry: ndjsonTelemetry,
     })
   }
 
