@@ -320,7 +320,11 @@ function toRow(post) {
 function sortNewestFirst(a, b) {
   const ta = Date.parse(a?.publishedAt || '') || 0
   const tb = Date.parse(b?.publishedAt || '') || 0
-  return tb - ta
+  if (tb !== ta) return tb - ta
+
+  const aKey = String(a?.postHash || a?.sourceId || a?.id || '')
+  const bKey = String(b?.postHash || b?.sourceId || b?.id || '')
+  return aKey.localeCompare(bKey)
 }
 
 function computeJapaneseDensity(text) {
@@ -398,7 +402,9 @@ async function run() {
   const rankedFetched = [...allFetched].sort((a, b) => {
     const scoreDiff = computePostQualityScore(b) - computePostQualityScore(a)
     if (scoreDiff !== 0) return scoreDiff
-    return sortNewestFirst(a, b)
+    const timeDiff = sortNewestFirst(a, b)
+    if (timeDiff !== 0) return timeDiff
+    return String(a?.id || '').localeCompare(String(b?.id || ''))
   })
 
   const limitedFetched = rankedFetched.slice(0, MAX_NEW_POSTS)
