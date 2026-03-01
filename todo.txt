@@ -1,4 +1,3 @@
-(B) Set default `targetLanguage: "Japanese"` in new profile creation in `src/contexts/AuthContext.jsx`. +translation +data +philosophy
 (B) Reject non `en-ja` and `ja-en` pairs in `src/services/translationService.js` with a typed error code. +translation +stability +philosophy
 (B) Reject non `en-ja` and `ja-en` pairs in `api/translate.js` with HTTP 400 and a stable error code. +translation +stability +philosophy
 (B) Add sentence-level translate action to each post card in `src/components/NewsFeed.jsx`. +translation +frontend +philosophy

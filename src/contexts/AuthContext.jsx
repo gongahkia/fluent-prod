@@ -121,6 +121,7 @@ export const AuthProvider = ({ children }) => {
             name: displayName,
             email: user.email,
             bio: '',
+            targetLanguage: 'Japanese',
             location: '',
             website: '',
             bannerImage: '',
