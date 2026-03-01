@@ -1,4 +1,3 @@
-(B) Emit structured translation events through `src/lib/toastBus.js` for success states. +translation +observability +frontend
 (B) Emit structured translation events through `src/lib/toastBus.js` for fallback states. +translation +observability +frontend
 (B) Emit structured translation events through `src/lib/toastBus.js` for failure states. +translation +observability +frontend
 (B) Show provider name and cache status in `src/components/NewsFeed/WordLearningPopup.jsx`. +translation +frontend +observability

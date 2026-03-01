@@ -1,4 +1,5 @@
 const TOAST_EVENT_NAME = "fluent:toast"
+const TRANSLATION_EVENT_NAME = "fluent:translation"
 
 export function emitToast({ message, icon = "⚠️", duration = 2500 } = {}) {
   if (typeof window === "undefined") return
@@ -24,6 +25,42 @@ export function addToastListener(handler) {
 
   window.addEventListener(TOAST_EVENT_NAME, wrapped)
   return () => window.removeEventListener(TOAST_EVENT_NAME, wrapped)
+}
+
+export function emitTranslationEvent(event = {}) {
+  if (typeof window === "undefined") return
+
+  const detail = {
+    type: "translation",
+    state: event?.state || "unknown",
+    source: event?.source || "unknown",
+    provider: event?.provider || null,
+    fromLang: event?.fromLang || null,
+    toLang: event?.toLang || null,
+    cacheHit: Boolean(event?.cacheHit),
+    timestamp: Date.now(),
+  }
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent(TRANSLATION_EVENT_NAME, {
+        detail,
+      })
+    )
+  } catch {
+    // ignore
+  }
+}
+
+export function addTranslationEventListener(handler) {
+  if (typeof window === "undefined") return () => {}
+
+  const wrapped = (event) => {
+    handler?.(event?.detail)
+  }
+
+  window.addEventListener(TRANSLATION_EVENT_NAME, wrapped)
+  return () => window.removeEventListener(TRANSLATION_EVENT_NAME, wrapped)
 }
 
 export async function captureAsyncError(operation, {

@@ -12,6 +12,7 @@ import {
   withTimeout,
 } from './translationPipeline'
 import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
+import { emitTranslationEvent } from '../lib/toastBus'
 import { z } from 'zod'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
@@ -440,6 +441,8 @@ class TranslationService {
   async translateText(text, fromLang = 'en', toLang = 'ja', options = {}) {
     const { pair } = this.assertSupportedTranslationPair(fromLang, toLang)
     const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
+    let successSource = 'proxy'
+    let successProvider = 'proxy'
 
     const timeoutMs = 5000
     const trimmed = String(text ?? '')
@@ -447,6 +450,14 @@ class TranslationService {
     const requestKey = createTranslationCacheKey(trimmed, fromLang, toLang, options)
     const cachedValue = readFromTranslationCache(requestKey)
     if (cachedValue) {
+      emitTranslationEvent({
+        state: 'success',
+        source: 'cache',
+        provider: 'cache',
+        fromLang,
+        toLang,
+        cacheHit: true,
+      })
       return cachedValue
     }
 
@@ -456,10 +467,13 @@ class TranslationService {
 
     const task = enqueueTranslationTask(async () => {
       try {
-        return await withRetry(
+        const proxyResult = await withRetry(
           () => translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs),
           { seed: requestKey }
         )
+        successSource = 'proxy'
+        successProvider = 'proxy'
+        return proxyResult
       } catch {
       const result = await runFallbackProviders({
         providers,
@@ -495,6 +509,8 @@ class TranslationService {
             const validatedTranslation = validateTranslationResult(result, trimmed)
             if (validatedTranslation) {
               this.recordProviderSuccess(provider)
+              successSource = 'fallback'
+              successProvider = provider
               return validatedTranslation
             }
             this.recordProviderFailure(provider)
@@ -514,6 +530,14 @@ class TranslationService {
     try {
       const result = await task
       writeToTranslationCache(requestKey, result)
+      emitTranslationEvent({
+        state: 'success',
+        source: successSource,
+        provider: successProvider,
+        fromLang,
+        toLang,
+        cacheHit: false,
+      })
       return result
     } finally {
       inFlightTranslations.delete(requestKey)
