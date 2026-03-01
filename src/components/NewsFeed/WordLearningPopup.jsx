@@ -273,6 +273,17 @@ const WordLearningPopup = ({
               </div>
             )}
 
+            {(selectedWord.translationProvider || selectedWord.translationCacheStatus) && (
+              <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div>
+                  Provider: <span className="font-medium text-gray-800">{selectedWord.translationProvider || "unknown"}</span>
+                </div>
+                <div>
+                  Cache: <span className="font-medium text-gray-800">{selectedWord.translationCacheStatus || "unknown"}</span>
+                </div>
+              </div>
+            )}
+
             {/* Context section removed as requested */}
 
             {/* Action Buttons */}

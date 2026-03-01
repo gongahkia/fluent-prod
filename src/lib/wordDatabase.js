@@ -161,12 +161,31 @@ function assertRateLimit() {
 async function translateWithCache(text, fromLang, toLang) {
   const cachedTranslation = translationService.getCachedTranslation(text, fromLang, toLang)
   if (cachedTranslation) {
-    return { translation: cachedTranslation }
+    return {
+      translation: cachedTranslation,
+      provider: "cache",
+      cacheStatus: "hit",
+    }
   }
 
   assertRateLimit()
-  const translation = await translationService.translateText(text, fromLang, toLang)
-  return { translation }
+  const response = await translationService.translateText(text, fromLang, toLang, {
+    includeMetadata: true,
+  })
+
+  if (response && typeof response === "object") {
+    return {
+      translation: response.translation,
+      provider: response.provider || "proxy",
+      cacheStatus: response.cacheHit ? "hit" : "miss",
+    }
+  }
+
+  return {
+    translation: String(response || ""),
+    provider: "proxy",
+    cacheStatus: "miss",
+  }
 }
 
 export const prewarmTranslationCacheFromDictionary = (userDictionary, targetLanguage = "Japanese") => {
@@ -271,6 +290,8 @@ export const handleWordClick = async (
           clickPosition,
           postHash: contextPostHash,
           readingSource,
+          translationProvider: "cache",
+          translationCacheStatus: "hit",
         }
         wordData.japanese = isTargetLang ? cleanWord : translation
         wordData.hiragana = pronunciation
@@ -287,11 +308,16 @@ export const handleWordClick = async (
     let translation,
       pronunciation,
       contextTranslationResult,
-      readingSource = READING_SOURCE_NONE
+      readingSource = READING_SOURCE_NONE,
+      translationProvider = "proxy",
+      translationCacheStatus = "miss"
 
     if (isTargetLang) {
       // Target language to English
-      translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
+      const translationResult = await translateWithCache(cleanWord, fromLang, toLang)
+      translation = translationResult.translation
+      translationProvider = translationResult.provider || translationProvider
+      translationCacheStatus = translationResult.cacheStatus || translationCacheStatus
       ensureNotAborted(requestSignal)
       const reading = await parseJapaneseReading(cleanWord)
       ensureNotAborted(requestSignal)
@@ -309,7 +335,10 @@ export const handleWordClick = async (
       }
     } else {
       // English to target language
-      translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
+      const translationResult = await translateWithCache(cleanWord, fromLang, toLang)
+      translation = translationResult.translation
+      translationProvider = translationResult.provider || translationProvider
+      translationCacheStatus = translationResult.cacheStatus || translationCacheStatus
       ensureNotAborted(requestSignal)
       const reading = await parseJapaneseReading(translation)
       ensureNotAborted(requestSignal)
@@ -346,6 +375,8 @@ export const handleWordClick = async (
       clickPosition: clickPosition, // Add click position for anchored popup
       postHash: contextPostHash,
       readingSource,
+      translationProvider,
+      translationCacheStatus,
     }
 
     wordData.japanese = isTargetLang ? cleanWord : translation

@@ -441,6 +441,7 @@ class TranslationService {
   async translateText(text, fromLang = 'en', toLang = 'ja', options = {}) {
     const { pair } = this.assertSupportedTranslationPair(fromLang, toLang)
     const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
+    const includeMetadata = Boolean(options?.includeMetadata)
     let successSource = 'proxy'
     let successProvider = 'proxy'
 
@@ -458,11 +459,26 @@ class TranslationService {
         toLang,
         cacheHit: true,
       })
+      if (includeMetadata) {
+        return {
+          translation: cachedValue,
+          source: 'cache',
+          provider: 'cache',
+          cacheHit: true,
+        }
+      }
       return cachedValue
     }
 
     if (inFlightTranslations.has(requestKey)) {
-      return inFlightTranslations.get(requestKey)
+      const inFlightResult = await inFlightTranslations.get(requestKey)
+      if (!includeMetadata) return inFlightResult
+      return {
+        translation: inFlightResult,
+        source: 'inflight',
+        provider: null,
+        cacheHit: false,
+      }
     }
 
     const task = enqueueTranslationTask(async () => {
@@ -548,6 +564,14 @@ class TranslationService {
         toLang,
         cacheHit: false,
       })
+      if (includeMetadata) {
+        return {
+          translation: result,
+          source: successSource,
+          provider: successProvider,
+          cacheHit: false,
+        }
+      }
       return result
     } catch (error) {
       emitTranslationEvent({
