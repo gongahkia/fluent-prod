@@ -115,6 +115,48 @@ export async function createComment({
   }
 }
 
+export async function createReply({
+  id = null,
+  postHash,
+  userId,
+  parentCommentId,
+  content,
+  media = null,
+} = {}) {
+  const safeContent = String(content || "").trim()
+  if (!postHash || !userId || !parentCommentId || !safeContent) {
+    return {
+      success: false,
+      error: "postHash, userId, parentCommentId, and content are required",
+      errorCode: "COMMENTS_INVALID_INPUT",
+    }
+  }
+
+  try {
+    const payload = buildCommentPayload({
+      id,
+      postHash,
+      userId,
+      parentCommentId,
+      content: safeContent,
+      media,
+    })
+
+    await withFirestoreWrite("set:commentReply", () =>
+      setDoc(commentDoc(payload.id), payload, { merge: true })
+    )
+    return { success: true, data: payload }
+  } catch (error) {
+    console.error("Error creating comment reply:", error)
+    const mapped = mapFirestoreError(error)
+    return {
+      success: false,
+      error: mapped.message,
+      errorCode: mapped.errorCode,
+    }
+  }
+}
+
 function normalizePageSize(pageSize) {
   const parsed = Number(pageSize)
   if (!Number.isFinite(parsed)) return DEFAULT_COMMENTS_PAGE_SIZE
