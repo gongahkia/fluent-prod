@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 function json(res, status, payload) {
   res.statusCode = status
   res.setHeader("Content-Type", "application/json")
@@ -5,6 +7,16 @@ function json(res, status, payload) {
 }
 
 const PROVIDER_TIMEOUT_MS = 3000
+const requestSchema = z.object({
+  text: z.string().trim().min(1),
+  fromLang: z.string().trim().min(2).max(12).optional().default("en"),
+  toLang: z.string().trim().min(2).max(12).optional().default("ja"),
+})
+
+const responseSchema = z.object({
+  translation: z.string().trim().min(1),
+  provider: z.enum(["lingva", "mymemory", "libretranslate"]),
+})
 
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController()
@@ -78,13 +90,14 @@ export default async function handler(req, res) {
     }
   }
 
-  const text = String(body?.text || "").trim()
-  const fromLang = String(body?.fromLang || "en").trim()
-  const toLang = String(body?.toLang || "ja").trim()
-
-  if (!text) {
-    return json(res, 400, { error: "Missing required field: text" })
+  const parsedRequest = requestSchema.safeParse(body || {})
+  if (!parsedRequest.success) {
+    return json(res, 400, {
+      error: "Invalid request body",
+      issues: parsedRequest.error.issues,
+    })
   }
+  const { text, fromLang, toLang } = parsedRequest.data
 
   try {
     const providers = [
@@ -98,10 +111,12 @@ export default async function handler(req, res) {
       try {
         const translation = await provider.run(text, fromLang, toLang)
         if (translation && translation !== text) {
-          return json(res, 200, {
+          const parsedResponse = responseSchema.parse({
             translation,
             provider: provider.id,
           })
+
+          return json(res, 200, parsedResponse)
         }
       } catch (error) {
         lastError = error
