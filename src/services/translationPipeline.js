@@ -6,8 +6,31 @@ export async function runFallbackProviders({ providers, runProvider }) {
   return null
 }
 
+const HTML_ENTITY_MAP = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+}
+
+function decodeHtmlEntities(input) {
+  return String(input ?? '').replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (fullMatch, entity) => {
+    if (entity.startsWith('#x') || entity.startsWith('#X')) {
+      const codePoint = Number.parseInt(entity.slice(2), 16)
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : fullMatch
+    }
+    if (entity.startsWith('#')) {
+      const codePoint = Number.parseInt(entity.slice(1), 10)
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : fullMatch
+    }
+    return HTML_ENTITY_MAP[entity.toLowerCase()] || fullMatch
+  })
+}
+
 export function normalizeTranslationText(input) {
-  let text = String(input ?? '')
+  let text = decodeHtmlEntities(input)
   text = text
     .replace(/\\"/g, '"')
     .replace(/\\n/g, '\n')

@@ -1,4 +1,3 @@
-(B) Normalize HTML entities in translation responses inside `src/services/translationPipeline.js`. +translation +stability +data
 (B) Add minimum quality heuristics for translation output in `src/services/translationPipeline.js`. +translation +stability +data
 (B) Emit structured translation events through `src/lib/toastBus.js` for success states. +translation +observability +frontend
 (B) Emit structured translation events through `src/lib/toastBus.js` for fallback states. +translation +observability +frontend
