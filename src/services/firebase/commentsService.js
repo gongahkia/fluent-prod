@@ -26,9 +26,132 @@ const COMMENT_REACTIONS_SUBCOLLECTION = "reactions"
 const COMMENT_MEDIA_COLLECTION = "commentMedia"
 const DEFAULT_COMMENTS_PAGE_SIZE = 20
 const MAX_COMMENTS_PAGE_SIZE = 50
+const COMMENT_MAX_CONTENT_CHARS = 1200
+const COMMENT_MAX_MEDIA_BYTES = 5 * 1024 * 1024
+const COMMENT_ALLOWED_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+])
+
+function normalizeMediaType(mediaType = "") {
+  const normalized = String(mediaType || "")
+    .toLowerCase()
+    .trim()
+  if (normalized === "image/jpg") return "image/jpeg"
+  return normalized
+}
+
+function inferDataUrlMediaType(dataUrl = "") {
+  if (!String(dataUrl).startsWith("data:")) return ""
+  const metadata = String(dataUrl).slice(5).split(",")[0] || ""
+  return normalizeMediaType(metadata.split(";")[0] || "")
+}
+
+function estimateDataUrlBytes(dataUrl = "") {
+  const raw = String(dataUrl).split(",")[1] || ""
+  if (!raw) return 0
+  const sanitized = raw.replace(/\s/g, "")
+  const paddingMatches = sanitized.match(/=+$/)
+  const padding = paddingMatches ? paddingMatches[0].length : 0
+  return Math.max(0, Math.floor((sanitized.length * 3) / 4 - padding))
+}
+
+function validateCommentWriteInput({ content, media } = {}) {
+  const safeContent = String(content || "").trim()
+  if (!safeContent) {
+    return {
+      success: false,
+      error: "content is required",
+      errorCode: "COMMENTS_INVALID_INPUT",
+    }
+  }
+
+  if (safeContent.length > COMMENT_MAX_CONTENT_CHARS) {
+    return {
+      success: false,
+      error: `content exceeds ${COMMENT_MAX_CONTENT_CHARS} characters`,
+      errorCode: "COMMENTS_CONTENT_TOO_LONG",
+    }
+  }
+
+  if (!media) {
+    return {
+      success: true,
+      content: safeContent,
+      media: null,
+    }
+  }
+
+  if (typeof media !== "object") {
+    return {
+      success: false,
+      error: "media must be an object",
+      errorCode: "COMMENTS_MEDIA_INVALID",
+    }
+  }
+
+  const hasData = typeof media?.data === "string" && media.data.trim()
+  const hasUrl = typeof media?.url === "string" && media.url.trim()
+  if (!hasData && !hasUrl) {
+    return {
+      success: false,
+      error: "media requires data or url",
+      errorCode: "COMMENTS_MEDIA_INVALID",
+    }
+  }
+
+  const inferredType = hasData ? inferDataUrlMediaType(media.data) : ""
+  const normalizedType = normalizeMediaType(media?.type || inferredType)
+  if (!COMMENT_ALLOWED_MEDIA_TYPES.has(normalizedType)) {
+    return {
+      success: false,
+      error: "media type is not supported",
+      errorCode: "COMMENTS_MEDIA_INVALID",
+    }
+  }
+
+  if (hasData) {
+    if (!String(media.data).startsWith("data:")) {
+      return {
+        success: false,
+        error: "media data must be a data URL",
+        errorCode: "COMMENTS_MEDIA_INVALID",
+      }
+    }
+    const sizeBytes = estimateDataUrlBytes(media.data)
+    if (sizeBytes > COMMENT_MAX_MEDIA_BYTES) {
+      return {
+        success: false,
+        error: `media exceeds ${COMMENT_MAX_MEDIA_BYTES} bytes`,
+        errorCode: "COMMENTS_MEDIA_TOO_LARGE",
+      }
+    }
+  }
+
+  if (hasUrl && !/^https?:\/\//.test(String(media.url).trim())) {
+    return {
+      success: false,
+      error: "media url must be http(s)",
+      errorCode: "COMMENTS_MEDIA_INVALID",
+    }
+  }
+
+  return {
+    success: true,
+    content: safeContent,
+    media: {
+      type: normalizedType,
+      name: media?.name ? String(media.name) : null,
+      data: hasData ? String(media.data) : null,
+      url: hasUrl ? String(media.url).trim() : null,
+    },
+  }
+}
 
 function getStorageExt(mimeType = "") {
-  const normalized = String(mimeType || "").toLowerCase()
+  const normalized = normalizeMediaType(mimeType)
   if (normalized.includes("png")) return "png"
   if (normalized.includes("gif")) return "gif"
   if (normalized.includes("webp")) return "webp"
@@ -122,21 +245,22 @@ export async function createComment({
   content,
   media = null,
 } = {}) {
-  const safeContent = String(content || "").trim()
-  if (!postHash || !userId || !safeContent) {
+  if (!postHash || !userId || !String(content || "").trim()) {
     return {
       success: false,
       error: "postHash, userId, and content are required",
       errorCode: "COMMENTS_INVALID_INPUT",
     }
   }
+  const validation = validateCommentWriteInput({ content, media })
+  if (!validation.success) return validation
 
   try {
     const safeCommentId = buildCommentId(id)
-    const persistedMedia = media?.url
-      ? normalizeStoredMedia(media, media.url)
+    const persistedMedia = validation.media?.url
+      ? normalizeStoredMedia(validation.media, validation.media.url)
       : await uploadCommentMedia({
-          media,
+          media: validation.media,
           postHash,
           userId,
           commentId: safeCommentId,
@@ -145,7 +269,7 @@ export async function createComment({
       id: safeCommentId,
       postHash,
       userId,
-      content: safeContent,
+      content: validation.content,
       media: persistedMedia,
     })
 
@@ -172,21 +296,27 @@ export async function createReply({
   content,
   media = null,
 } = {}) {
-  const safeContent = String(content || "").trim()
-  if (!postHash || !userId || !parentCommentId || !safeContent) {
+  if (
+    !postHash ||
+    !userId ||
+    !parentCommentId ||
+    !String(content || "").trim()
+  ) {
     return {
       success: false,
       error: "postHash, userId, parentCommentId, and content are required",
       errorCode: "COMMENTS_INVALID_INPUT",
     }
   }
+  const validation = validateCommentWriteInput({ content, media })
+  if (!validation.success) return validation
 
   try {
     const safeCommentId = buildCommentId(id)
-    const persistedMedia = media?.url
-      ? normalizeStoredMedia(media, media.url)
+    const persistedMedia = validation.media?.url
+      ? normalizeStoredMedia(validation.media, validation.media.url)
       : await uploadCommentMedia({
-          media,
+          media: validation.media,
           postHash,
           userId,
           commentId: safeCommentId,
@@ -196,7 +326,7 @@ export async function createReply({
       postHash,
       userId,
       parentCommentId,
-      content: safeContent,
+      content: validation.content,
       media: persistedMedia,
     })
 
