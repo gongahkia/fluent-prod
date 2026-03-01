@@ -50,6 +50,11 @@ function toInt(value, fallback) {
   return Number.isFinite(n) ? n : fallback
 }
 
+function toFloat(value, fallback) {
+  const n = Number.parseFloat(String(value))
+  return Number.isFinite(n) ? n : fallback
+}
+
 function sha256Hex(input) {
   return crypto.createHash('sha256').update(input).digest('hex')
 }
@@ -121,6 +126,7 @@ const CONCURRENCY_LIMIT = toInt(argv.concurrencyLimit || process.env.CONCURRENCY
 const TARGET_LANG = String(argv.targetLang || process.env.TARGET_LANG || preset.targetLang)
 const OUT_FILE = String(argv.outFile || process.env.OUT_FILE || preset.outFile)
 const MAX_NEW_POSTS = toInt(argv.maxNewPosts || process.env.MAX_NEW_POSTS, 200)
+const MIN_JAPANESE_DENSITY = toFloat(argv.minJapaneseDensity || process.env.MIN_JAPANESE_DENSITY, 0.08)
 
 if (TARGET_LANG !== 'ja') {
   const err = new Error(`Only Japanese is supported (targetLang must be 'ja'; got ${TARGET_LANG}).`)
@@ -277,6 +283,7 @@ async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
       .filter((post) => !isLowValuePost(post))
       .map(post => normalizeRedditPost(post))
       .filter((post) => hasTargetLanguageContent(`${post.title} ${post.content}`, TARGET_LANG))
+      .filter((post) => computeJapaneseDensity(`${post.title} ${post.content}`) >= MIN_JAPANESE_DENSITY)
       .slice(0, limit)
 
     console.log(`    Got ${posts.length} posts from r/${subreddit}`)
