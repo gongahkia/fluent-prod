@@ -45,6 +45,31 @@ export function normalizeTranslationText(input) {
   return text.normalize('NFKC').trim()
 }
 
+export function passesMinimumTranslationQuality(translation, originalText = '') {
+  const normalizedTranslation = normalizeTranslationText(translation)
+  const normalizedOriginal = normalizeTranslationText(originalText)
+  if (!normalizedTranslation) return false
+
+  // Reject unchanged and near-empty outputs.
+  if (
+    normalizedOriginal &&
+    normalizedTranslation.toLowerCase() === normalizedOriginal.toLowerCase()
+  ) {
+    return false
+  }
+  if (normalizedTranslation.length < 2) return false
+
+  // Reject outputs with no letter/number content.
+  if (!/[\p{L}\p{N}]/u.test(normalizedTranslation)) return false
+
+  // If source text is substantial, translation should not collapse to a tiny fragment.
+  if (normalizedOriginal.length >= 12 && normalizedTranslation.length <= 2) {
+    return false
+  }
+
+  return true
+}
+
 export function withTimeout(ms) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ms)

@@ -5,7 +5,12 @@
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
-import { normalizeTranslationText, runFallbackProviders, withTimeout } from './translationPipeline'
+import {
+  normalizeTranslationText,
+  passesMinimumTranslationQuality,
+  runFallbackProviders,
+  withTimeout,
+} from './translationPipeline'
 import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
 import { z } from 'zod'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
@@ -242,11 +247,12 @@ function enqueueTranslationTask(task) {
   })
 }
 
-function validateTranslationResult(rawTranslation) {
+function validateTranslationResult(rawTranslation, originalText = '') {
   const parsed = TranslationResultSchema.safeParse({
     translation: normalizeTranslationText(rawTranslation),
   })
   if (!parsed.success) return null
+  if (!passesMinimumTranslationQuality(parsed.data.translation, originalText)) return null
   return parsed.data.translation
 }
 
@@ -308,7 +314,7 @@ async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
     }
 
     const data = await res.json()
-    const translation = validateTranslationResult(data?.translation)
+    const translation = validateTranslationResult(data?.translation, text)
     if (!translation || translation === text) {
       throw new Error('Translation proxy returned invalid translation')
     }
@@ -486,7 +492,7 @@ class TranslationService {
         }
 
           if (result) {
-            const validatedTranslation = validateTranslationResult(result)
+            const validatedTranslation = validateTranslationResult(result, trimmed)
             if (validatedTranslation) {
               this.recordProviderSuccess(provider)
               return validatedTranslation
