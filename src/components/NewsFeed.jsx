@@ -1,6 +1,7 @@
 import {
   Bookmark,
   Globe,
+  Languages,
   MessageCircle,
   RefreshCw,
   Share,
@@ -657,6 +658,7 @@ const NewsFeed = ({
   }
 
   const [translationStates, setTranslationStates] = useState({})
+  const [sentenceTranslateStates, setSentenceTranslateStates] = useState({})
 
   // Toggle post expansion
   const togglePostExpansion = (postId) => {
@@ -671,6 +673,13 @@ const NewsFeed = ({
     setTranslationStates((prev) => ({
       ...prev,
       [key]: !prev[key],
+    }))
+  }
+
+  const toggleSentenceTranslateAction = (postId) => {
+    setSentenceTranslateStates((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
     }))
   }
 
@@ -967,6 +976,21 @@ const NewsFeed = ({
                               </svg>
                             </button>
                           )}
+
+                          <button
+                            onClick={() => toggleSentenceTranslateAction(article.id)}
+                            className={`mt-3 inline-flex items-center space-x-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                              sentenceTranslateStates[article.id]
+                                ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                                : "border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-orange-600"
+                            }`}
+                            title="Toggle sentence translation actions"
+                          >
+                            <Languages className="w-4 h-4" />
+                            <span>
+                              {sentenceTranslateStates[article.id] ? "Sentence Translate On" : "Translate Sentences"}
+                            </span>
+                          </button>
                         </>
                       )
                     })()}

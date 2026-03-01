@@ -1,4 +1,3 @@
-(B) Add sentence-level translate action to each post card in `src/components/NewsFeed.jsx`. +translation +frontend +philosophy
 (B) Translate clicked sentence text through `translationService.translateText` in `src/components/NewsFeed/renderingUtils.jsx`. +translation +frontend +philosophy
 (B) Cache sentence translations by `postHash|sentenceIndex|from|to` in `src/services/translationService.js`. +translation +stability +philosophy
 (B) Add intermediate learner mode toggle that defaults to showing Japanese first and English on demand in `src/components/Settings.jsx`. +translation +frontend +philosophy
