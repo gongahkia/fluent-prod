@@ -363,8 +363,8 @@ export const handleWordClick = async (
       const cached = getCachedTranslation(clickKey)
       if (cached?.translation) {
         const translation = cached.translation
-        const reading = isTargetLang ? await parseJapaneseReading(cleanWord) : null
-        const pronunciation = isTargetLang ? (reading || cleanWord) : translation
+        const readingTarget = isTargetLang ? cleanWord : translation
+        const pronunciation = await parseJapaneseReading(readingTarget)
 
         const level = cleanWord.length <= 4 ? 3 : cleanWord.length <= 7 ? 5 : 7
         const wordData = {
@@ -397,7 +397,7 @@ export const handleWordClick = async (
       // Target language to English
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
       const reading = await parseJapaneseReading(cleanWord)
-      pronunciation = reading || cleanWord
+      pronunciation = reading || null
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -409,7 +409,7 @@ export const handleWordClick = async (
     } else {
       // English to target language
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
-      pronunciation = translation
+      pronunciation = await parseJapaneseReading(translation)
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(

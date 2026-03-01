@@ -1,4 +1,3 @@
-(B) Stop assigning translated text to `hiragana` in `src/lib/wordDatabase.js` when no reading is available. +translation +stability +philosophy
 (B) Add `readingSource` metadata to selected word payloads in `src/lib/wordDatabase.js`. +translation +frontend +philosophy
 (B) Add provider-agnostic translation client module at `src/services/translationProviders.js`. +translation +refactor +stability
 (B) Move `tryLingva`, `tryMyMemory`, and `tryLibreTranslate` into `src/services/translationProviders.js`. +translation +refactor +stability
