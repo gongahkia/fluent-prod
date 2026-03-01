@@ -120,6 +120,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
     setIsLoading(true)
 
     try {
+      const enforcedTargetLanguage = "Japanese"
       const token = await currentUser.getIdToken()
 
       const credentials = {
@@ -138,7 +139,7 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
         email: formData.email,
         bio: formData.bio,
         nativeLanguage: formData.nativeLanguage,
-        targetLanguage: formData.targetLanguage,
+        targetLanguage: enforcedTargetLanguage,
         level: parseInt(formData.learningLevel),
         location: formData.location,
         website: formData.website,
@@ -161,7 +162,10 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
       }
 
       await updateUserProfile(currentUser.id, profileUpdates)
-      onProfileUpdate(formData)
+      onProfileUpdate({
+        ...formData,
+        targetLanguage: enforcedTargetLanguage,
+      })
 
       setIsLoading(false)
       setShowSuccessPopup(true)

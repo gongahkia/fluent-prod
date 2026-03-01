@@ -1,0 +1,66 @@
+(B) Enforce `targetLanguage === "Japanese"` in `src/components/Profile.jsx` before `updateUserProfile` writes. +translation +frontend +philosophy
+(B) Set default `targetLanguage: "Japanese"` in new profile creation in `src/contexts/AuthContext.jsx`. +translation +data +philosophy
+(B) Reject non `en-ja` and `ja-en` pairs in `src/services/translationService.js` with a typed error code. +translation +stability +philosophy
+(B) Reject non `en-ja` and `ja-en` pairs in `api/translate.js` with HTTP 400 and a stable error code. +translation +stability +philosophy
+(B) Add sentence-level translate action to each post card in `src/components/NewsFeed.jsx`. +translation +frontend +philosophy
+(B) Translate clicked sentence text through `translationService.translateText` in `src/components/NewsFeed/renderingUtils.jsx`. +translation +frontend +philosophy
+(B) Cache sentence translations by `postHash|sentenceIndex|from|to` in `src/services/translationService.js`. +translation +stability +philosophy
+(B) Add intermediate learner mode toggle that defaults to showing Japanese first and English on demand in `src/components/Settings.jsx`. +translation +frontend +philosophy
+(B) Persist intermediate learner mode under `settings.learning.intermediateMode` in Firestore via `updateUserProfile`. +translation +data +philosophy
+(B) Parse Japanese token readings with `kuromojin` in `src/lib/wordDatabase.js` for clicked Japanese words. +translation +frontend +philosophy
+(B) Stop assigning translated text to `hiragana` in `src/lib/wordDatabase.js` when no reading is available. +translation +stability +philosophy
+(B) Add `readingSource` metadata to selected word payloads in `src/lib/wordDatabase.js`. +translation +frontend +philosophy
+(B) Add provider-agnostic translation client module at `src/services/translationProviders.js`. +translation +refactor +stability
+(B) Move `tryLingva`, `tryMyMemory`, and `tryLibreTranslate` into `src/services/translationProviders.js`. +translation +refactor +stability
+(B) Import shared provider functions in `src/services/translationService.js` instead of inline provider functions. +translation +refactor +stability
+(B) Add per-provider circuit breaker state in `src/services/translationService.js`. +translation +stability +scaling
+(B) Skip providers with open circuits in `src/services/translationService.js` fallback execution. +translation +stability +scaling
+(B) Record provider failure counts and cooldown end timestamps in `src/services/translationService.js`. +translation +observability +scaling
+(B) Add translation request concurrency limiter in `src/services/translationService.js` with a configurable max queue. +translation +stability +scaling
+(B) Add AbortController cancellation for stale translation requests in `src/lib/wordDatabase.js`. +translation +frontend +stability
+(B) Replace in-memory-only translation cache with versioned localStorage-backed LRU cache in `src/services/translationService.js`. +translation +stability +scaling
+(B) Remove duplicate translation cache code from `src/lib/wordDatabase.js` and call a cache adapter from `src/services/translationService.js`. +translation +refactor +stability
+(B) Invalidate persisted translation cache when `config/translationMappings.json` version changes. +translation +stability +scaling
+(B) Add translation result schema validation in `src/services/translationService.js` using `zod`. +translation +stability +data
+(B) Normalize HTML entities in translation responses inside `src/services/translationPipeline.js`. +translation +stability +data
+(B) Add minimum quality heuristics for translation output in `src/services/translationPipeline.js`. +translation +stability +data
+(B) Emit structured translation events through `src/lib/toastBus.js` for success states. +translation +observability +frontend
+(B) Emit structured translation events through `src/lib/toastBus.js` for fallback states. +translation +observability +frontend
+(B) Emit structured translation events through `src/lib/toastBus.js` for failure states. +translation +observability +frontend
+(B) Show provider name and cache status in `src/components/NewsFeed/WordLearningPopup.jsx`. +translation +frontend +observability
+(B) Add retry action to `WordLearningPopup` when a translation request fails. +translation +frontend +stability
+(B) Replace `alert` usage in translation-adjacent flows with toast notifications in `src/components/EnhancedCommentSystem.jsx`. +translation +frontend +dx
+(B) Split Firestore methods in `src/services/firebaseDatabaseService.js` into domain files under `src/services/firebase/`. +data +refactor +stability
+(B) Add shared Firestore ID sanitizer utility at `src/services/firebase/idUtils.js` and use it in all write paths. +data +stability +dx
+(B) Add shared Firestore error mapper at `src/services/firebase/errorMapper.js` and return stable `errorCode` values. +data +stability +dx
+(B) Add write retries with exponential backoff for transient Firestore write errors in `src/services/firebase/retry.js`. +data +stability +scaling
+(B) Add payload schema guards for profile writes in `src/services/firebase/schemas.js`. +data +stability +dx
+(B) Add payload schema guards for dictionary writes in `src/services/firebase/schemas.js`. +data +stability +dx
+(B) Add payload schema guards for saved post writes in `src/services/firebase/schemas.js`. +data +stability +dx
+(B) Implement `comments` collection helpers in `src/services/firebase/commentsService.js`. +comments +data +stability
+(B) Implement `createComment` in `commentsService` with `postHash`, `userId`, `content`, and timestamps. +comments +data +stability
+(B) Implement `listCommentsByPost` in `commentsService` with cursor pagination and newest-first order. +comments +data +scaling
+(B) Implement `createReply` in `commentsService` with `parentCommentId` linkage. +comments +data +stability
+(B) Implement `toggleCommentLike` in `commentsService` using per-user reaction docs for idempotency. +comments +data +stability
+(B) Implement `onCommentsChanged` realtime listener in `commentsService` using `onSnapshot`. +comments +data +scaling
+(B) Wire `EnhancedCommentSystem` to load comments from `commentsService` instead of local component state. +comments +frontend +stability
+(B) Wire reply creation in `EnhancedCommentSystem` to persisted `createReply` calls. +comments +frontend +stability
+(B) Wire like actions in `EnhancedCommentSystem` to persisted `toggleCommentLike` calls. +comments +frontend +stability
+(B) Upload comment images to Firebase Storage and persist only download URLs in `commentsService`. +comments +data +security
+(B) Enforce comment body length and media constraints in `commentsService` before Firestore writes. +comments +stability +security
+(B) Filter blocked users from comment feeds in `commentsService` query assembly. +comments +data +security
+(B) Persist per-post comment counts in `users/{uid}/savedPosts` entries when comments change. +comments +data +scaling
+(B) Replace token-based key derivation with stable UID-based derivation plus random salt in `src/services/encryptionService.js`. +security +data +stability
+(B) Add encrypted payload version metadata in `src/services/encryptionService.js` to support key migration. +security +data +stability
+(B) Add legacy decrypt fallback for existing token-derived credentials in `src/services/encryptionService.js`. +security +data +stability
+(B) Remove plaintext API credential writes to localStorage in `src/components/Settings.jsx`. +security +frontend +stability
+(B) Remove plaintext API credential writes to localStorage in `src/components/Profile.jsx`. +security +frontend +stability
+(B) Add unit tests for translation circuit breaker behavior in `src/services/__tests__/translationService.circuitBreaker.test.js`. +testing +translation +dx
+(B) Add unit tests for translation cache version migration in `src/services/__tests__/translationService.cacheVersion.test.js`. +testing +translation +dx
+(B) Add unit tests for stale request cancellation in `src/services/__tests__/wordDatabase.cancellation.test.js`. +testing +translation +dx
+(B) Add integration tests for persisted comments and reply trees in `src/services/__tests__/commentsService.integration.test.js`. +testing +comments +dx
+(B) Add integration tests for credential encryption migration in `src/services/__tests__/encryptionService.migration.test.js`. +testing +security +dx
+(B) Add a CI workflow `.github/workflows/comment-persistence-tests.yml` that runs new comment service tests on pull requests. +infra +testing +dx
+(B) Add a CI workflow `.github/workflows/translation-resilience-tests.yml` that runs new translation resilience tests on pull requests. +infra +testing +dx
+(B) Remove non-roadmap API feed branches from `src/services/newsService.js` and keep cache mode only. +refactor +frontend +stability
+(B) Remove `checkApiConfiguration` usage from `src/components/NewsFeed.jsx` once cache-only mode is enforced. +refactor +frontend +stability
