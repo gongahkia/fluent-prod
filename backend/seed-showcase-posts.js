@@ -295,7 +295,9 @@ async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
   }
 }
 
-function toRow(post) {
+function toRow(post, context) {
+  const generatedAt = context?.generatedAt || new Date().toISOString()
+  const sourceRunId = context?.sourceRunId || `run-${Date.now()}`
   const sourceId = post.id
   const postHash = stablePostHash(sourceId)
   const row = {
@@ -312,7 +314,9 @@ function toRow(post) {
     targetLang: TARGET_LANG,
     title: post.title,
     content: post.content,
-    createdAt: new Date().toISOString(),
+    createdAt: generatedAt,
+    generatedAt,
+    sourceRunId,
   }
   row.rowHash = rowIntegrityHash(row)
   return row
@@ -412,7 +416,11 @@ async function run() {
   console.log(`\nLimiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
 
   console.log('\nWriting cache rows (no pretranslation; original scraped text only)...')
-  const newRows = limitedFetched.map(toRow)
+  const generationContext = {
+    generatedAt: new Date().toISOString(),
+    sourceRunId: process.env.SOURCE_RUN_ID || `seed-${Date.now()}`,
+  }
+  const newRows = limitedFetched.map((post) => toRow(post, generationContext))
 
   // Merge + de-dupe by stable postHash
   const byHash = new Map()
