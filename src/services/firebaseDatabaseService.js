@@ -304,8 +304,20 @@ export const getUserDictionary = async (userId, language = null) => {
     // Firestore requires a composite index when combining a filter + orderBy.
     // Don't crash the app UI if the index isn't created yet.
     if (error?.code === 'failed-precondition' && String(error?.message || '').toLowerCase().includes('requires an index')) {
-      console.warn('Firestore index missing for dictionary query; returning empty list until index is created.')
-      return { success: true, data: [], warning: 'missing-index' }
+      try {
+        const base = dictionaryCol(userId)
+        const fallbackQuery = language
+          ? query(base, where('language', '==', language))
+          : query(base)
+        const fallbackSnap = await withFirestoreReadRetry('get:dictionaryWords:fallback', () => getDocs(fallbackQuery))
+        const words = fallbackSnap.docs
+          .map((d) => d.data())
+          .sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')))
+        return { success: true, data: words, warning: 'missing-index-fallback' }
+      } catch {
+        console.warn('Firestore index missing for dictionary query and fallback failed.')
+        return { success: true, data: [], warning: 'missing-index' }
+      }
     }
     console.error('Error getting user dictionary:', error)
     return { success: false, error: error.message }
@@ -383,6 +395,17 @@ export const getSavedPosts = async (userId) => {
     const posts = snap.docs.map((d) => d.data())
     return { success: true, data: posts }
   } catch (error) {
+    if (error?.code === 'failed-precondition' && String(error?.message || '').toLowerCase().includes('requires an index')) {
+      try {
+        const fallbackSnap = await withFirestoreReadRetry('get:savedPosts:fallback', () => getDocs(query(savedPostsCol(userId))))
+        const posts = fallbackSnap.docs
+          .map((d) => d.data())
+          .sort((a, b) => String(b?.savedAt || '').localeCompare(String(a?.savedAt || '')))
+        return { success: true, data: posts, warning: 'missing-index-fallback' }
+      } catch {
+        return { success: true, data: [], warning: 'missing-index' }
+      }
+    }
     console.error('Error getting saved posts:', error)
     return { success: false, error: error.message }
   }
