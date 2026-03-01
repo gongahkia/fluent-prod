@@ -159,10 +159,28 @@ class TranslationService {
       throw new Error(`Translation pair ${fromLang}-${toLang} is not supported`)
     }
 
+    const pairKey = `${fromLang}-${toLang}`
+    const pair = this.mappings.translationPairs[pairKey]
+    const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
+
     const timeoutMs = 5000
     const trimmed = String(text ?? '')
     if (!trimmed) return ''
-    return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
+
+    try {
+      return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
+    } catch {
+      for (const provider of providers) {
+        let result = null
+        if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
+        else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
+        else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
+
+        if (result) return result
+      }
+    }
+
+    throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
   }
 
   /**
