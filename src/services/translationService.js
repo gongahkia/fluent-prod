@@ -5,6 +5,7 @@
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
+import { runFallbackProviders } from './translationPipeline'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
@@ -275,7 +276,9 @@ class TranslationService {
           { seed: requestKey }
         )
       } catch {
-      for (const provider of providers) {
+      const result = await runFallbackProviders({
+        providers,
+        runProvider: async (provider) => {
         let result = null
         if (provider === 'lingva') {
           result = await withRetry(
@@ -294,8 +297,11 @@ class TranslationService {
           )
         }
 
-        if (result) return normalizeTranslationText(result)
-      }
+          if (result) return normalizeTranslationText(result)
+          return null
+        },
+      })
+      if (result) return result
       }
 
       throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
