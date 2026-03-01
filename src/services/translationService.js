@@ -5,6 +5,7 @@
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
+const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 
 function withTimeout(ms) {
   const controller = new AbortController()
@@ -76,6 +77,32 @@ async function tryLibreTranslate(text, fromLang, toLang, timeoutMs) {
   }
 }
 
+async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
+  const { signal, cancel } = withTimeout(timeoutMs)
+  try {
+    const res = await fetch(TRANSLATE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, fromLang, toLang }),
+      signal,
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      throw new Error(body?.message || `Translation proxy failed (${res.status})`)
+    }
+
+    const data = await res.json()
+    const translation = data?.translation
+    if (!translation || translation === text) {
+      throw new Error('Translation proxy returned invalid translation')
+    }
+    return translation
+  } finally {
+    cancel()
+  }
+}
+
 class TranslationService {
   constructor() {
     this.mappings = translationMappings
@@ -132,24 +159,10 @@ class TranslationService {
       throw new Error(`Translation pair ${fromLang}-${toLang} is not supported`)
     }
 
-    const pairKey = `${fromLang}-${toLang}`
-    const pair = this.mappings.translationPairs[pairKey]
-    const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
-
     const timeoutMs = 5000
-    for (const provider of providers) {
-      const trimmed = String(text ?? '')
-      if (!trimmed) return ''
-
-      let result = null
-      if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
-      else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
-      else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
-
-      if (result) return result
-    }
-
-    throw new Error('Translation failed (no provider succeeded). This may be a CORS/network issue.')
+    const trimmed = String(text ?? '')
+    if (!trimmed) return ''
+    return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
   }
 
   /**
