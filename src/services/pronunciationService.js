@@ -10,6 +10,7 @@ class PronunciationService {
     this.currentUtterance = null;
     this.voices = [];
     this.voicesLoaded = false;
+    this.lastHealthError = null;
 
     // Initialize if browser supports Speech Synthesis
     if (this.isSpeechSynthesisSupported()) {
@@ -40,6 +41,43 @@ class PronunciationService {
     if (!this.synth) return;
     this.voices = this.synth.getVoices();
     this.voicesLoaded = this.voices.length > 0;
+  }
+
+  buildHealthError(code, message) {
+    const error = new Error(message);
+    error.code = code;
+    return error;
+  }
+
+  getHealthStatus(language = "en-US") {
+    const supported = this.isSpeechSynthesisSupported();
+    if (!supported) {
+      return {
+        ok: false,
+        code: "UNSUPPORTED",
+        message: "Speech Synthesis is not supported in this browser.",
+        voicesLoaded: false,
+      };
+    }
+
+    const languageCode = this.getLanguageCode(language);
+    const availableVoices = this.getVoicesForLanguage(languageCode);
+    if (availableVoices.length === 0) {
+      return {
+        ok: false,
+        code: "VOICE_UNAVAILABLE",
+        message: `No voice available for ${languageCode}.`,
+        voicesLoaded: this.voicesLoaded,
+      };
+    }
+
+    return {
+      ok: true,
+      code: "OK",
+      message: "",
+      voicesLoaded: this.voicesLoaded,
+      voiceCount: availableVoices.length,
+    };
   }
 
   /**
@@ -96,13 +134,17 @@ class PronunciationService {
    * @returns {Promise<void>}
    */
   async speak(text, language, options = {}) {
-    if (!this.isSpeechSynthesisSupported()) {
-      console.error('Speech Synthesis not supported in this browser');
+    const health = this.getHealthStatus(language);
+    if (!health.ok) {
+      const error = this.buildHealthError(health.code, health.message);
+      this.lastHealthError = error;
+      console.error(health.message);
       if (options.onError) {
-        options.onError(new Error('Speech Synthesis not supported'));
+        options.onError(error);
       }
-      return Promise.reject(new Error('Speech Synthesis not supported'));
+      return Promise.reject(error);
     }
+    this.lastHealthError = null;
 
     if (!text || text.trim() === '') {
       console.warn('No text provided for pronunciation');
@@ -220,6 +262,10 @@ class PronunciationService {
     return this.getAvailableVoices().filter((voice) =>
       voice.lang.startsWith(langPrefix)
     );
+  }
+
+  getLastHealthError() {
+    return this.lastHealthError;
   }
 }
 
