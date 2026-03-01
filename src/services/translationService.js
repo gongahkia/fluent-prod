@@ -7,6 +7,22 @@
 import translationMappings from '@config/translationMappings.json'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 
+function normalizeTranslationText(input) {
+  let text = String(input ?? '')
+  text = text
+    .replace(/\\"/g, '"')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16))
+    )
+
+  text = text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+  text = text.replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '$1')
+
+  return text.normalize('NFKC').trim()
+}
+
 function withTimeout(ms) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ms)
@@ -93,7 +109,7 @@ async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
     }
 
     const data = await res.json()
-    const translation = data?.translation
+    const translation = normalizeTranslationText(data?.translation)
     if (!translation || translation === text) {
       throw new Error('Translation proxy returned invalid translation')
     }
@@ -176,7 +192,7 @@ class TranslationService {
         else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
         else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
 
-        if (result) return result
+        if (result) return normalizeTranslationText(result)
       }
     }
 
