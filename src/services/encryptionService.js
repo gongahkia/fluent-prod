@@ -13,6 +13,51 @@ const KEY_DERIVATION_ITERATIONS = 100000
 const KEY_DERIVATION_HASH = "SHA-256"
 const SALT_LENGTH = 16
 const IV_LENGTH = 12
+const ENCRYPTION_PAYLOAD_VERSION = 2
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+}
+
+function base64ToBytes(value) {
+  return new Uint8Array(
+    atob(value)
+      .split("")
+      .map((c) => c.charCodeAt(0))
+  )
+}
+
+function encodeVersionedPayload({ version, salt, iv, ciphertext }) {
+  return btoa(
+    JSON.stringify({
+      v: version,
+      s: bytesToBase64(salt),
+      i: bytesToBase64(iv),
+      d: bytesToBase64(ciphertext),
+    })
+  )
+}
+
+function decodeVersionedPayload(encodedPayload) {
+  const decodedPayload = JSON.parse(atob(encodedPayload))
+  if (
+    !decodedPayload ||
+    typeof decodedPayload !== "object" ||
+    typeof decodedPayload.v !== "number" ||
+    !decodedPayload.s ||
+    !decodedPayload.i ||
+    !decodedPayload.d
+  ) {
+    return null
+  }
+
+  return {
+    version: decodedPayload.v,
+    salt: base64ToBytes(decodedPayload.s),
+    iv: base64ToBytes(decodedPayload.i),
+    ciphertext: base64ToBytes(decodedPayload.d),
+  }
+}
 
 function decodeJwtPayload(token) {
   if (!token || typeof token !== "string") return null
@@ -66,7 +111,7 @@ const deriveKey = async (userId, salt) => {
  * Encrypt data using AES-GCM
  * @param {string} data - The data to encrypt
  * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
- * @returns {Promise<string>} - Base64 encoded payload: [salt][iv][ciphertext]
+ * @returns {Promise<string>} - Base64 encoded JSON payload with version metadata
  */
 export const encryptData = async (data, userIdentity) => {
   if (!data || !userIdentity) {
@@ -91,14 +136,13 @@ export const encryptData = async (data, userIdentity) => {
       encoder.encode(data)
     )
 
-    const combined = new Uint8Array(
-      salt.length + iv.length + encryptedData.byteLength
-    )
-    combined.set(salt, 0)
-    combined.set(iv, salt.length)
-    combined.set(new Uint8Array(encryptedData), salt.length + iv.length)
-
-    return btoa(String.fromCharCode(...combined))
+    const ciphertext = new Uint8Array(encryptedData)
+    return encodeVersionedPayload({
+      version: ENCRYPTION_PAYLOAD_VERSION,
+      salt,
+      iv,
+      ciphertext,
+    })
   } catch (error) {
     console.error("Encryption error:", error)
     return null
@@ -107,7 +151,7 @@ export const encryptData = async (data, userIdentity) => {
 
 /**
  * Decrypt data using AES-GCM
- * @param {string} encryptedData - Base64 encoded payload: [salt][iv][ciphertext]
+ * @param {string} encryptedData - Base64 encoded JSON payload with version metadata
  * @param {string} userIdentity - Stable UID (or Firebase token containing UID claims)
  * @returns {Promise<string|null>} - Decrypted data
  */
@@ -120,32 +164,28 @@ export const decryptData = async (encryptedData, userIdentity) => {
     const stableUserId = resolveStableUserId(userIdentity)
     if (!stableUserId) return null
 
-    const decoder = new TextDecoder()
-    const combined = new Uint8Array(
-      atob(encryptedData)
-        .split("")
-        .map((c) => c.charCodeAt(0))
-    )
-
-    if (combined.length <= SALT_LENGTH + IV_LENGTH) {
+    const parsedPayload = decodeVersionedPayload(encryptedData)
+    if (
+      !parsedPayload ||
+      parsedPayload.version !== ENCRYPTION_PAYLOAD_VERSION ||
+      parsedPayload.salt.length !== SALT_LENGTH ||
+      parsedPayload.iv.length !== IV_LENGTH
+    ) {
       return null
     }
 
-    const salt = combined.slice(0, SALT_LENGTH)
-    const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
-    const data = combined.slice(SALT_LENGTH + IV_LENGTH)
-    const key = await deriveKey(stableUserId, salt)
+    const key = await deriveKey(stableUserId, parsedPayload.salt)
 
     const decryptedData = await crypto.subtle.decrypt(
       {
         name: "AES-GCM",
-        iv,
+        iv: parsedPayload.iv,
       },
       key,
-      data
+      parsedPayload.ciphertext
     )
 
-    return decoder.decode(decryptedData)
+    return new TextDecoder().decode(decryptedData)
   } catch (error) {
     console.error("Decryption error:", error)
     return null
