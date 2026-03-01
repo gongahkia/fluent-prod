@@ -9,37 +9,43 @@ import {
   Shield,
   User,
 } from "lucide-react"
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { FluentLogo } from "@/components/ui/FluentLogo"
 import { useAuth } from "@/contexts/AuthContext"
+import { signOutUser } from "@/services/authService"
 import {
-  updateUserProfile,
-  updateUserCredentials,
+  decryptCredentials,
+  encryptCredentials,
+} from "@/services/encryptionService"
+import {
+  blockUser,
   getUserCredentials,
   getUserFollowers,
   getUserFollowing,
   removeFollower,
   unfollowUser,
-  blockUser
+  updateUserCredentials,
+  updateUserProfile,
 } from "@/services/firebaseDatabaseService"
-import { signOutUser } from "@/services/authService"
-import {
-  encryptCredentials,
-  decryptCredentials
-} from "@/services/encryptionService"
+import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 import GeneralTab from "./Profile/GeneralTab"
 import LearningTab from "./Profile/LearningTab"
 import PrivacyTab from "./Profile/PrivacyTab"
-import ConnectedAccountsTab from "./Profile/ConnectedAccountsTab"
 
 const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
   const { currentUser } = useAuth()
   // Map 1-5 levels to names
-  const levelNames = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Native']
+  const levelNames = [
+    "Beginner",
+    "Intermediate",
+    "Advanced",
+    "Expert",
+    "Native",
+  ]
   const getLevelName = (level) => {
     const levelNum = parseInt(level, 10)
-    return levelNames[levelNum - 1] || 'Beginner'
+    return levelNames[levelNum - 1] || "Beginner"
   }
 
   const [formData, setFormData] = useState({
@@ -55,11 +61,13 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     bannerImage: userProfile?.bannerImage || "",
     selectedTags: userProfile?.selectedTags || [],
     // Privacy settings
-    profileVisibility: userProfile?.settings?.privacy?.profileVisibility || "public",
+    profileVisibility:
+      userProfile?.settings?.privacy?.profileVisibility || "public",
     // Notification settings
     emailNotifications: userProfile?.settings?.notifications?.email ?? true,
     pushNotifications: userProfile?.settings?.notifications?.push ?? true,
-    commentNotifications: userProfile?.settings?.notifications?.comments ?? true,
+    commentNotifications:
+      userProfile?.settings?.notifications?.comments ?? true,
     // Appearance settings
     theme: userProfile?.settings?.appearance?.theme || "light",
     // API keys
@@ -83,28 +91,24 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       if (!currentUser) return
 
       try {
-        // Get user's auth token for encryption/decryption
-        const token = await currentUser.getIdToken()
-
         // Load encrypted credentials from Firebase
         const result = await getUserCredentials(currentUser.id)
 
         if (result.success && result.data) {
           // Decrypt credentials
-          const decrypted = await decryptCredentials(result.data, token)
+          const decrypted = await decryptCredentials(
+            result.data,
+            currentUser.id
+          )
 
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            redditApiKey: decrypted.redditApiKey || '',
-            geminiApiKey: decrypted.geminiApiKey || '',
+            redditApiKey: decrypted.redditApiKey || "",
+            geminiApiKey: decrypted.geminiApiKey || "",
           }))
-
-          // Also save to localStorage for immediate use by other components
-          localStorage.setItem('redditApiKey', decrypted.redditApiKey || '')
-          localStorage.setItem('geminiApiKey', decrypted.geminiApiKey || '')
         }
       } catch (error) {
-        console.error('Error loading credentials:', error)
+        console.error("Error loading credentials:", error)
       }
     }
 
@@ -122,10 +126,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         if (result.success) {
           setFollowers(result.data)
         } else {
-          console.error('Error loading followers:', result.error)
+          console.error("Error loading followers:", result.error)
         }
       } catch (error) {
-        console.error('Error loading followers:', error)
+        console.error("Error loading followers:", error)
       } finally {
         setLoadingFollowers(false)
       }
@@ -145,10 +149,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         if (result.success) {
           setFollowing(result.data)
         } else {
-          console.error('Error loading following:', result.error)
+          console.error("Error loading following:", result.error)
         }
       } catch (error) {
-        console.error('Error loading following:', error)
+        console.error("Error loading following:", error)
       } finally {
         setLoadingFollowing(false)
       }
@@ -172,8 +176,6 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
     try {
       const enforcedTargetLanguage = "Japanese"
-      // Get user's auth token for encryption
-      const token = await currentUser.getIdToken()
 
       // Separate sensitive credentials from regular profile data
       const credentials = {
@@ -182,14 +184,13 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       }
 
       // Encrypt sensitive credentials
-      const encryptedCreds = await encryptCredentials(credentials, token)
+      const encryptedCreds = await encryptCredentials(
+        credentials,
+        currentUser.id
+      )
 
       // Save encrypted credentials to Firebase
       await updateUserCredentials(currentUser.id, encryptedCreds)
-
-      // Save to localStorage for immediate use
-      localStorage.setItem('redditApiKey', formData.redditApiKey)
-      localStorage.setItem('geminiApiKey', formData.geminiApiKey)
 
       // Save regular profile settings to Firebase
       const profileUpdates = {
@@ -215,8 +216,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           },
           appearance: {
             theme: formData.theme,
-          }
-        }
+          },
+        },
       }
 
       await updateUserProfile(currentUser.id, profileUpdates)
@@ -235,9 +236,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         setShowSuccessPopup(false)
       }, 2000)
     } catch (error) {
-      console.error('Error saving profile:', error)
+      console.error("Error saving profile:", error)
       setIsLoading(false)
-      alert('Error saving settings. Please try again.')
+      alert("Error saving settings. Please try again.")
     }
   }
 
@@ -248,14 +249,14 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       const result = await removeFollower(currentUser.id, followerUserId)
       if (result.success) {
         // Remove from local state
-        setFollowers(prev => prev.filter(f => f.userId !== followerUserId))
-        alert('Follower removed successfully')
+        setFollowers((prev) => prev.filter((f) => f.userId !== followerUserId))
+        alert("Follower removed successfully")
       } else {
-        alert('Failed to remove follower: ' + result.error)
+        alert("Failed to remove follower: " + result.error)
       }
     } catch (error) {
-      console.error('Error removing follower:', error)
-      alert('Failed to remove follower')
+      console.error("Error removing follower:", error)
+      alert("Failed to remove follower")
     }
   }
 
@@ -266,54 +267,56 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       const result = await unfollowUser(currentUser.id, targetUserId)
       if (result.success) {
         // Remove from local state
-        setFollowing(prev => prev.filter(f => f.userId !== targetUserId))
-        alert('Unfollowed successfully')
+        setFollowing((prev) => prev.filter((f) => f.userId !== targetUserId))
+        alert("Unfollowed successfully")
       } else {
-        alert('Failed to unfollow: ' + result.error)
+        alert("Failed to unfollow: " + result.error)
       }
     } catch (error) {
-      console.error('Error unfollowing:', error)
-      alert('Failed to unfollow')
+      console.error("Error unfollowing:", error)
+      alert("Failed to unfollow")
     }
   }
 
   const handleBlockUser = async (targetUserId) => {
     if (!currentUser) return
 
-    const confirmed = window.confirm('Are you sure you want to block this user? This will remove all follow relationships.')
+    const confirmed = window.confirm(
+      "Are you sure you want to block this user? This will remove all follow relationships."
+    )
     if (!confirmed) return
 
     try {
       const result = await blockUser(currentUser.id, targetUserId)
       if (result.success) {
         // Remove from both lists
-        setFollowers(prev => prev.filter(f => f.userId !== targetUserId))
-        setFollowing(prev => prev.filter(f => f.userId !== targetUserId))
-        alert('User blocked successfully')
+        setFollowers((prev) => prev.filter((f) => f.userId !== targetUserId))
+        setFollowing((prev) => prev.filter((f) => f.userId !== targetUserId))
+        alert("User blocked successfully")
       } else {
-        alert('Failed to block user: ' + result.error)
+        alert("Failed to block user: " + result.error)
       }
     } catch (error) {
-      console.error('Error blocking user:', error)
-      alert('Failed to block user')
+      console.error("Error blocking user:", error)
+      alert("Failed to block user")
     }
   }
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
+    if (window.confirm("Are you sure you want to log out?")) {
       try {
         const result = await signOutUser()
         if (result.success) {
           // Clear local storage
           localStorage.clear()
           // Redirect will happen automatically via auth state change
-          window.location.href = '/'
+          window.location.href = "/"
         } else {
-          alert('Failed to log out: ' + result.error)
+          alert("Failed to log out: " + result.error)
         }
       } catch (error) {
-        console.error('Error logging out:', error)
-        alert('Failed to log out')
+        console.error("Error logging out:", error)
+        alert("Failed to log out")
       }
     }
   }
@@ -339,7 +342,11 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <div className="w-7 h-7">
-                <FluentLogo variant="short" className="w-full h-full" alt="Fluent" />
+                <FluentLogo
+                  variant="short"
+                  className="w-full h-full"
+                  alt="Fluent"
+                />
               </div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Profile Settings
@@ -401,7 +408,8 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                 <h2 className="text-2xl font-bold">{formData.name}</h2>
                 <p className="text-gray-600">{formData.email}</p>
                 <p className="text-gray-500 text-sm mt-1">
-                  Learning {formData.targetLanguage} • {getLevelName(formData.learningLevel)}
+                  Learning {formData.targetLanguage} •{" "}
+                  {getLevelName(formData.learningLevel)}
                 </p>
               </div>
             </div>
@@ -434,17 +442,26 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
           <div className="p-6">
             {/* General Tab */}
             {activeTab === "general" && (
-              <GeneralTab formData={formData} handleInputChange={handleInputChange} />
+              <GeneralTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+              />
             )}
 
             {/* Learning Tab */}
             {activeTab === "learning" && (
-              <LearningTab formData={formData} handleInputChange={handleInputChange} />
+              <LearningTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+              />
             )}
 
             {/* Connected Accounts Tab */}
             {activeTab === "connections" && (
-              <ConnectedAccountsTab formData={formData} handleInputChange={handleInputChange} />
+              <ConnectedAccountsTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+              />
             )}
 
             {/* Privacy Tab */}
@@ -460,7 +477,9 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
 
           {/* Danger Zone */}
           <div className="border-t border-gray-200 px-6 py-6 bg-gray-50">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Account Actions</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Account Actions
+            </h3>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors border border-red-200"
@@ -514,8 +533,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         </div>
                       )}
                       <div>
-                        <div className="font-medium text-gray-900">{follower.name}</div>
-                        <div className="text-xs text-gray-500">{follower.email}</div>
+                        <div className="font-medium text-gray-900">
+                          {follower.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {follower.email}
+                        </div>
                       </div>
                     </div>
                     <div className="space-x-2">
@@ -588,8 +611,12 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
                         </div>
                       )}
                       <div>
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
+                        <div className="font-medium text-gray-900">
+                          {user.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {user.email}
+                        </div>
                       </div>
                     </div>
                     <button
