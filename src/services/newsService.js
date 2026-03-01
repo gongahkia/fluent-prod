@@ -7,6 +7,7 @@ import { loadNdjsonCache } from './cacheNdjsonService'
 
 const NEWS_MODE = import.meta.env.VITE_NEWS_MODE || 'api' // 'api' | 'cache' | 'hybrid'
 const IS_HYBRID_MODE = NEWS_MODE === 'hybrid'
+const API_NEWS_TIMEOUT_MS = Number.parseInt(import.meta.env.VITE_API_NEWS_TIMEOUT_MS || '7000', 10)
 
 // In dev mode (VITE_USE_LOCAL_API=true), use localhost. Otherwise use production URL.
 const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API === 'true'
@@ -164,13 +165,21 @@ export async function fetchPosts(options = {}) {
   }
 
   const fetchPostsFromApi = async () => {
-    const response = await fetch(`${API_BASE_URL}/api/news`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), API_NEWS_TIMEOUT_MS)
+    let response
+    try {
+      response = await fetch(`${API_BASE_URL}/api/news`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch posts: ${response.statusText}`)
