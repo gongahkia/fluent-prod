@@ -159,6 +159,9 @@ const Settings = ({ userProfile, onProfileUpdate, onBack, onLogout }) => {
           },
           appearance: {
             theme: formData.theme,
+          },
+          learning: {
+            intermediateMode: Boolean(formData.intermediateMode),
           }
         }
       }
