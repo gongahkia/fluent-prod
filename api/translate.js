@@ -4,10 +4,26 @@ function json(res, status, payload) {
   res.end(JSON.stringify(payload))
 }
 
+const PROVIDER_TIMEOUT_MS = 3000
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function translateWithLingva(text, fromLang, toLang) {
   const baseUrl = process.env.LINGVA_BASE_URL || "https://lingva.ml/api/v1"
   const url = `${baseUrl}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
-  const response = await fetch(url, { method: "GET" })
+  const response = await fetchWithTimeout(url, { method: "GET" })
   if (!response.ok) {
     throw new Error(`Lingva request failed with status ${response.status}`)
   }
@@ -19,7 +35,7 @@ async function translateWithLingva(text, fromLang, toLang) {
 async function translateWithMyMemory(text, fromLang, toLang) {
   const baseUrl = process.env.MYMEMORY_BASE_URL || "https://api.mymemory.translated.net/get"
   const url = `${baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
-  const response = await fetch(url, { method: "GET" })
+  const response = await fetchWithTimeout(url, { method: "GET" })
   if (!response.ok) {
     throw new Error(`MyMemory request failed with status ${response.status}`)
   }
@@ -30,7 +46,7 @@ async function translateWithMyMemory(text, fromLang, toLang) {
 
 async function translateWithLibreTranslate(text, fromLang, toLang) {
   const baseUrl = process.env.LIBRETRANSLATE_BASE_URL || "https://libretranslate.com/translate"
-  const response = await fetch(baseUrl, {
+  const response = await fetchWithTimeout(baseUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
