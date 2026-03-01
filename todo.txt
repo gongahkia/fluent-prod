@@ -1,4 +1,3 @@
-(B) Record provider failure counts and cooldown end timestamps in `src/services/translationService.js`. +translation +observability +scaling
 (B) Add translation request concurrency limiter in `src/services/translationService.js` with a configurable max queue. +translation +stability +scaling
 (B) Add AbortController cancellation for stale translation requests in `src/lib/wordDatabase.js`. +translation +frontend +stability
 (B) Replace in-memory-only translation cache with versioned localStorage-backed LRU cache in `src/services/translationService.js`. +translation +stability +scaling

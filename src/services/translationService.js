@@ -162,6 +162,9 @@ class TranslationService {
         provider: key,
         failureCount: 0,
         openUntil: 0,
+        cooldownEndsAt: 0,
+        lastFailureAt: 0,
+        lastSuccessAt: 0,
         failThreshold: TRANSLATION_CIRCUIT_BREAKER_FAIL_THRESHOLD,
         cooldownMs: TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS,
       })
@@ -172,6 +175,34 @@ class TranslationService {
   isProviderCircuitOpen(providerId) {
     const state = this.getProviderCircuitState(providerId)
     return Date.now() < state.openUntil
+  }
+
+  recordProviderFailure(providerId) {
+    const key = this.normalizeProviderId(providerId)
+    const state = this.getProviderCircuitState(key)
+    const now = Date.now()
+
+    state.failureCount += 1
+    state.lastFailureAt = now
+
+    if (state.failureCount >= state.failThreshold) {
+      state.cooldownEndsAt = now + state.cooldownMs
+      state.openUntil = state.cooldownEndsAt
+    }
+
+    this.providerCircuitState.set(key, state)
+    return state
+  }
+
+  recordProviderSuccess(providerId) {
+    const key = this.normalizeProviderId(providerId)
+    const state = this.getProviderCircuitState(key)
+    state.failureCount = 0
+    state.openUntil = 0
+    state.cooldownEndsAt = 0
+    state.lastSuccessAt = Date.now()
+    this.providerCircuitState.set(key, state)
+    return state
   }
 
   assertSupportedTranslationPair(fromLang, toLang) {
@@ -259,24 +290,33 @@ class TranslationService {
         }
 
         let result = null
-        if (provider === 'lingva') {
-          result = await withRetry(
-            () => tryLingva(trimmed, fromLang, toLang, timeoutMs),
-            { seed: `${requestKey}|lingva` }
-          )
-        } else if (provider === 'mymemory') {
-          result = await withRetry(
-            () => tryMyMemory(trimmed, fromLang, toLang, timeoutMs),
-            { seed: `${requestKey}|mymemory` }
-          )
-        } else if (provider === 'libretranslate') {
-          result = await withRetry(
-            () => tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs),
-            { seed: `${requestKey}|libretranslate` }
-          )
+        try {
+          if (provider === 'lingva') {
+            result = await withRetry(
+              () => tryLingva(trimmed, fromLang, toLang, timeoutMs),
+              { seed: `${requestKey}|lingva` }
+            )
+          } else if (provider === 'mymemory') {
+            result = await withRetry(
+              () => tryMyMemory(trimmed, fromLang, toLang, timeoutMs),
+              { seed: `${requestKey}|mymemory` }
+            )
+          } else if (provider === 'libretranslate') {
+            result = await withRetry(
+              () => tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs),
+              { seed: `${requestKey}|libretranslate` }
+            )
+          }
+        } catch {
+          this.recordProviderFailure(provider)
+          return null
         }
 
-          if (result) return normalizeTranslationText(result)
+          if (result) {
+            this.recordProviderSuccess(provider)
+            return normalizeTranslationText(result)
+          }
+          this.recordProviderFailure(provider)
           return null
         },
       })
