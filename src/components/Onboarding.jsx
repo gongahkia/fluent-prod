@@ -3,6 +3,7 @@ import { BookOpen, Check, ChevronDown, ChevronRight, ChevronUp, Lightbulb } from
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FluentLogo } from "@/components/ui/FluentLogo";
+import { DEFAULT_TARGET_LANGUAGE } from "../../config/languages";
 import {
   NATIVE_LANGUAGE_OPTIONS,
   TARGET_LANGUAGE_OPTIONS,
@@ -15,7 +16,7 @@ const TOTAL_STEPS = 3;
 const Onboarding = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [nativeLanguage, setNativeLanguage] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE);
   const [translationLevel, setTranslationLevel] = useState(1);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const [selectedInterests, setSelectedInterests] = useState([]);
@@ -119,7 +120,7 @@ const Onboarding = ({ onComplete }) => {
     } else {
       onComplete({
         nativeLanguages: nativeLanguage ? [nativeLanguage] : [],
-        targetLanguage,
+        targetLanguage: targetLanguage || DEFAULT_TARGET_LANGUAGE,
         level: translationLevel,
         levelName: getLevelName(translationLevel),
         interests: selectedInterests,
@@ -440,7 +441,7 @@ const Onboarding = ({ onComplete }) => {
               <div className="flex flex-wrap gap-2">
                 {/* Get interest categories based on target language */}
                 {(() => {
-                  const languageKey = getLanguageKey(targetLanguage) || "japanese";
+                  const languageKey = getLanguageKey(targetLanguage || DEFAULT_TARGET_LANGUAGE) || "japanese";
                   const categories = interestCategoriesData[languageKey] || [];
 
                   // Flatten categories and their children into a single array for rendering
