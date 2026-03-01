@@ -15,6 +15,8 @@ const TRANSLATION_CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(import.meta.env.
 const TRANSLATION_MAX_CONCURRENT_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_CONCURRENT_REQUESTS || '6', 10)
 const TRANSLATION_MAX_QUEUED_REQUESTS = Number.parseInt(import.meta.env.VITE_TRANSLATION_MAX_QUEUED_REQUESTS || '120', 10)
 const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
+const TRANSLATION_CACHE_STORAGE_KEY = 'fluent.translationService.cache'
+const TRANSLATION_CACHE_SCHEMA_VERSION = 1
 
 export const TRANSLATION_ERROR_CODES = {
   UNSUPPORTED_LANGUAGE_PAIR: 'UNSUPPORTED_LANGUAGE_PAIR',
@@ -37,34 +39,146 @@ const inFlightTranslations = new Map()
 const translationCache = new Map()
 const translationRequestQueue = []
 let activeTranslationRequests = 0
+let translationCacheLoaded = false
+let persistTranslationCacheTimer = null
 
 function readFromTranslationCache(key) {
+  loadTranslationCacheOnce()
+
   const cached = translationCache.get(key)
   if (!cached) return null
 
-  if (Date.now() >= cached.expiresAt) {
+  const now = Date.now()
+  if (now >= cached.expiresAt) {
     translationCache.delete(key)
+    schedulePersistTranslationCache()
     return null
   }
 
+  cached.lastAccessAt = now
   translationCache.delete(key)
   translationCache.set(key, cached)
+  schedulePersistTranslationCache()
   return cached.value
 }
 
 function writeToTranslationCache(key, value) {
+  loadTranslationCacheOnce()
+
+  const now = Date.now()
   if (translationCache.has(key)) {
     translationCache.delete(key)
   }
 
   translationCache.set(key, {
     value,
-    expiresAt: Date.now() + TRANSLATION_CACHE_TTL_MS,
+    expiresAt: now + TRANSLATION_CACHE_TTL_MS,
+    lastAccessAt: now,
   })
 
-  while (translationCache.size > TRANSLATION_CACHE_MAX_ENTRIES) {
-    const oldestKey = translationCache.keys().next().value
-    translationCache.delete(oldestKey)
+  trimTranslationCache()
+  schedulePersistTranslationCache()
+}
+
+function hasLocalStorage() {
+  try {
+    return typeof window !== 'undefined' && Boolean(window.localStorage)
+  } catch {
+    return false
+  }
+}
+
+function loadTranslationCacheOnce() {
+  if (translationCacheLoaded) return
+  translationCacheLoaded = true
+  if (!hasLocalStorage()) return
+
+  try {
+    const raw = window.localStorage.getItem(TRANSLATION_CACHE_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw)
+    if (parsed?.version !== TRANSLATION_CACHE_SCHEMA_VERSION) return
+
+    const entries = parsed?.entries && typeof parsed.entries === 'object'
+      ? parsed.entries
+      : {}
+    const now = Date.now()
+
+    for (const [key, entry] of Object.entries(entries)) {
+      if (!entry || typeof entry !== 'object') continue
+      if (typeof entry.expiresAt !== 'number' || entry.expiresAt <= now) continue
+      if (!entry.value || typeof entry.value !== 'string') continue
+
+      translationCache.set(key, {
+        value: entry.value,
+        expiresAt: entry.expiresAt,
+        lastAccessAt: typeof entry.lastAccessAt === 'number' ? entry.lastAccessAt : now,
+      })
+    }
+    trimTranslationCache()
+  } catch {
+    // Ignore corrupt persisted cache
+  }
+}
+
+function trimTranslationCache() {
+  const now = Date.now()
+  const validEntries = []
+
+  for (const [key, entry] of translationCache.entries()) {
+    if (!entry || typeof entry !== 'object') {
+      translationCache.delete(key)
+      continue
+    }
+    if (entry.expiresAt <= now) {
+      translationCache.delete(key)
+      continue
+    }
+    validEntries.push([key, entry])
+  }
+
+  validEntries.sort((a, b) => (b[1].lastAccessAt || 0) - (a[1].lastAccessAt || 0))
+  const trimmedEntries = validEntries.slice(0, TRANSLATION_CACHE_MAX_ENTRIES)
+  translationCache.clear()
+  for (const [key, entry] of trimmedEntries) {
+    translationCache.set(key, entry)
+  }
+}
+
+function schedulePersistTranslationCache() {
+  if (!hasLocalStorage()) return
+  if (persistTranslationCacheTimer) return
+
+  persistTranslationCacheTimer = window.setTimeout(() => {
+    persistTranslationCacheTimer = null
+    persistTranslationCache()
+  }, 400)
+}
+
+function persistTranslationCache() {
+  if (!hasLocalStorage()) return
+  trimTranslationCache()
+
+  const entries = {}
+  for (const [key, entry] of translationCache.entries()) {
+    entries[key] = {
+      value: entry.value,
+      expiresAt: entry.expiresAt,
+      lastAccessAt: entry.lastAccessAt || Date.now(),
+    }
+  }
+
+  try {
+    window.localStorage.setItem(
+      TRANSLATION_CACHE_STORAGE_KEY,
+      JSON.stringify({
+        version: TRANSLATION_CACHE_SCHEMA_VERSION,
+        savedAt: Date.now(),
+        entries,
+      })
+    )
+  } catch {
+    // Ignore localStorage write failures
   }
 }
 
