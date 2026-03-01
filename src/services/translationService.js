@@ -5,28 +5,12 @@
 // To support a backend-free deployment, we call public translation providers directly
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
-import { runFallbackProviders } from './translationPipeline'
+import { normalizeTranslationText, runFallbackProviders } from './translationPipeline'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
 const inFlightTranslations = new Map()
 const translationCache = new Map()
-
-function normalizeTranslationText(input) {
-  let text = String(input ?? '')
-  text = text
-    .replace(/\\"/g, '"')
-    .replace(/\\n/g, '\n')
-    .replace(/\\t/g, '\t')
-    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-      String.fromCharCode(Number.parseInt(hex, 16))
-    )
-
-  text = text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
-  text = text.replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '$1')
-
-  return text.normalize('NFKC').trim()
-}
 
 function readFromTranslationCache(key) {
   const cached = translationCache.get(key)
