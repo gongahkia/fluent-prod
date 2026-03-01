@@ -9,6 +9,25 @@ import { normalizeTranslationText, runFallbackProviders, withTimeout } from './t
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
+const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
+
+export const TRANSLATION_ERROR_CODES = {
+  UNSUPPORTED_LANGUAGE_PAIR: 'UNSUPPORTED_LANGUAGE_PAIR',
+}
+
+export class UnsupportedLanguagePairError extends Error {
+  constructor(fromLang, toLang) {
+    const pairKey = `${fromLang}-${toLang}`
+    super(`Translation pair ${pairKey} is not supported`)
+    this.name = 'UnsupportedLanguagePairError'
+    this.code = TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR
+    this.errorCode = TRANSLATION_ERROR_CODES.UNSUPPORTED_LANGUAGE_PAIR
+    this.pair = pairKey
+    this.fromLang = fromLang
+    this.toLang = toLang
+  }
+}
+
 const inFlightTranslations = new Map()
 const translationCache = new Map()
 
@@ -179,6 +198,15 @@ class TranslationService {
     this.mappings = translationMappings
   }
 
+  assertSupportedTranslationPair(fromLang, toLang) {
+    const pairKey = `${fromLang}-${toLang}`
+    const pair = this.mappings.translationPairs[pairKey]
+    if (!ALLOWED_TRANSLATION_PAIRS.has(pairKey) || !pair?.enabled) {
+      throw new UnsupportedLanguagePairError(fromLang, toLang)
+    }
+    return { pairKey, pair }
+  }
+
   /**
    * Check if a translation pair is supported
    * @param {string} fromLang - Source language code
@@ -188,7 +216,7 @@ class TranslationService {
   isTranslationPairSupported(fromLang, toLang) {
     const pairKey = `${fromLang}-${toLang}`
     const pair = this.mappings.translationPairs[pairKey]
-    return pair && pair.enabled
+    return ALLOWED_TRANSLATION_PAIRS.has(pairKey) && Boolean(pair?.enabled)
   }
 
   /**
@@ -224,14 +252,7 @@ class TranslationService {
    * @returns {Promise<string>} Translated text
    */
   async translateText(text, fromLang = 'en', toLang = 'ja') {
-    // Validate language pair
-    if (!this.isTranslationPairSupported(fromLang, toLang)) {
-      console.warn(`Translation pair ${fromLang}-${toLang} is not supported`)
-      throw new Error(`Translation pair ${fromLang}-${toLang} is not supported`)
-    }
-
-    const pairKey = `${fromLang}-${toLang}`
-    const pair = this.mappings.translationPairs[pairKey]
+    const { pair } = this.assertSupportedTranslationPair(fromLang, toLang)
     const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
 
     const timeoutMs = 5000
@@ -303,11 +324,7 @@ class TranslationService {
    * @returns {Promise<Array>} Array of translation results
    */
   async translateBatch(texts, fromLang = 'en', toLang = 'ja') {
-    // Validate language pair
-    if (!this.isTranslationPairSupported(fromLang, toLang)) {
-      console.warn(`Translation pair ${fromLang}-${toLang} is not supported`)
-      return texts.map(text => ({ original: text, translation: text }))
-    }
+    this.assertSupportedTranslationPair(fromLang, toLang)
 
     try {
       const results = await Promise.all(
@@ -336,11 +353,7 @@ class TranslationService {
    * @returns {Promise<string>} JSON string with text and metadata
    */
   async createMixedLanguageContent(text, userLevel = 5, targetLang = 'ja', sourceLang = 'en') {
-    // Validate language pair
-    if (!this.isTranslationPairSupported(sourceLang, targetLang)) {
-      console.warn(`Translation pair ${sourceLang}-${targetLang} is not supported`)
-      return text
-    }
+    this.assertSupportedTranslationPair(sourceLang, targetLang)
 
     // Backend-free mode: rely on precomputed mixed-language content in the cache.
     // Keep this function as a safe fallback so older code paths don't crash.
