@@ -1,6 +1,10 @@
 import { mapFirestoreError } from "./errorMapper"
 import { sanitizeFirestoreId } from "./idUtils"
 import {
+  validateProfilePatchPayload,
+  validateProfileWritePayload,
+} from "./schemas"
+import {
   credentialsDoc,
   getDoc,
   nowIso,
@@ -25,11 +29,12 @@ export const createUserProfile = async (userId, profileData) => {
       nameLower: (profileData?.name || "").toLowerCase(),
       emailLower: (profileData?.email || "").toLowerCase(),
     }
+    const validatedPayload = validateProfileWritePayload(payload)
 
     await withFirestoreWrite("set:userProfile", () =>
-      setDoc(userDoc(safeUserId), payload, { merge: true })
+      setDoc(userDoc(safeUserId), validatedPayload, { merge: true })
     )
-    return { success: true, data: payload }
+    return { success: true, data: validatedPayload }
   } catch (error) {
     console.error("Error creating user profile:", error)
     const mapped = mapFirestoreError(error)
@@ -76,9 +81,10 @@ export const updateUserProfile = async (userId, updates) => {
       patch.nameLower = updates.name.toLowerCase()
     if (typeof updates?.email === "string")
       patch.emailLower = updates.email.toLowerCase()
+    const validatedPatch = validateProfilePatchPayload(patch)
 
     await withFirestoreWrite("set:userProfilePatch", () =>
-      setDoc(userDoc(userId), patch, { merge: true })
+      setDoc(userDoc(userId), validatedPatch, { merge: true })
     )
     return { success: true }
   } catch (error) {
