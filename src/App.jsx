@@ -36,6 +36,18 @@ import {
 } from "./services/commentAiPrefs";
 import "./App.css";
 
+const isModelReadyEvent = (event) => {
+  const detail = event?.detail
+  return detail && typeof detail.model === "string" && detail.model.trim().length > 0
+}
+
+const isModelFailedEvent = (event) => {
+  const detail = event?.detail
+  if (!detail || typeof detail.model !== "string") return false
+  if (detail.message != null && typeof detail.message !== "string") return false
+  return detail.model.trim().length > 0
+}
+
 function App() {
   const { currentUser, userProfile, setUserProfile, isGuest, signOut } = useAuth();
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
@@ -63,14 +75,15 @@ function App() {
   // WebLLM model readiness notifications + first-login opt-in
   useEffect(() => {
     const onReady = (event) => {
-      const model = event?.detail?.model
-      if (!model) return
+      if (!isModelReadyEvent(event)) return
+      const model = event.detail.model
       emitToast({ message: `AI model ready (${model})`, icon: "✅" })
     }
 
     const onFailed = (event) => {
-      const model = event?.detail?.model
-      const message = event?.detail?.message
+      if (!isModelFailedEvent(event)) return
+      const model = event.detail.model
+      const message = event.detail.message
       // Disable AI on this browser if it can't load.
       setWebLlmEnabled(false)
       emitToast({
