@@ -163,7 +163,7 @@ export async function fetchPosts(options = {}) {
     targetLang
   }
 
-  try {
+  const fetchPostsFromApi = async () => {
     const response = await fetch(`${API_BASE_URL}/api/news`, {
       method: 'POST',
       headers: {
@@ -181,6 +181,27 @@ export async function fetchPosts(options = {}) {
       posts: data.posts || [],
       metadata: data.metadata || {}
     }
+  }
+
+  if (IS_HYBRID_MODE) {
+    try {
+      return await fetchPostsFromApi()
+    } catch (error) {
+      console.warn('Hybrid mode API fetch failed, falling back to cache:', error)
+      const cached = await fetchPostsFromCache(options)
+      return {
+        ...cached,
+        metadata: {
+          ...(cached.metadata || {}),
+          fallback: 'cache',
+          fallbackReason: error?.message || 'api-fetch-failed',
+        },
+      }
+    }
+  }
+
+  try {
+    return await fetchPostsFromApi()
   } catch (error) {
     console.error('News fetch error:', error)
     throw error
