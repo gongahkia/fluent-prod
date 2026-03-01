@@ -1,5 +1,6 @@
 import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
+import { validateDictionaryWritePayload } from "./schemas"
 import {
   deleteDoc,
   dictionaryCol,
@@ -36,11 +37,14 @@ export const addWordToDictionary = async (userId, wordData) => {
       createdAtTs: serverTimestamp(),
       updatedAtTs: serverTimestamp(),
     }
+    const validatedPayload = validateDictionaryWritePayload(payload)
 
     await withFirestoreWrite("set:dictionaryWord", () =>
-      setDoc(doc(dictionaryCol(userId), wordId), payload, { merge: true })
+      setDoc(doc(dictionaryCol(userId), wordId), validatedPayload, {
+        merge: true,
+      })
     )
-    return { success: true, data: payload }
+    return { success: true, data: validatedPayload }
   } catch (error) {
     console.error("Error adding word to dictionary:", error)
     const mapped = mapFirestoreError(error)

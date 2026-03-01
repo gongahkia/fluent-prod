@@ -20,6 +20,18 @@ const profilePatchSchema = profileWriteSchema
   .partial()
   .passthrough()
 
+const dictionaryWriteSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    userId: z.string().trim().min(1),
+    language: z.string().trim().min(1).max(64),
+    japanese: z.string().trim().min(1).max(500).optional(),
+    english: z.string().trim().min(1).max(500).optional(),
+    hiragana: z.string().max(500).nullable().optional(),
+    level: z.number().int().min(1).max(10).optional(),
+  })
+  .passthrough()
+
 function buildSchemaError(errorCode, issues) {
   const error = new Error("Invalid Firestore payload")
   error.code = errorCode
@@ -43,6 +55,17 @@ export function validateProfilePatchPayload(payload) {
   if (!parsed.success) {
     throw buildSchemaError(
       "FIRESTORE_SCHEMA_PROFILE_PATCH",
+      parsed.error.issues
+    )
+  }
+  return parsed.data
+}
+
+export function validateDictionaryWritePayload(payload) {
+  const parsed = dictionaryWriteSchema.safeParse(payload)
+  if (!parsed.success) {
+    throw buildSchemaError(
+      "FIRESTORE_SCHEMA_DICTIONARY_WRITE",
       parsed.error.issues
     )
   }
