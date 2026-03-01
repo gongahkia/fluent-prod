@@ -1,4 +1,3 @@
-(B) Add unit tests for stale request cancellation in `src/services/__tests__/wordDatabase.cancellation.test.js`. +testing +translation +dx
 (B) Add integration tests for persisted comments and reply trees in `src/services/__tests__/commentsService.integration.test.js`. +testing +comments +dx
 (B) Add integration tests for credential encryption migration in `src/services/__tests__/encryptionService.migration.test.js`. +testing +security +dx
 (B) Add a CI workflow `.github/workflows/comment-persistence-tests.yml` that runs new comment service tests on pull requests. +infra +testing +dx

@@ -1,6 +1,12 @@
-import translationService from "../services/translationService"
 import { getLanguageByName } from "@config/languages"
+import translationService from "../services/translationService"
 import { emitToast } from "./toastBus"
+import {
+  beginWordRequest,
+  clearActiveWordRequest,
+  ensureWordRequestNotAborted,
+  isActiveWordRequest,
+} from "./wordRequestController"
 
 // Shared Japanese-English word database for the entire application
 // This eliminates duplication between NewsFeed and EnhancedCommentSystem
@@ -12,7 +18,6 @@ export const japaneseWords = {}
 const lastClickAtByKey = new Map()
 const japaneseReadingCache = new Map()
 let kuromojinTokenizerPromise = null
-let activeWordRequestController = null
 
 // Rate limiting (per tab/session)
 const requestTimestamps = []
@@ -23,21 +28,6 @@ const READING_SOURCE_NONE = "none"
 
 function nowMs() {
   return Date.now()
-}
-
-function beginWordRequest() {
-  if (activeWordRequestController) {
-    activeWordRequestController.abort()
-  }
-  const controller = new AbortController()
-  activeWordRequestController = controller
-  return controller
-}
-
-function ensureNotAborted(signal) {
-  if (signal?.aborted) {
-    throw new DOMException("Translation request was aborted", "AbortError")
-  }
 }
 
 function katakanaToHiragana(text) {
@@ -101,8 +91,8 @@ function normalizeToken(rawToken, fromLang) {
 
   // Strip surrounding punctuation/quotes/brackets while keeping inner apostrophes/hyphens.
   token = token
-    .replace(/^[\s"'“”‘’()\[\]{}<>.,!?;:|\\/]+/g, "")
-    .replace(/[\s"'“”‘’()\[\]{}<>.,!?;:|\\/]+$/g, "")
+    .replace(/^[\s"'“”‘’()[\]{}<>.,!?;:|\\/]+/g, "")
+    .replace(/[\s"'“”‘’()[\]{}<>.,!?;:|\\/]+$/g, "")
 
   // Strip common Japanese punctuation
   token = token.replace(/[。、！？]/g, "")
@@ -159,7 +149,11 @@ function assertRateLimit() {
 }
 
 async function translateWithCache(text, fromLang, toLang) {
-  const cachedTranslation = translationService.getCachedTranslation(text, fromLang, toLang)
+  const cachedTranslation = translationService.getCachedTranslation(
+    text,
+    fromLang,
+    toLang
+  )
   if (cachedTranslation) {
     return {
       translation: cachedTranslation,
@@ -169,9 +163,14 @@ async function translateWithCache(text, fromLang, toLang) {
   }
 
   assertRateLimit()
-  const response = await translationService.translateText(text, fromLang, toLang, {
-    includeMetadata: true,
-  })
+  const response = await translationService.translateText(
+    text,
+    fromLang,
+    toLang,
+    {
+      includeMetadata: true,
+    }
+  )
 
   if (response && typeof response === "object") {
     return {
@@ -188,7 +187,10 @@ async function translateWithCache(text, fromLang, toLang) {
   }
 }
 
-export const prewarmTranslationCacheFromDictionary = (userDictionary, targetLanguage = "Japanese") => {
+export const prewarmTranslationCacheFromDictionary = (
+  userDictionary,
+  targetLanguage = "Japanese"
+) => {
   if (!Array.isArray(userDictionary) || userDictionary.length === 0) return
 
   const targetLangCode = getLanguageCodeFromNameOrId(targetLanguage)
@@ -204,8 +206,18 @@ export const prewarmTranslationCacheFromDictionary = (userDictionary, targetLang
     const enNorm = normalizeToken(english, "en")
 
     if (jaNorm && enNorm) {
-      translationService.setCachedTranslation(enNorm, "en", targetLangCode, japanese)
-      translationService.setCachedTranslation(jaNorm, targetLangCode, "en", english)
+      translationService.setCachedTranslation(
+        enNorm,
+        "en",
+        targetLangCode,
+        japanese
+      )
+      translationService.setCachedTranslation(
+        jaNorm,
+        targetLangCode,
+        "en",
+        english
+      )
     }
   }
   // Also update debounce map to prevent immediate double-click spam
@@ -231,8 +243,12 @@ export const handleWordClick = async (
   targetLanguage = "Japanese", // Add target language parameter
   clickPosition = null // Add click position parameter
 ) => {
-  const contextText = typeof context === 'string' ? context : (context?.text || null)
-  const contextPostHash = typeof context === 'object' && context ? (context.postHash || context.postId || null) : null
+  const contextText =
+    typeof context === "string" ? context : context?.text || null
+  const contextPostHash =
+    typeof context === "object" && context
+      ? context.postHash || context.postId || null
+      : null
 
   // Auto-detect if word is in target language or English if not specified
   let isTargetLang = isJapanese
@@ -257,7 +273,7 @@ export const handleWordClick = async (
 
   const requestController = beginWordRequest()
   const requestSignal = requestController.signal
-  const isActiveRequest = () => activeWordRequestController === requestController
+  const isActiveRequest = () => isActiveWordRequest(requestController)
 
   // Set loading state if provided
   if (setLoading) {
@@ -267,13 +283,17 @@ export const handleWordClick = async (
   try {
     // Debounce rapid repeat clicks on the same token.
     if (now - lastClickAt < CLICK_DEBOUNCE_MS) {
-      const cachedTranslation = translationService.getCachedTranslation(cleanWord, fromLang, toLang)
+      const cachedTranslation = translationService.getCachedTranslation(
+        cleanWord,
+        fromLang,
+        toLang
+      )
       if (cachedTranslation) {
-        ensureNotAborted(requestSignal)
+        ensureWordRequestNotAborted(requestSignal)
         const translation = cachedTranslation
         const readingTarget = isTargetLang ? cleanWord : translation
         const pronunciation = await parseJapaneseReading(readingTarget)
-        ensureNotAborted(requestSignal)
+        ensureWordRequestNotAborted(requestSignal)
         const readingSource = pronunciation
           ? READING_SOURCE_KUROMOJIN
           : READING_SOURCE_NONE
@@ -283,7 +303,11 @@ export const handleWordClick = async (
           english: isTargetLang ? translation : cleanWord,
           level,
           example: contextText || `Example with "${cleanWord}".`,
-          exampleEn: contextTranslation || (isTargetLang ? `Example with ${cleanWord}.` : `Example with "${cleanWord}".`),
+          exampleEn:
+            contextTranslation ||
+            (isTargetLang
+              ? `Example with ${cleanWord}.`
+              : `Example with "${cleanWord}".`),
           original: cleanWord,
           isApiTranslated: true,
           isVocabulary: !isTargetLang && isValidVocabularyWord(cleanWord),
@@ -297,7 +321,7 @@ export const handleWordClick = async (
         wordData.hiragana = pronunciation
         wordData.isJapanese = isTargetLang
         wordData.showJapaneseTranslation = !isTargetLang
-        ensureNotAborted(requestSignal)
+        ensureWordRequestNotAborted(requestSignal)
         setSelectedWord(wordData)
         return
       }
@@ -314,17 +338,20 @@ export const handleWordClick = async (
 
     if (isTargetLang) {
       // Target language to English
-      const translationResult = await translateWithCache(cleanWord, fromLang, toLang)
+      const translationResult = await translateWithCache(
+        cleanWord,
+        fromLang,
+        toLang
+      )
       translation = translationResult.translation
       translationProvider = translationResult.provider || translationProvider
-      translationCacheStatus = translationResult.cacheStatus || translationCacheStatus
-      ensureNotAborted(requestSignal)
+      translationCacheStatus =
+        translationResult.cacheStatus || translationCacheStatus
+      ensureWordRequestNotAborted(requestSignal)
       const reading = await parseJapaneseReading(cleanWord)
-      ensureNotAborted(requestSignal)
+      ensureWordRequestNotAborted(requestSignal)
       pronunciation = reading || null
-      readingSource = reading
-        ? READING_SOURCE_KUROMOJIN
-        : READING_SOURCE_NONE
+      readingSource = reading ? READING_SOURCE_KUROMOJIN : READING_SOURCE_NONE
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -335,17 +362,20 @@ export const handleWordClick = async (
       }
     } else {
       // English to target language
-      const translationResult = await translateWithCache(cleanWord, fromLang, toLang)
+      const translationResult = await translateWithCache(
+        cleanWord,
+        fromLang,
+        toLang
+      )
       translation = translationResult.translation
       translationProvider = translationResult.provider || translationProvider
-      translationCacheStatus = translationResult.cacheStatus || translationCacheStatus
-      ensureNotAborted(requestSignal)
+      translationCacheStatus =
+        translationResult.cacheStatus || translationCacheStatus
+      ensureWordRequestNotAborted(requestSignal)
       const reading = await parseJapaneseReading(translation)
-      ensureNotAborted(requestSignal)
+      ensureWordRequestNotAborted(requestSignal)
       pronunciation = reading
-      readingSource = reading
-        ? READING_SOURCE_KUROMOJIN
-        : READING_SOURCE_NONE
+      readingSource = reading ? READING_SOURCE_KUROMOJIN : READING_SOURCE_NONE
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
@@ -384,7 +414,7 @@ export const handleWordClick = async (
     wordData.isJapanese = isTargetLang
     wordData.showJapaneseTranslation = !isTargetLang
 
-    ensureNotAborted(requestSignal)
+    ensureWordRequestNotAborted(requestSignal)
     setSelectedWord(wordData)
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -415,7 +445,7 @@ export const handleWordClick = async (
     // Clear loading state
     const stillActive = isActiveRequest()
     if (stillActive) {
-      activeWordRequestController = null
+      clearActiveWordRequest(requestController)
     }
     if (setLoading && stillActive) {
       setLoading(false)
