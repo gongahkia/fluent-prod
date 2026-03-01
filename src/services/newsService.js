@@ -32,6 +32,26 @@ function hasJapanese(text) {
   return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
 }
 
+function validateApiNewsResponse(data) {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid API response payload')
+  }
+
+  const posts = Array.isArray(data.posts) ? data.posts : []
+  const metadata = data.metadata && typeof data.metadata === 'object' ? data.metadata : {}
+
+  const normalizedPosts = posts
+    .filter((post) => post && typeof post === 'object')
+    .map((post) => ({
+      ...post,
+      id: post.id || post.postHash || post.sourceId || null,
+      title: typeof post.title === 'string' ? post.title : '',
+      content: typeof post.content === 'string' ? post.content : '',
+    }))
+
+  return { posts: normalizedPosts, metadata }
+}
+
 async function fetchPostsFromCache(options = {}) {
   const {
     limit = 10,
@@ -186,10 +206,7 @@ export async function fetchPosts(options = {}) {
     }
 
     const data = await response.json()
-    return {
-      posts: data.posts || [],
-      metadata: data.metadata || {}
-    }
+    return validateApiNewsResponse(data)
   }
 
   if (IS_HYBRID_MODE) {
