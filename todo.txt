@@ -1,4 +1,3 @@
-(B) Implement `listCommentsByPost` in `commentsService` with cursor pagination and newest-first order. +comments +data +scaling
 (B) Implement `createReply` in `commentsService` with `parentCommentId` linkage. +comments +data +stability
 (B) Implement `toggleCommentLike` in `commentsService` using per-user reaction docs for idempotency. +comments +data +stability
 (B) Implement `onCommentsChanged` realtime listener in `commentsService` using `onSnapshot`. +comments +data +scaling
