@@ -212,14 +212,18 @@ const EnhancedCommentSystem = ({
       return
     }
 
-    const unsubscribe = onCommentsChanged(articleId, (loadedComments = []) => {
-      setComments(buildCommentTree(loadedComments))
-    })
+    const unsubscribe = onCommentsChanged(
+      articleId,
+      (loadedComments = []) => {
+        setComments(buildCommentTree(loadedComments))
+      },
+      { viewerUserId: userProfile?.userId }
+    )
 
     return () => {
       unsubscribe?.()
     }
-  }, [articleId])
+  }, [articleId, userProfile?.userId])
 
   // Word click functionality
   const handleWordClick = async (

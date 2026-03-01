@@ -3,6 +3,7 @@ import { firebaseStorage } from "@/lib/firebase"
 import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
+  blockingCol,
   collection,
   doc,
   fbLimit,
@@ -148,6 +149,41 @@ function validateCommentWriteInput({ content, media } = {}) {
       url: hasUrl ? String(media.url).trim() : null,
     },
   }
+}
+
+function isMissingIndexError(error) {
+  return (
+    error?.code === "failed-precondition" &&
+    String(error?.message || "")
+      .toLowerCase()
+      .includes("requires an index")
+  )
+}
+
+function extractCommentUserId(comment) {
+  const rawUserId = String(comment?.userId || "").trim()
+  return rawUserId ? sanitizeFirestoreId(rawUserId, "user") : ""
+}
+
+function filterBlockedComments(comments, blockedUserIds = []) {
+  if (!Array.isArray(blockedUserIds) || blockedUserIds.length === 0)
+    return comments
+  const blockedSet = new Set(
+    blockedUserIds.map((id) => sanitizeFirestoreId(id, "user"))
+  )
+  return comments.filter(
+    (comment) => !blockedSet.has(extractCommentUserId(comment))
+  )
+}
+
+async function loadBlockedUserIds(viewerUserId) {
+  const safeViewerUserId = String(viewerUserId || "").trim()
+  if (!safeViewerUserId) return []
+
+  const snap = await withFirestoreReadRetry("get:blockedUsers", () =>
+    getDocs(query(blockingCol(safeViewerUserId), fbLimit(200)))
+  )
+  return snap.docs.map((d) => sanitizeFirestoreId(d.id, "user"))
 }
 
 function getStorageExt(mimeType = "") {
@@ -460,6 +496,7 @@ function paginateComments(comments, pageSize) {
 
 export async function listCommentsByPost({
   postHash,
+  viewerUserId = null,
   cursor = null,
   pageSize = DEFAULT_COMMENTS_PAGE_SIZE,
 } = {}) {
@@ -474,9 +511,19 @@ export async function listCommentsByPost({
   const safePostHash = sanitizeFirestoreId(postHash, "post")
   const safeCursor = normalizeCursor(cursor)
   const safePageSize = normalizePageSize(pageSize)
+  let blockedUserIds = []
+  try {
+    blockedUserIds = await loadBlockedUserIds(viewerUserId)
+  } catch (error) {
+    console.warn("Unable to load blocked users for comments query:", error)
+  }
+  const queryBlockedUserIds = blockedUserIds.slice(0, 10)
 
   try {
     const constraints = [where("postHash", "==", safePostHash)]
+    if (queryBlockedUserIds.length > 0) {
+      constraints.push(where("userId", "not-in", queryBlockedUserIds))
+    }
     if (safeCursor) {
       constraints.push(where("createdAt", "<", safeCursor))
     }
@@ -486,16 +533,14 @@ export async function listCommentsByPost({
       "get:commentsByPost",
       () => getDocs(query(commentsCol(), ...constraints))
     )
-    const comments = commentsSnap.docs.map((d) => d.data())
+    const comments = filterBlockedComments(
+      commentsSnap.docs.map((d) => d.data()),
+      blockedUserIds
+    )
     const paginated = paginateComments(comments, safePageSize)
     return { success: true, ...paginated }
   } catch (error) {
-    if (
-      error?.code === "failed-precondition" &&
-      String(error?.message || "")
-        .toLowerCase()
-        .includes("requires an index")
-    ) {
+    if (isMissingIndexError(error)) {
       try {
         const fallbackSnap = await withFirestoreReadRetry(
           "get:commentsByPost:fallback",
@@ -503,11 +548,12 @@ export async function listCommentsByPost({
             getDocs(query(commentsCol(), where("postHash", "==", safePostHash)))
         )
 
-        const sortedComments = fallbackSnap.docs
-          .map((d) => d.data())
-          .sort((a, b) =>
-            String(b?.createdAt || "").localeCompare(String(a?.createdAt || ""))
-          )
+        const sortedComments = filterBlockedComments(
+          fallbackSnap.docs.map((d) => d.data()),
+          blockedUserIds
+        ).sort((a, b) =>
+          String(b?.createdAt || "").localeCompare(String(a?.createdAt || ""))
+        )
         const filteredComments = safeCursor
           ? sortedComments.filter(
               (comment) => String(comment?.createdAt || "") < safeCursor
@@ -540,38 +586,59 @@ export async function listCommentsByPost({
   }
 }
 
-export function onCommentsChanged(postHash, callback) {
+export function onCommentsChanged(postHash, callback, options = {}) {
   if (!postHash || typeof callback !== "function") {
     return () => undefined
   }
 
   const safePostHash = sanitizeFirestoreId(postHash, "post")
-  const q = query(
-    commentsCol(),
-    where("postHash", "==", safePostHash),
-    orderBy("createdAt", "desc")
-  )
+  let unsub = () => undefined
+  let isActive = true
 
-  return onSnapshot(
-    q,
-    (snap) => {
-      const comments = snap.docs.map((d) => d.data())
-      callback(comments)
-    },
-    (error) => {
-      if (
-        error?.code === "failed-precondition" &&
-        String(error?.message || "")
-          .toLowerCase()
-          .includes("requires an index")
-      ) {
-        console.warn(
-          "Firestore index missing for comments listener; emitting empty list until index is created."
-        )
-        callback([])
-        return
-      }
-      console.error("Comments snapshot listener error:", error)
+  ;(async () => {
+    let blockedUserIds = []
+    try {
+      blockedUserIds = await loadBlockedUserIds(options?.viewerUserId)
+    } catch (error) {
+      console.warn("Unable to load blocked users for comments listener:", error)
     }
-  )
+    if (!isActive) return
+
+    const queryBlockedUserIds = blockedUserIds.slice(0, 10)
+    const constraints = [where("postHash", "==", safePostHash)]
+    if (queryBlockedUserIds.length > 0) {
+      constraints.push(where("userId", "not-in", queryBlockedUserIds))
+    }
+    constraints.push(orderBy("createdAt", "desc"))
+    const q = query(commentsCol(), ...constraints)
+
+    unsub = onSnapshot(
+      q,
+      (snap) => {
+        const comments = filterBlockedComments(
+          snap.docs.map((d) => d.data()),
+          blockedUserIds
+        )
+        callback(comments)
+      },
+      (error) => {
+        if (isMissingIndexError(error)) {
+          console.warn(
+            "Firestore index missing for comments listener; emitting empty list until index is created."
+          )
+          callback([])
+          return
+        }
+        console.error("Comments snapshot listener error:", error)
+      }
+    )
+  })().catch((error) => {
+    console.error("Failed to initialize comments listener:", error)
+    callback([])
+  })
+
+  return () => {
+    isActive = false
+    unsub?.()
+  }
 }
