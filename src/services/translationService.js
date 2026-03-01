@@ -57,6 +57,48 @@ function writeToTranslationCache(key, value) {
   }
 }
 
+function isTransientError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    error?.name === 'AbortError' ||
+    message.includes('network') ||
+    message.includes('timeout') ||
+    message.includes('failed to fetch') ||
+    message.includes('503') ||
+    message.includes('502') ||
+    message.includes('429')
+  )
+}
+
+function deterministicJitter(seed, attempt) {
+  let hash = 0
+  const text = `${seed}|${attempt}`
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0
+  }
+  return hash % 120
+}
+
+async function withRetry(operation, { maxRetries = 2, baseDelayMs = 200, maxDelayMs = 1200, seed = '' } = {}) {
+  let lastError = null
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await operation(attempt)
+    } catch (error) {
+      lastError = error
+      if (attempt >= maxRetries || !isTransientError(error)) {
+        throw error
+      }
+
+      const expDelay = Math.min(maxDelayMs, baseDelayMs * (2 ** attempt))
+      const delay = Math.min(maxDelayMs, expDelay + deterministicJitter(seed, attempt))
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  throw lastError || new Error('Retry operation failed')
+}
+
 function withTimeout(ms) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ms)
@@ -228,16 +270,32 @@ class TranslationService {
 
     const task = (async () => {
       try {
-        return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
+        return await withRetry(
+          () => translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs),
+          { seed: requestKey }
+        )
       } catch {
-        for (const provider of providers) {
-          let result = null
-          if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
-          else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
-          else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
-
-          if (result) return normalizeTranslationText(result)
+      for (const provider of providers) {
+        let result = null
+        if (provider === 'lingva') {
+          result = await withRetry(
+            () => tryLingva(trimmed, fromLang, toLang, timeoutMs),
+            { seed: `${requestKey}|lingva` }
+          )
+        } else if (provider === 'mymemory') {
+          result = await withRetry(
+            () => tryMyMemory(trimmed, fromLang, toLang, timeoutMs),
+            { seed: `${requestKey}|mymemory` }
+          )
+        } else if (provider === 'libretranslate') {
+          result = await withRetry(
+            () => tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs),
+            { seed: `${requestKey}|libretranslate` }
+          )
         }
+
+        if (result) return normalizeTranslationText(result)
+      }
       }
 
       throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
