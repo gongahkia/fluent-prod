@@ -63,6 +63,13 @@ let webLlmEnginePromise = null
 let webLlmModelLoaded = null
 let engineInitProgressCallback = null
 let activeInferenceRun = null
+let inferenceQueue = Promise.resolve()
+
+function enqueueInference(task) {
+  const run = inferenceQueue.then(task, task)
+  inferenceQueue = run.catch(() => {})
+  return run
+}
 
 export function isWebGpuSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && "gpu" in navigator
@@ -176,45 +183,44 @@ async function webLlmChat({
   maxTokens = 256,
   model,
 } = {}) {
-  const { engine } = await ensureWebLlmModelLoaded(model)
-  const run = { cancelled: false }
-  if (activeInferenceRun) {
-    activeInferenceRun.cancelled = true
-  }
-  activeInferenceRun = run
+  return enqueueInference(async () => {
+    const { engine } = await ensureWebLlmModelLoaded(model)
+    const run = { cancelled: false }
+    activeInferenceRun = run
 
-  let timeoutId = null
-  try {
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => {
-        run.cancelled = true
-        reject(new Error("AI inference timeout"))
-      }, AI_INFERENCE_TIMEOUT_MS)
-    })
+    let timeoutId = null
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          run.cancelled = true
+          reject(new Error("AI inference timeout"))
+        }, AI_INFERENCE_TIMEOUT_MS)
+      })
 
-    const completion = await Promise.race([
-      engine.chat.completions.create({
-        messages: [
-          { role: "system", content: system || "" },
-          { role: "user", content: user || "" },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-      }),
-      timeoutPromise,
-    ])
+      const completion = await Promise.race([
+        engine.chat.completions.create({
+          messages: [
+            { role: "system", content: system || "" },
+            { role: "user", content: user || "" },
+          ],
+          temperature,
+          max_tokens: maxTokens,
+        }),
+        timeoutPromise,
+      ])
 
-    if (run.cancelled) {
-      throw new Error("AI inference cancelled")
+      if (run.cancelled) {
+        throw new Error("AI inference cancelled")
+      }
+
+      return completion?.choices?.[0]?.message?.content || ""
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (activeInferenceRun === run) {
+        activeInferenceRun = null
+      }
     }
-
-    return completion?.choices?.[0]?.message?.content || ""
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId)
-    if (activeInferenceRun === run) {
-      activeInferenceRun = null
-    }
-  }
+  })
 }
 
 export async function hasWebLlmModelInCache(model) {
