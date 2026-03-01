@@ -1,3 +1,4 @@
+import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   arrayRemove,
   arrayUnion,
@@ -16,10 +17,13 @@ import {
 
 export const createCollection = async (userId, collectionData) => {
   try {
-    const collectionId = collectionData?.id || crypto.randomUUID()
+    const collectionId = sanitizeFirestoreId(
+      collectionData?.id,
+      createFirestoreId()
+    )
     const payload = {
       id: collectionId,
-      userId,
+      userId: sanitizeFirestoreId(userId, "user"),
       name: collectionData?.name || "Untitled Collection",
       description: collectionData?.description || "",
       isDefault: Boolean(collectionData?.isDefault),
@@ -57,8 +61,9 @@ export const getCollections = async (userId) => {
 
 export const updateCollection = async (userId, collectionId, updates) => {
   try {
+    const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
     await setDoc(
-      doc(collectionsCol(userId), collectionId),
+      doc(collectionsCol(userId), safeCollectionId),
       {
         ...updates,
         updatedAt: nowIso(),
@@ -75,7 +80,8 @@ export const updateCollection = async (userId, collectionId, updates) => {
 
 export const deleteCollection = async (userId, collectionId) => {
   try {
-    await deleteDoc(doc(collectionsCol(userId), collectionId))
+    const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
+    await deleteDoc(doc(collectionsCol(userId), safeCollectionId))
     return { success: true }
   } catch (error) {
     console.error("Error deleting collection:", error)
@@ -85,8 +91,10 @@ export const deleteCollection = async (userId, collectionId) => {
 
 export const addWordToCollection = async (userId, collectionId, wordId) => {
   try {
-    await updateDoc(doc(collectionsCol(userId), collectionId), {
-      wordIds: arrayUnion(String(wordId)),
+    const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
+    const safeWordId = sanitizeFirestoreId(wordId, "word")
+    await updateDoc(doc(collectionsCol(userId), safeCollectionId), {
+      wordIds: arrayUnion(safeWordId),
       updatedAt: nowIso(),
       updatedAtTs: serverTimestamp(),
     })
@@ -103,8 +111,10 @@ export const removeWordFromCollection = async (
   wordId
 ) => {
   try {
-    await updateDoc(doc(collectionsCol(userId), collectionId), {
-      wordIds: arrayRemove(String(wordId)),
+    const safeCollectionId = sanitizeFirestoreId(collectionId, "collection")
+    const safeWordId = sanitizeFirestoreId(wordId, "word")
+    await updateDoc(doc(collectionsCol(userId), safeCollectionId), {
+      wordIds: arrayRemove(safeWordId),
       updatedAt: nowIso(),
       updatedAtTs: serverTimestamp(),
     })

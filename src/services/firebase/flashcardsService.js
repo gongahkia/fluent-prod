@@ -1,3 +1,4 @@
+import { sanitizeFirestoreId } from "./idUtils"
 import {
   doc,
   flashcardsCol,
@@ -27,8 +28,9 @@ export const getFlashcardProgress = async (userId) => {
 
 export const saveFlashcardProgress = async (userId, wordId, progressData) => {
   try {
+    const safeWordId = sanitizeFirestoreId(wordId, "word")
     await setDoc(
-      doc(flashcardsCol(userId), wordId),
+      doc(flashcardsCol(userId), safeWordId),
       {
         ...progressData,
         updatedAt: nowIso(),

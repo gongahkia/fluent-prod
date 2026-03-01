@@ -1,3 +1,4 @@
+import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   deleteDoc,
   dictionaryCol,
@@ -16,22 +17,7 @@ import {
 
 export const addWordToDictionary = async (userId, wordData) => {
   try {
-    const rawId = wordData?.id
-    let wordId = null
-
-    if (typeof rawId === "string" && rawId.trim()) {
-      wordId = rawId.trim()
-    } else if (typeof rawId === "number" && Number.isFinite(rawId)) {
-      wordId = String(rawId)
-    }
-
-    if (!wordId) {
-      wordId =
-        globalThis?.crypto?.randomUUID?.() ||
-        `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    }
-
-    wordId = String(wordId).replaceAll("/", "_")
+    const wordId = sanitizeFirestoreId(wordData?.id, createFirestoreId())
 
     const payload = {
       ...wordData,
@@ -61,8 +47,9 @@ export const addWordToDictionary = async (userId, wordData) => {
 
 export const removeWordFromDictionary = async (userId, wordId) => {
   try {
+    const safeWordId = sanitizeFirestoreId(wordId, "word")
     await withFirestoreTiming("delete:dictionaryWord", () =>
-      deleteDoc(doc(dictionaryCol(userId), wordId))
+      deleteDoc(doc(dictionaryCol(userId), safeWordId))
     )
     return { success: true }
   } catch (error) {

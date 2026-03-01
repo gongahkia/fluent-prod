@@ -1,3 +1,4 @@
+import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   deleteDoc,
   doc,
@@ -50,22 +51,20 @@ export const getSavedPosts = async (userId) => {
 
 export const savePost = async (userId, postData) => {
   try {
-    const uuid =
-      globalThis?.crypto?.randomUUID?.() ||
-      `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const uuid = createFirestoreId()
     const postHashRaw =
       postData?.postHash || postData?.postId || postData?.id || uuid
     const postIdRaw = postData?.postId || postData?.id || postHashRaw
 
-    const postHash = String(postHashRaw).replaceAll("/", "_")
-    const postId = String(postIdRaw).replaceAll("/", "_")
+    const postHash = sanitizeFirestoreId(postHashRaw, createFirestoreId())
+    const postId = sanitizeFirestoreId(postIdRaw, postHash)
 
     const payload = stripUndefinedDeep({
       ...postData,
       id: postId,
       postId,
       postHash,
-      userId,
+      userId: sanitizeFirestoreId(userId, "user"),
       savedAt: postData?.savedAt || nowIso(),
       savedAtTs: serverTimestamp(),
       updatedAt: nowIso(),
@@ -84,8 +83,9 @@ export const savePost = async (userId, postData) => {
 
 export const removeSavedPost = async (userId, postId) => {
   try {
+    const safePostId = sanitizeFirestoreId(postId, "post")
     await withFirestoreTiming("delete:savedPost", () =>
-      deleteDoc(doc(savedPostsCol(userId), postId))
+      deleteDoc(doc(savedPostsCol(userId), safePostId))
     )
     return { success: true }
   } catch (error) {

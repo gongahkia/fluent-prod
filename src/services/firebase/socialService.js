@@ -1,3 +1,4 @@
+import { sanitizeFirestoreId } from "./idUtils"
 import {
   blockingCol,
   doc,
@@ -16,8 +17,9 @@ import {
 
 export const isFollowing = async (userId, targetUserId) => {
   try {
+    const safeTargetUserId = sanitizeFirestoreId(targetUserId, "user")
     const snap = await withFirestoreReadRetry("get:isFollowing", () =>
-      getDoc(doc(followingCol(userId), targetUserId))
+      getDoc(doc(followingCol(userId), safeTargetUserId))
     )
     return { success: true, isFollowing: snap.exists() }
   } catch (error) {
@@ -28,18 +30,29 @@ export const isFollowing = async (userId, targetUserId) => {
 
 export const followUser = async (userId, targetUserId) => {
   try {
-    if (userId === targetUserId)
+    const safeUserId = sanitizeFirestoreId(userId, "user")
+    const safeTargetUserId = sanitizeFirestoreId(targetUserId, "user")
+
+    if (safeUserId === safeTargetUserId)
       return { success: false, error: "Cannot follow yourself" }
 
     const batch = writeBatch(firestore)
     batch.set(
-      doc(followingCol(userId), targetUserId),
-      { userId, targetUserId, followedAt: nowIso() },
+      doc(followingCol(safeUserId), safeTargetUserId),
+      {
+        userId: safeUserId,
+        targetUserId: safeTargetUserId,
+        followedAt: nowIso(),
+      },
       { merge: true }
     )
     batch.set(
-      doc(followersCol(targetUserId), userId),
-      { userId: targetUserId, followerId: userId, followedAt: nowIso() },
+      doc(followersCol(safeTargetUserId), safeUserId),
+      {
+        userId: safeTargetUserId,
+        followerId: safeUserId,
+        followedAt: nowIso(),
+      },
       { merge: true }
     )
     await batch.commit()
@@ -53,9 +66,11 @@ export const followUser = async (userId, targetUserId) => {
 
 export const unfollowUser = async (userId, targetUserId) => {
   try {
+    const safeUserId = sanitizeFirestoreId(userId, "user")
+    const safeTargetUserId = sanitizeFirestoreId(targetUserId, "user")
     const batch = writeBatch(firestore)
-    batch.delete(doc(followingCol(userId), targetUserId))
-    batch.delete(doc(followersCol(targetUserId), userId))
+    batch.delete(doc(followingCol(safeUserId), safeTargetUserId))
+    batch.delete(doc(followersCol(safeTargetUserId), safeUserId))
     await batch.commit()
 
     return { success: true }
@@ -113,9 +128,11 @@ export const getUserFollowing = async (userId) => {
 
 export const removeFollower = async (userId, followerId) => {
   try {
+    const safeUserId = sanitizeFirestoreId(userId, "user")
+    const safeFollowerId = sanitizeFirestoreId(followerId, "user")
     const batch = writeBatch(firestore)
-    batch.delete(doc(followersCol(userId), followerId))
-    batch.delete(doc(followingCol(followerId), userId))
+    batch.delete(doc(followersCol(safeUserId), safeFollowerId))
+    batch.delete(doc(followingCol(safeFollowerId), safeUserId))
     await batch.commit()
 
     return { success: true }
@@ -127,17 +144,23 @@ export const removeFollower = async (userId, followerId) => {
 
 export const blockUser = async (userId, targetUserId) => {
   try {
+    const safeUserId = sanitizeFirestoreId(userId, "user")
+    const safeTargetUserId = sanitizeFirestoreId(targetUserId, "user")
     const batch = writeBatch(firestore)
     batch.set(
-      doc(blockingCol(userId), targetUserId),
-      { userId, targetUserId, blockedAt: nowIso() },
+      doc(blockingCol(safeUserId), safeTargetUserId),
+      {
+        userId: safeUserId,
+        targetUserId: safeTargetUserId,
+        blockedAt: nowIso(),
+      },
       { merge: true }
     )
 
-    batch.delete(doc(followingCol(userId), targetUserId))
-    batch.delete(doc(followersCol(userId), targetUserId))
-    batch.delete(doc(followingCol(targetUserId), userId))
-    batch.delete(doc(followersCol(targetUserId), userId))
+    batch.delete(doc(followingCol(safeUserId), safeTargetUserId))
+    batch.delete(doc(followersCol(safeUserId), safeTargetUserId))
+    batch.delete(doc(followingCol(safeTargetUserId), safeUserId))
+    batch.delete(doc(followersCol(safeTargetUserId), safeUserId))
 
     await batch.commit()
 

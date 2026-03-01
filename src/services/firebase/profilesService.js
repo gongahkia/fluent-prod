@@ -1,3 +1,4 @@
+import { sanitizeFirestoreId } from "./idUtils"
 import {
   credentialsDoc,
   getDoc,
@@ -11,9 +12,10 @@ import {
 
 export const createUserProfile = async (userId, profileData) => {
   try {
+    const safeUserId = sanitizeFirestoreId(userId, "user")
     const payload = {
       ...profileData,
-      userId,
+      userId: safeUserId,
       createdAt: profileData?.createdAt || nowIso(),
       updatedAt: nowIso(),
       createdAtTs: serverTimestamp(),
@@ -23,7 +25,7 @@ export const createUserProfile = async (userId, profileData) => {
     }
 
     await withFirestoreTiming("set:userProfile", () =>
-      setDoc(userDoc(userId), payload, { merge: true })
+      setDoc(userDoc(safeUserId), payload, { merge: true })
     )
     return { success: true, data: payload }
   } catch (error) {

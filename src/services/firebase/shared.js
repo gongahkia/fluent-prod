@@ -17,6 +17,7 @@ import {
   writeBatch,
 } from "firebase/firestore"
 import { firestore } from "@/lib/firebase"
+import { sanitizeFirestoreId } from "./idUtils"
 
 export {
   arrayRemove,
@@ -106,39 +107,80 @@ export function stripUndefinedDeep(value) {
 }
 
 export function userDoc(userId) {
-  return doc(firestore, "users", userId)
+  return doc(firestore, "users", sanitizeFirestoreId(userId, "user"))
 }
 
 export function credentialsDoc(userId) {
-  return doc(firestore, "users", userId, "private", "credentials")
+  return doc(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "private",
+    "credentials"
+  )
 }
 
 export function dictionaryCol(userId) {
-  return collection(firestore, "users", userId, "dictionaryWords")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "dictionaryWords"
+  )
 }
 
 export function savedPostsCol(userId) {
-  return collection(firestore, "users", userId, "savedPosts")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "savedPosts"
+  )
 }
 
 export function collectionsCol(userId) {
-  return collection(firestore, "users", userId, "collections")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "collections"
+  )
 }
 
 export function flashcardsCol(userId) {
-  return collection(firestore, "users", userId, "flashcards")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "flashcards"
+  )
 }
 
 export function followingCol(userId) {
-  return collection(firestore, "users", userId, "following")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "following"
+  )
 }
 
 export function followersCol(userId) {
-  return collection(firestore, "users", userId, "followers")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "followers"
+  )
 }
 
 export function blockingCol(userId) {
-  return collection(firestore, "users", userId, "blocking")
+  return collection(
+    firestore,
+    "users",
+    sanitizeFirestoreId(userId, "user"),
+    "blocking"
+  )
 }
 
 export async function deleteAllDocsInCollection(colRef) {
