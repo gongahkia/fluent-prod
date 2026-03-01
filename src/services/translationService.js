@@ -604,6 +604,21 @@ class TranslationService {
   getDictionaryFields(languageCode) {
     return this.mappings.dictionaryFields[languageCode] || {}
   }
+
+  getCachedTranslation(text, fromLang = 'en', toLang = 'ja', options = {}) {
+    const normalizedText = String(text ?? '')
+    if (!normalizedText) return null
+    const cacheKey = createTranslationCacheKey(normalizedText, fromLang, toLang, options)
+    return readFromTranslationCache(cacheKey)
+  }
+
+  setCachedTranslation(text, fromLang = 'en', toLang = 'ja', translation, options = {}) {
+    const normalizedText = String(text ?? '')
+    const normalizedTranslation = String(translation ?? '')
+    if (!normalizedText || !normalizedTranslation) return
+    const cacheKey = createTranslationCacheKey(normalizedText, fromLang, toLang, options)
+    writeToTranslationCache(cacheKey, normalizedTranslation)
+  }
 }
 
 export default new TranslationService()

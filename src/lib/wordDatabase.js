@@ -9,16 +9,8 @@ import { emitToast } from "./toastBus"
 // Removed hardcoded words - now using only API translations
 export const japaneseWords = {}
 
-const TRANSLATION_CACHE_STORAGE_KEY = "fluent.translationCache.v1"
-const TRANSLATION_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
-const TRANSLATION_CACHE_MAX_ENTRIES = 1500
-
-const memoryCache = new Map()
-const inFlight = new Map()
 const lastClickAtByKey = new Map()
 const japaneseReadingCache = new Map()
-let persistentCacheLoaded = false
-let persistTimer = null
 let kuromojinTokenizerPromise = null
 let activeWordRequestController = null
 
@@ -94,14 +86,6 @@ async function parseJapaneseReading(word) {
   }
 }
 
-function hasLocalStorage() {
-  try {
-    return typeof window !== "undefined" && !!window.localStorage
-  } catch {
-    return false
-  }
-}
-
 function normalizeToken(rawToken, fromLang) {
   if (typeof rawToken !== "string") return ""
   let token = rawToken
@@ -162,104 +146,6 @@ function buildCacheKey(text, fromLang, toLang) {
   return `${fromLang}|${toLang}|${text}`
 }
 
-function loadPersistentCacheOnce() {
-  if (persistentCacheLoaded) return
-  persistentCacheLoaded = true
-  if (!hasLocalStorage()) return
-
-  try {
-    const raw = window.localStorage.getItem(TRANSLATION_CACHE_STORAGE_KEY)
-    if (!raw) return
-    const parsed = JSON.parse(raw)
-    const entries = parsed?.entries && typeof parsed.entries === "object" ? parsed.entries : {}
-    const now = nowMs()
-
-    for (const [key, entry] of Object.entries(entries)) {
-      if (!entry || typeof entry !== "object") continue
-      if (typeof entry.expiresAt !== "number" || entry.expiresAt <= now) continue
-      if (!entry.value || typeof entry.value !== "object") continue
-
-      memoryCache.set(key, entry)
-    }
-  } catch {
-    // Ignore corrupt cache
-  }
-}
-
-function schedulePersist() {
-  if (!hasLocalStorage()) return
-  if (persistTimer) return
-  persistTimer = window.setTimeout(() => {
-    persistTimer = null
-    persistCacheToLocalStorage()
-  }, 500)
-}
-
-function persistCacheToLocalStorage() {
-  if (!hasLocalStorage()) return
-
-  // Evict expired + enforce max entries (LRU by lastAccessAt)
-  const now = nowMs()
-  const all = []
-  for (const [key, entry] of memoryCache.entries()) {
-    if (!entry || entry.expiresAt <= now) {
-      memoryCache.delete(key)
-      continue
-    }
-    all.push([key, entry])
-  }
-
-  all.sort((a, b) => (b[1].lastAccessAt || 0) - (a[1].lastAccessAt || 0))
-  const trimmed = all.slice(0, TRANSLATION_CACHE_MAX_ENTRIES)
-  const entries = Object.fromEntries(trimmed)
-
-  try {
-    window.localStorage.setItem(
-      TRANSLATION_CACHE_STORAGE_KEY,
-      JSON.stringify({ version: 1, savedAt: now, entries })
-    )
-  } catch {
-    // If storage is full, fall back to keeping fewer entries
-    try {
-      const smaller = Object.fromEntries(trimmed.slice(0, Math.floor(TRANSLATION_CACHE_MAX_ENTRIES / 2)))
-      window.localStorage.setItem(
-        TRANSLATION_CACHE_STORAGE_KEY,
-        JSON.stringify({ version: 1, savedAt: now, entries: smaller })
-      )
-    } catch {
-      // ignore
-    }
-  }
-}
-
-function getCachedTranslation(cacheKey) {
-  loadPersistentCacheOnce()
-
-  const entry = memoryCache.get(cacheKey)
-  if (!entry) return null
-
-  const now = nowMs()
-  if (entry.expiresAt <= now) {
-    memoryCache.delete(cacheKey)
-    return null
-  }
-
-  entry.lastAccessAt = now
-  memoryCache.set(cacheKey, entry)
-  schedulePersist()
-  return entry.value
-}
-
-function setCachedTranslation(cacheKey, value) {
-  const now = nowMs()
-  memoryCache.set(cacheKey, {
-    value,
-    expiresAt: now + TRANSLATION_CACHE_TTL_MS,
-    lastAccessAt: now,
-  })
-  schedulePersist()
-}
-
 function assertRateLimit() {
   const now = nowMs()
   const windowStart = now - 60_000
@@ -273,28 +159,14 @@ function assertRateLimit() {
 }
 
 async function translateWithCache(text, fromLang, toLang) {
-  const cacheKey = buildCacheKey(text, fromLang, toLang)
-
-  const cached = getCachedTranslation(cacheKey)
-  if (cached?.translation) return cached
-
-  if (inFlight.has(cacheKey)) return inFlight.get(cacheKey)
+  const cachedTranslation = translationService.getCachedTranslation(text, fromLang, toLang)
+  if (cachedTranslation) {
+    return { translation: cachedTranslation }
+  }
 
   assertRateLimit()
-
-  const promise = (async () => {
-    try {
-      const translation = await translationService.translateText(text, fromLang, toLang)
-      const value = { translation }
-      setCachedTranslation(cacheKey, value)
-      return value
-    } finally {
-      inFlight.delete(cacheKey)
-    }
-  })()
-
-  inFlight.set(cacheKey, promise)
-  return promise
+  const translation = await translationService.translateText(text, fromLang, toLang)
+  return { translation }
 }
 
 export const prewarmTranslationCacheFromDictionary = (userDictionary, targetLanguage = "Japanese") => {
@@ -313,15 +185,9 @@ export const prewarmTranslationCacheFromDictionary = (userDictionary, targetLang
     const enNorm = normalizeToken(english, "en")
 
     if (jaNorm && enNorm) {
-      setCachedTranslation(buildCacheKey(enNorm, "en", targetLangCode), { translation: japanese })
-      setCachedTranslation(buildCacheKey(jaNorm, targetLangCode, "en"), { translation: english })
+      translationService.setCachedTranslation(enNorm, "en", targetLangCode, japanese)
+      translationService.setCachedTranslation(jaNorm, targetLangCode, "en", english)
     }
-  }
-
-  // Ensure we persist after prewarm burst
-  if (hasLocalStorage()) {
-    // Touch persist schedule
-    schedulePersist()
   }
   // Also update debounce map to prevent immediate double-click spam
   lastClickAtByKey.set("__prewarm__", now)
@@ -382,10 +248,10 @@ export const handleWordClick = async (
   try {
     // Debounce rapid repeat clicks on the same token.
     if (now - lastClickAt < CLICK_DEBOUNCE_MS) {
-      const cached = getCachedTranslation(clickKey)
-      if (cached?.translation) {
+      const cachedTranslation = translationService.getCachedTranslation(cleanWord, fromLang, toLang)
+      if (cachedTranslation) {
         ensureNotAborted(requestSignal)
-        const translation = cached.translation
+        const translation = cachedTranslation
         const readingTarget = isTargetLang ? cleanWord : translation
         const pronunciation = await parseJapaneseReading(readingTarget)
         ensureNotAborted(requestSignal)
