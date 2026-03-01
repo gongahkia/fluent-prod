@@ -5,6 +5,7 @@ import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
   blockingCol,
   collection,
+  collectionGroup,
   doc,
   fbLimit,
   firestore,
@@ -25,6 +26,7 @@ import {
 const COMMENTS_COLLECTION = "comments"
 const COMMENT_REACTIONS_SUBCOLLECTION = "reactions"
 const COMMENT_MEDIA_COLLECTION = "commentMedia"
+const SAVED_POSTS_COLLECTION = "savedPosts"
 const DEFAULT_COMMENTS_PAGE_SIZE = 20
 const MAX_COMMENTS_PAGE_SIZE = 50
 const COMMENT_MAX_CONTENT_CHARS = 1200
@@ -220,6 +222,59 @@ async function uploadCommentMedia({ media, postHash, userId, commentId }) {
   return normalizeStoredMedia(media, downloadUrl)
 }
 
+function chunk(items, chunkSize) {
+  const chunks = []
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize))
+  }
+  return chunks
+}
+
+async function syncSavedPostCommentCounts(postHash) {
+  const safePostHash = sanitizeFirestoreId(postHash, "post")
+  const commentsQuery = query(
+    commentsCol(),
+    where("postHash", "==", safePostHash)
+  )
+  const savedPostsQuery = query(
+    collectionGroup(firestore, SAVED_POSTS_COLLECTION),
+    where("postHash", "==", safePostHash)
+  )
+
+  const [commentsSnap, savedPostsSnap] = await Promise.all([
+    withFirestoreReadRetry("get:commentsForCountSync", () =>
+      getDocs(commentsQuery)
+    ),
+    withFirestoreReadRetry("get:savedPostsForCommentSync", () =>
+      getDocs(savedPostsQuery)
+    ),
+  ])
+  if (savedPostsSnap.empty) return
+
+  const commentsCount = commentsSnap.size
+  const savedPostDocs = savedPostsSnap.docs
+  const timestamp = nowIso()
+
+  for (const docsChunk of chunk(savedPostDocs, 400)) {
+    const batch = writeBatch(firestore)
+    docsChunk.forEach((docSnap) => {
+      batch.set(
+        docSnap.ref,
+        {
+          comments: commentsCount,
+          commentsCount,
+          updatedAt: timestamp,
+          updatedAtTs: serverTimestamp(),
+        },
+        { merge: true }
+      )
+    })
+    await withFirestoreWrite("batch:syncSavedPostCommentCounts", () =>
+      batch.commit()
+    )
+  }
+}
+
 export function commentsCol() {
   return collection(firestore, COMMENTS_COLLECTION)
 }
@@ -312,6 +367,11 @@ export async function createComment({
     await withFirestoreWrite("set:comment", () =>
       setDoc(commentDoc(payload.id), payload, { merge: true })
     )
+    try {
+      await syncSavedPostCommentCounts(payload.postHash)
+    } catch (syncError) {
+      console.warn("Failed to sync saved post comment counts:", syncError)
+    }
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating comment:", error)
@@ -369,6 +429,11 @@ export async function createReply({
     await withFirestoreWrite("set:commentReply", () =>
       setDoc(commentDoc(payload.id), payload, { merge: true })
     )
+    try {
+      await syncSavedPostCommentCounts(payload.postHash)
+    } catch (syncError) {
+      console.warn("Failed to sync saved post comment counts:", syncError)
+    }
     return { success: true, data: payload }
   } catch (error) {
     console.error("Error creating comment reply:", error)
