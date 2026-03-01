@@ -6,6 +6,7 @@
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
 import { normalizeTranslationText, runFallbackProviders, withTimeout } from './translationPipeline'
+import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
@@ -114,70 +115,6 @@ async function withRetry(operation, { maxRetries = 2, baseDelayMs = 200, maxDela
   }
 
   throw lastError || new Error('Retry operation failed')
-}
-
-async function tryLingva(text, fromLang, toLang, timeoutMs) {
-  const endpoint = translationMappings.apiEndpoints.lingva
-  if (!endpoint?.enabled) return null
-
-  const url = `${endpoint.baseUrl}/${fromLang}/${toLang}/${encodeURIComponent(text)}`
-  const { signal, cancel } = withTimeout(timeoutMs)
-  try {
-    const res = await fetch(url, { method: 'GET', signal })
-    if (!res.ok) return null
-    const data = await res.json()
-    const translation = data?.translation
-    if (translation && translation !== text) return translation
-    return null
-  } catch {
-    return null
-  } finally {
-    cancel()
-  }
-}
-
-async function tryMyMemory(text, fromLang, toLang, timeoutMs) {
-  const endpoint = translationMappings.apiEndpoints.mymemory
-  if (!endpoint?.enabled) return null
-
-  const url = `${endpoint.baseUrl}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
-  const { signal, cancel } = withTimeout(timeoutMs)
-  try {
-    const res = await fetch(url, { method: 'GET', signal })
-    if (!res.ok) return null
-    const data = await res.json()
-    const translation = data?.responseData?.translatedText
-    if (translation && translation !== text) return translation
-    return null
-  } catch {
-    return null
-  } finally {
-    cancel()
-  }
-}
-
-async function tryLibreTranslate(text, fromLang, toLang, timeoutMs) {
-  const endpoint = translationMappings.apiEndpoints.libretranslate
-  if (!endpoint?.enabled) return null
-
-  const { signal, cancel } = withTimeout(timeoutMs)
-  try {
-    const res = await fetch(endpoint.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: text, source: fromLang, target: toLang, format: 'text' }),
-      signal,
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    const translation = data?.translatedText
-    if (translation && translation !== text) return translation
-    return null
-  } catch {
-    return null
-  } finally {
-    cancel()
-  }
 }
 
 async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {

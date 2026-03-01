@@ -1,4 +1,3 @@
-(B) Import shared provider functions in `src/services/translationService.js` instead of inline provider functions. +translation +refactor +stability
 (B) Add per-provider circuit breaker state in `src/services/translationService.js`. +translation +stability +scaling
 (B) Skip providers with open circuits in `src/services/translationService.js` fallback execution. +translation +stability +scaling
 (B) Record provider failure counts and cooldown end timestamps in `src/services/translationService.js`. +translation +observability +scaling
