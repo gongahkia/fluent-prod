@@ -1,3 +1,5 @@
+import { getDownloadURL, ref, uploadString } from "firebase/storage"
+import { firebaseStorage } from "@/lib/firebase"
 import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
 import {
@@ -21,8 +23,43 @@ import {
 
 const COMMENTS_COLLECTION = "comments"
 const COMMENT_REACTIONS_SUBCOLLECTION = "reactions"
+const COMMENT_MEDIA_COLLECTION = "commentMedia"
 const DEFAULT_COMMENTS_PAGE_SIZE = 20
 const MAX_COMMENTS_PAGE_SIZE = 50
+
+function getStorageExt(mimeType = "") {
+  const normalized = String(mimeType || "").toLowerCase()
+  if (normalized.includes("png")) return "png"
+  if (normalized.includes("gif")) return "gif"
+  if (normalized.includes("webp")) return "webp"
+  return "jpg"
+}
+
+function normalizeStoredMedia(media, downloadUrl = "") {
+  if (!media || !downloadUrl) return null
+  return {
+    type: String(media?.type || "image/jpeg"),
+    name: media?.name ? String(media.name) : null,
+    url: downloadUrl,
+  }
+}
+
+async function uploadCommentMedia({ media, postHash, userId, commentId }) {
+  const mediaData = media?.data
+  if (!mediaData || typeof mediaData !== "string") return null
+  if (!mediaData.startsWith("data:")) return null
+
+  const safePostHash = sanitizeFirestoreId(postHash, "post")
+  const safeUserId = sanitizeFirestoreId(userId, "user")
+  const safeCommentId = sanitizeFirestoreId(commentId, createFirestoreId())
+  const ext = getStorageExt(media?.type)
+  const objectPath = `${COMMENT_MEDIA_COLLECTION}/${safePostHash}/${safeUserId}/${safeCommentId}.${ext}`
+  const mediaRef = ref(firebaseStorage, objectPath)
+
+  await uploadString(mediaRef, mediaData, "data_url")
+  const downloadUrl = await getDownloadURL(mediaRef)
+  return normalizeStoredMedia(media, downloadUrl)
+}
 
 export function commentsCol() {
   return collection(firestore, COMMENTS_COLLECTION)
@@ -95,12 +132,21 @@ export async function createComment({
   }
 
   try {
+    const safeCommentId = buildCommentId(id)
+    const persistedMedia = media?.url
+      ? normalizeStoredMedia(media, media.url)
+      : await uploadCommentMedia({
+          media,
+          postHash,
+          userId,
+          commentId: safeCommentId,
+        })
     const payload = buildCommentPayload({
-      id,
+      id: safeCommentId,
       postHash,
       userId,
       content: safeContent,
-      media,
+      media: persistedMedia,
     })
 
     await withFirestoreWrite("set:comment", () =>
@@ -136,13 +182,22 @@ export async function createReply({
   }
 
   try {
+    const safeCommentId = buildCommentId(id)
+    const persistedMedia = media?.url
+      ? normalizeStoredMedia(media, media.url)
+      : await uploadCommentMedia({
+          media,
+          postHash,
+          userId,
+          commentId: safeCommentId,
+        })
     const payload = buildCommentPayload({
-      id,
+      id: safeCommentId,
       postHash,
       userId,
       parentCommentId,
       content: safeContent,
-      media,
+      media: persistedMedia,
     })
 
     await withFirestoreWrite("set:commentReply", () =>

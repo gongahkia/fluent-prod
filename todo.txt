@@ -1,4 +1,3 @@
-(B) Upload comment images to Firebase Storage and persist only download URLs in `commentsService`. +comments +data +security
 (B) Enforce comment body length and media constraints in `commentsService` before Firestore writes. +comments +stability +security
 (B) Filter blocked users from comment feeds in `commentsService` query assembly. +comments +data +security
 (B) Persist per-post comment counts in `users/{uid}/savedPosts` entries when comments change. +comments +data +scaling

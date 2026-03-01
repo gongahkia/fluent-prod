@@ -10,9 +10,10 @@
  * - VITE_FIREBASE_APP_ID
  */
 
-import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getApps, initializeApp } from "firebase/app"
+import { getAuth } from "firebase/auth"
+import { getFirestore } from "firebase/firestore"
+import { getStorage } from "firebase/storage"
 
 function getFirebaseConfig() {
   const config = {
@@ -25,16 +26,21 @@ function getFirebaseConfig() {
   }
 
   // Fail fast in dev if required keys missing
-  const required = ['apiKey', 'authDomain', 'projectId', 'appId']
+  const required = ["apiKey", "authDomain", "projectId", "appId"]
   for (const key of required) {
     if (!config[key]) {
-      throw new Error(`Missing Firebase env var for ${key}. Check your Vite env configuration.`)
+      throw new Error(
+        `Missing Firebase env var for ${key}. Check your Vite env configuration.`
+      )
     }
   }
 
   return config
 }
 
-export const firebaseApp = getApps().length ? getApps()[0] : initializeApp(getFirebaseConfig())
+export const firebaseApp = getApps().length
+  ? getApps()[0]
+  : initializeApp(getFirebaseConfig())
 export const firebaseAuth = getAuth(firebaseApp)
 export const firestore = getFirestore(firebaseApp)
+export const firebaseStorage = getStorage(firebaseApp)

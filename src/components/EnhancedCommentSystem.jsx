@@ -763,7 +763,7 @@ const EnhancedCommentSystem = ({
                     {comment.media && (
                       <div className="mb-2">
                         <img
-                          src={comment.media.data}
+                          src={comment.media.url || comment.media.data}
                           alt={comment.media.name || "Comment attachment"}
                           className="max-w-sm max-h-64 rounded-lg border border-gray-200"
                         />
