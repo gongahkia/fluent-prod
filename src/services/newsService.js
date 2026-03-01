@@ -52,6 +52,18 @@ function validateApiNewsResponse(data) {
   return { posts: normalizedPosts, metadata }
 }
 
+function mergeAndDedupePosts(primaryPosts = [], secondaryPosts = []) {
+  const map = new Map()
+  for (const post of [...primaryPosts, ...secondaryPosts]) {
+    const key = post?.postHash || post?.id || post?.sourceId
+    if (!key) continue
+    if (!map.has(key)) {
+      map.set(key, post)
+    }
+  }
+  return [...map.values()]
+}
+
 async function fetchPostsFromCache(options = {}) {
   const {
     limit = 10,
@@ -211,7 +223,22 @@ export async function fetchPosts(options = {}) {
 
   if (IS_HYBRID_MODE) {
     try {
-      return await fetchPostsFromApi()
+      const [apiResult, cacheResult] = await Promise.all([
+        fetchPostsFromApi(),
+        fetchPostsFromCache(options).catch(() => ({ posts: [], metadata: {} })),
+      ])
+
+      const mergedPosts = mergeAndDedupePosts(apiResult.posts, cacheResult.posts)
+      const limit = Number.parseInt(String(options?.limit ?? mergedPosts.length), 10)
+      const limitedPosts = Number.isFinite(limit) ? mergedPosts.slice(0, Math.max(0, limit)) : mergedPosts
+      return {
+        posts: limitedPosts,
+        metadata: {
+          ...(apiResult.metadata || {}),
+          mergedWithCache: true,
+          mergedCount: limitedPosts.length,
+        },
+      }
     } catch (error) {
       console.warn('Hybrid mode API fetch failed, falling back to cache:', error)
       const cached = await fetchPostsFromCache(options)
