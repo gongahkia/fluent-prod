@@ -475,6 +475,8 @@ class TranslationService {
         successProvider = 'proxy'
         return proxyResult
       } catch {
+      successSource = 'fallback'
+      successProvider = null
       emitTranslationEvent({
         state: 'fallback',
         source: 'proxy',
@@ -547,6 +549,16 @@ class TranslationService {
         cacheHit: false,
       })
       return result
+    } catch (error) {
+      emitTranslationEvent({
+        state: 'failure',
+        source: successSource,
+        provider: successProvider,
+        fromLang,
+        toLang,
+        cacheHit: false,
+      })
+      throw error
     } finally {
       inFlightTranslations.delete(requestKey)
     }

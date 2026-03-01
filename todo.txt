@@ -1,4 +1,3 @@
-(B) Emit structured translation events through `src/lib/toastBus.js` for failure states. +translation +observability +frontend
 (B) Show provider name and cache status in `src/components/NewsFeed/WordLearningPopup.jsx`. +translation +frontend +observability
 (B) Add retry action to `WordLearningPopup` when a translation request fails. +translation +frontend +stability
 (B) Replace `alert` usage in translation-adjacent flows with toast notifications in `src/components/EnhancedCommentSystem.jsx`. +translation +frontend +dx
