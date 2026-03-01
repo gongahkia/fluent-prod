@@ -7,6 +7,8 @@ const ENV_WEBLLM_MODEL = import.meta.env.VITE_WEBLLM_MODEL || null
 const WEBLLM_MODEL_READY_EVENT = "fluent:webllm:model-ready"
 const WEBLLM_MODEL_FAILED_EVENT = "fluent:webllm:model-failed"
 const AI_INFERENCE_TIMEOUT_MS = Number.parseInt(import.meta.env.VITE_AI_INFERENCE_TIMEOUT_MS || "15000", 10)
+const AI_RESPONSE_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_AI_RESPONSE_CACHE_TTL_MS || "300000", 10)
+const AI_RESPONSE_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_AI_RESPONSE_CACHE_MAX_ENTRIES || "250", 10)
 
 const DEFAULT_MAX_CHARS = {
   postTitle: 180,
@@ -89,11 +91,47 @@ let webLlmModelLoaded = null
 let engineInitProgressCallback = null
 let activeInferenceRun = null
 let inferenceQueue = Promise.resolve()
+const aiResponseCache = new Map()
 
 function enqueueInference(task) {
   const run = inferenceQueue.then(task, task)
   inferenceQueue = run.catch(() => {})
   return run
+}
+
+function stableHash(input) {
+  let hash = 0
+  const text = String(input || "")
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0
+  }
+  return hash.toString(16)
+}
+
+function readAiResponseCache(key) {
+  const cached = aiResponseCache.get(key)
+  if (!cached) return null
+  if (Date.now() >= cached.expiresAt) {
+    aiResponseCache.delete(key)
+    return null
+  }
+  aiResponseCache.delete(key)
+  aiResponseCache.set(key, cached)
+  return cached.value
+}
+
+function writeAiResponseCache(key, value) {
+  if (aiResponseCache.has(key)) {
+    aiResponseCache.delete(key)
+  }
+  aiResponseCache.set(key, {
+    value,
+    expiresAt: Date.now() + AI_RESPONSE_CACHE_TTL_MS,
+  })
+  while (aiResponseCache.size > AI_RESPONSE_CACHE_MAX_ENTRIES) {
+    const oldestKey = aiResponseCache.keys().next().value
+    aiResponseCache.delete(oldestKey)
+  }
 }
 
 export function isWebGpuSupported() {
@@ -330,6 +368,19 @@ export async function generateCommentSuggestionsLocal({
   numberOfSuggestions = 3,
   model = DEFAULT_WEBLLM_MODEL,
 } = {}) {
+  const cacheKey = stableHash(
+    JSON.stringify({
+      mode: "suggestions",
+      postTitle: (postTitle || "").trim(),
+      postContent: (postContent || "").trim(),
+      targetLanguage: targetLanguage || "Japanese",
+      numberOfSuggestions,
+      model,
+    })
+  )
+  const cached = readAiResponseCache(cacheKey)
+  if (cached) return cached
+
   const title = truncateText(postTitle || "", DEFAULT_MAX_CHARS.postTitle, "postTitle")
   const content = truncateText(postContent || "", DEFAULT_MAX_CHARS.postContent, "postContent")
   const language = targetLanguage || "Japanese"
@@ -377,7 +428,7 @@ export async function generateCommentSuggestionsLocal({
     parsedSuggestions = validated.data
   }
 
-  return {
+  const result = {
     model,
     suggestions: parsedSuggestions.suggestions
       .filter((s) => s?.text && typeof s.text === "string")
@@ -387,6 +438,8 @@ export async function generateCommentSuggestionsLocal({
         translation: (s.translation || "").trim(),
       })),
   }
+  writeAiResponseCache(cacheKey, result)
+  return result
 }
 
 export async function checkGrammarLocal({
@@ -394,6 +447,17 @@ export async function checkGrammarLocal({
   targetLanguage,
   model = DEFAULT_WEBLLM_MODEL,
 } = {}) {
+  const cacheKey = stableHash(
+    JSON.stringify({
+      mode: "grammar",
+      commentText: (commentText || "").trim(),
+      targetLanguage: targetLanguage || "Japanese",
+      model,
+    })
+  )
+  const cached = readAiResponseCache(cacheKey)
+  if (cached) return cached
+
   const text = (commentText || "").trim()
   const language = targetLanguage || "Japanese"
 
@@ -451,11 +515,13 @@ export async function checkGrammarLocal({
     parsedGrammar = validated.data
   }
 
-  return {
+  const result = {
     model,
     originalText: parsedGrammar.originalText || text,
     isCorrect: parsedGrammar.isCorrect,
     correctedText: (parsedGrammar.correctedText || "").trim(),
     explanation: (parsedGrammar.explanation || "").trim(),
   }
+  writeAiResponseCache(cacheKey, result)
+  return result
 }
