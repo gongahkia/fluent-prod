@@ -393,7 +393,24 @@ export const handleWordClick = async (
     console.error("Translation API failed:", error)
 
     emitToast({ message: "Translation unavailable. Try again.", icon: "⚠️" })
-    if (setSelectedWord) setSelectedWord(null)
+    if (setSelectedWord) {
+      setSelectedWord({
+        isTranslationError: true,
+        errorMessage: error?.message || "Translation request failed.",
+        clickPosition,
+        retryAction: () =>
+          handleWordClick(
+            word,
+            setSelectedWord,
+            isJapanese,
+            context,
+            contextTranslation,
+            setLoading,
+            targetLanguage,
+            clickPosition
+          ),
+      })
+    }
   } finally {
     // Clear loading state
     const stillActive = isActiveRequest()

@@ -170,6 +170,23 @@ const WordLearningPopup = ({
             <LoadingSpinner size="lg" showRandomWords={true} />
           </div>
         ) : !feedbackMessage ? (
+          selectedWord?.isTranslationError ? (
+            <div className="text-center py-4">
+              <div className="text-red-600 font-semibold mb-2">
+                Translation failed
+              </div>
+              <div className="text-sm text-gray-600 mb-4">
+                {selectedWord.errorMessage || "Unable to translate this word right now."}
+              </div>
+              <button
+                type="button"
+                className="w-full bg-orange-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors"
+                onClick={() => selectedWord.retryAction?.()}
+              >
+                Retry Translation
+              </button>
+            </div>
+          ) : (
           <div className="text-center">
             {/* Word Display - handles both target language and English words bidirectionally */}
             <div className="mb-4">
@@ -316,6 +333,7 @@ const WordLearningPopup = ({
               )
             })()}
           </div>
+          )
         ) : (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">{feedbackMessage.icon}</div>
