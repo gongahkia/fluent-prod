@@ -36,6 +36,16 @@ function nowIso() {
   return new Date().toISOString()
 }
 
+async function withFirestoreTiming(operation, fn) {
+  const startedAt = Date.now()
+  try {
+    return await fn()
+  } finally {
+    const durationMs = Date.now() - startedAt
+    console.log("[FirestoreTiming]", { operation, durationMs })
+  }
+}
+
 function stripUndefinedDeep(value) {
   if (value === undefined) return undefined
   if (value === null) return null
@@ -125,7 +135,9 @@ export const createUserProfile = async (userId, profileData) => {
       emailLower: (profileData?.email || '').toLowerCase(),
     }
 
-    await setDoc(userDoc(userId), payload, { merge: true })
+    await withFirestoreTiming("set:userProfile", () =>
+      setDoc(userDoc(userId), payload, { merge: true })
+    )
     return { success: true, data: payload }
   } catch (error) {
     console.error('Error creating user profile:', error)
@@ -135,7 +147,7 @@ export const createUserProfile = async (userId, profileData) => {
 
 export const getUserProfile = async (userId) => {
   try {
-    const snap = await getDoc(userDoc(userId))
+    const snap = await withFirestoreTiming("get:userProfile", () => getDoc(userDoc(userId)))
     if (!snap.exists()) return { success: false, error: 'User profile not found' }
     return { success: true, data: snap.data() }
   } catch (error) {
@@ -156,7 +168,9 @@ export const updateUserProfile = async (userId, updates) => {
     if (typeof updates?.name === 'string') patch.nameLower = updates.name.toLowerCase()
     if (typeof updates?.email === 'string') patch.emailLower = updates.email.toLowerCase()
 
-    await setDoc(userDoc(userId), patch, { merge: true })
+    await withFirestoreTiming("set:userProfilePatch", () =>
+      setDoc(userDoc(userId), patch, { merge: true })
+    )
     return { success: true }
   } catch (error) {
     console.error('Error updating user profile:', error)
@@ -168,11 +182,11 @@ export const updateUserProfile = async (userId, updates) => {
 
 export const updateUserCredentials = async (userId, encryptedData) => {
   try {
-    await setDoc(credentialsDoc(userId), {
+    await withFirestoreTiming("set:userCredentials", () => setDoc(credentialsDoc(userId), {
       encryptedData,
       updatedAt: nowIso(),
       updatedAtTs: serverTimestamp(),
-    }, { merge: true })
+    }, { merge: true }))
 
     return { success: true }
   } catch (error) {
@@ -183,7 +197,7 @@ export const updateUserCredentials = async (userId, encryptedData) => {
 
 export const getUserCredentials = async (userId) => {
   try {
-    const snap = await getDoc(credentialsDoc(userId))
+    const snap = await withFirestoreTiming("get:userCredentials", () => getDoc(credentialsDoc(userId)))
     if (!snap.exists()) return { success: true, data: null }
     return { success: true, data: snap.data()?.encryptedData ?? null }
   } catch (error) {
@@ -224,7 +238,9 @@ export const addWordToDictionary = async (userId, wordData) => {
       updatedAtTs: serverTimestamp(),
     }
 
-    await setDoc(doc(dictionaryCol(userId), wordId), payload, { merge: true })
+    await withFirestoreTiming("set:dictionaryWord", () =>
+      setDoc(doc(dictionaryCol(userId), wordId), payload, { merge: true })
+    )
     return { success: true, data: payload }
   } catch (error) {
     console.error('Error adding word to dictionary:', error)
@@ -234,7 +250,9 @@ export const addWordToDictionary = async (userId, wordData) => {
 
 export const removeWordFromDictionary = async (userId, wordId) => {
   try {
-    await deleteDoc(doc(dictionaryCol(userId), wordId))
+    await withFirestoreTiming("delete:dictionaryWord", () =>
+      deleteDoc(doc(dictionaryCol(userId), wordId))
+    )
     return { success: true }
   } catch (error) {
     console.error('Error removing word from dictionary:', error)
@@ -249,7 +267,7 @@ export const getUserDictionary = async (userId, language = null) => {
       ? query(base, where('language', '==', language), orderBy('createdAt', 'desc'))
       : query(base, orderBy('createdAt', 'desc'))
 
-    const snap = await getDocs(q)
+    const snap = await withFirestoreTiming("get:dictionaryWords", () => getDocs(q))
     const words = snap.docs.map((d) => d.data())
     return { success: true, data: words }
   } catch (error) {
@@ -360,7 +378,9 @@ export const savePost = async (userId, postData) => {
       updatedAtTs: serverTimestamp(),
     })
 
-    await setDoc(doc(savedPostsCol(userId), postId), payload, { merge: true })
+    await withFirestoreTiming("set:savedPost", () =>
+      setDoc(doc(savedPostsCol(userId), postId), payload, { merge: true })
+    )
     return { success: true, data: payload }
   } catch (error) {
     console.error('Error saving post:', error)
@@ -370,7 +390,9 @@ export const savePost = async (userId, postData) => {
 
 export const removeSavedPost = async (userId, postId) => {
   try {
-    await deleteDoc(doc(savedPostsCol(userId), postId))
+    await withFirestoreTiming("delete:savedPost", () =>
+      deleteDoc(doc(savedPostsCol(userId), postId))
+    )
     return { success: true }
   } catch (error) {
     console.error('Error removing saved post:', error)
