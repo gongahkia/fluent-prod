@@ -47,6 +47,7 @@ const NewsFeed = ({
   const [, setCurrentPage] = useState(1)
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const loadMoreInFlightRef = useRef(false)
   const [offset, setOffset] = useState(0)
   const [totalCachedPosts, setTotalCachedPosts] = useState(0)
   const feedTelemetryRef = useRef({
@@ -184,6 +185,8 @@ const NewsFeed = ({
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
+      if (isLoadMore && loadMoreInFlightRef.current) return
+      if (isLoadMore) loadMoreInFlightRef.current = true
       feedTelemetryRef.current.attempts += 1
       const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
 
@@ -329,6 +332,9 @@ const NewsFeed = ({
           setHardFailure(import.meta.env.VITE_NEWS_MODE === 'hybrid')
         }
       } finally {
+        if (isLoadMore) {
+          loadMoreInFlightRef.current = false
+        }
         if (isLoadMore) {
           setLoadingMore(false)
         } else {
@@ -675,7 +681,7 @@ const NewsFeed = ({
   // Disabled during search to avoid repeatedly fetching while the filtered list remains short.
   useEffect(() => {
     if (isSearchActive) return
-    if (loading || loadingMore) return
+    if (loading || loadingMore || loadMoreInFlightRef.current) return
     if (!hasMorePosts) return
     if (selectedWord || isTranslating) return
 
