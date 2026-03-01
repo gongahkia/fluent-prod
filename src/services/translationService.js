@@ -7,6 +7,7 @@
 import translationMappings from '@config/translationMappings.json'
 import { normalizeTranslationText, runFallbackProviders, withTimeout } from './translationPipeline'
 import { tryLibreTranslate, tryLingva, tryMyMemory } from './translationProviders'
+import { z } from 'zod'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
 const TRANSLATION_CACHE_TTL_MS = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_TTL_MS || '600000', 10)
 const TRANSLATION_CACHE_MAX_ENTRIES = Number.parseInt(import.meta.env.VITE_TRANSLATION_CACHE_MAX_ENTRIES || '500', 10)
@@ -18,6 +19,9 @@ const ALLOWED_TRANSLATION_PAIRS = new Set(['en-ja', 'ja-en'])
 const TRANSLATION_CACHE_STORAGE_KEY = 'fluent.translationService.cache'
 const TRANSLATION_CACHE_SCHEMA_VERSION = 1
 const TRANSLATION_MAPPINGS_VERSION = String(translationMappings?.version || 'unknown')
+const TranslationResultSchema = z.object({
+  translation: z.string().trim().min(1),
+})
 
 export const TRANSLATION_ERROR_CODES = {
   UNSUPPORTED_LANGUAGE_PAIR: 'UNSUPPORTED_LANGUAGE_PAIR',
@@ -238,6 +242,14 @@ function enqueueTranslationTask(task) {
   })
 }
 
+function validateTranslationResult(rawTranslation) {
+  const parsed = TranslationResultSchema.safeParse({
+    translation: normalizeTranslationText(rawTranslation),
+  })
+  if (!parsed.success) return null
+  return parsed.data.translation
+}
+
 function isTransientError(error) {
   const message = String(error?.message || '').toLowerCase()
   return (
@@ -296,7 +308,7 @@ async function translateViaApiProxy(text, fromLang, toLang, timeoutMs) {
     }
 
     const data = await res.json()
-    const translation = normalizeTranslationText(data?.translation)
+    const translation = validateTranslationResult(data?.translation)
     if (!translation || translation === text) {
       throw new Error('Translation proxy returned invalid translation')
     }
@@ -474,8 +486,13 @@ class TranslationService {
         }
 
           if (result) {
-            this.recordProviderSuccess(provider)
-            return normalizeTranslationText(result)
+            const validatedTranslation = validateTranslationResult(result)
+            if (validatedTranslation) {
+              this.recordProviderSuccess(provider)
+              return validatedTranslation
+            }
+            this.recordProviderFailure(provider)
+            return null
           }
           this.recordProviderFailure(provider)
           return null
