@@ -4,6 +4,8 @@
 
 import translationMappings from './translationMappings.json'
 
+export const DEFAULT_TARGET_LANGUAGE = 'Japanese'
+
 // Build LANGUAGES object from JSON mappings
 export const LANGUAGES = {}
 

@@ -34,6 +34,7 @@ import {
   setAskedWebLlmDownload,
   setWebLlmEnabled,
 } from "./services/commentAiPrefs";
+import { DEFAULT_TARGET_LANGUAGE } from "../config/languages";
 import "./App.css";
 
 const isModelReadyEvent = (event) => {
@@ -303,7 +304,7 @@ function App() {
   useEffect(() => {
     if (!currentUser || isGuest) return;
 
-    const targetLanguage = 'Japanese'
+    const targetLanguage = DEFAULT_TARGET_LANGUAGE
 
     // Initial fetch of dictionary
     const loadDictionary = async () => {
@@ -329,17 +330,16 @@ function App() {
     return () => unsubscribe();
   }, [currentUser, isGuest]);
 
-  // Ensure target language is Japanese-only.
-  // Migrates any legacy profiles that may still have a different target language.
+  // Ensure profiles always have a target language set.
   useEffect(() => {
     if (!currentUser || !userProfile || isGuest) return;
-    if (userProfile.targetLanguage && userProfile.targetLanguage !== 'Japanese') {
+    if (userProfile.targetLanguage && userProfile.targetLanguage !== DEFAULT_TARGET_LANGUAGE) {
       (async () => {
         try {
-          await updateUserProfile(currentUser.id, { targetLanguage: 'Japanese' });
-          setUserProfile((prev) => ({ ...prev, targetLanguage: 'Japanese' }));
+          await updateUserProfile(currentUser.id, { targetLanguage: DEFAULT_TARGET_LANGUAGE });
+          setUserProfile((prev) => ({ ...prev, targetLanguage: DEFAULT_TARGET_LANGUAGE }));
         } catch (error) {
-          console.error('Error enforcing Japanese targetLanguage:', error);
+          console.error('Error enforcing default targetLanguage:', error);
         }
       })();
     }
@@ -454,8 +454,7 @@ function App() {
   const addWordToDictionary = async (wordData) => {
     if (!currentUser || isGuest) return;
 
-    // Japanese-only
-    const targetLang = "Japanese";
+    const targetLang = DEFAULT_TARGET_LANGUAGE;
 
     // Create word object based on language
     const newWord = {
@@ -502,7 +501,7 @@ function App() {
 
     // Remove from Firebase (Firestore)
     // Pass target language to remove from correct collection
-    const targetLang = userProfile?.targetLanguage || "Japanese";
+    const targetLang = userProfile?.targetLanguage || DEFAULT_TARGET_LANGUAGE;
     const result = await removeWordFromDb(currentUser.id, wordId, targetLang);
 
     // Manually refresh dictionary since realtime might not be enabled
