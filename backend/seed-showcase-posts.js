@@ -296,6 +296,25 @@ function sortNewestFirst(a, b) {
   return tb - ta
 }
 
+function computeJapaneseDensity(text) {
+  const input = String(text || '')
+  if (!input) return 0
+  const chars = [...input]
+  const jaChars = chars.filter((ch) => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(ch)).length
+  return jaChars / chars.length
+}
+
+function computePostQualityScore(post) {
+  const title = String(post?.title || '')
+  const content = String(post?.content || '')
+  const combined = `${title} ${content}`.trim()
+  const lengthScore = Math.min(combined.length, 1200) / 1200
+  const japaneseDensity = computeJapaneseDensity(combined)
+
+  // Prefer medium-to-high quality learning text with meaningful Japanese coverage.
+  return (japaneseDensity * 0.65) + (lengthScore * 0.35)
+}
+
 async function run() {
   logger.info('\u2550'.repeat(60))
   logger.info('   REDDIT SCRAPE + TRANSLATE \u2192 CACHE (NDJSON)')
@@ -347,7 +366,13 @@ async function run() {
     return
   }
 
-  const limitedFetched = allFetched.slice(0, MAX_NEW_POSTS)
+  const rankedFetched = [...allFetched].sort((a, b) => {
+    const scoreDiff = computePostQualityScore(b) - computePostQualityScore(a)
+    if (scoreDiff !== 0) return scoreDiff
+    return sortNewestFirst(a, b)
+  })
+
+  const limitedFetched = rankedFetched.slice(0, MAX_NEW_POSTS)
   console.log(`\nLimiting new posts to ${limitedFetched.length} (maxNewPosts=${MAX_NEW_POSTS})`)
 
   console.log('\nWriting cache rows (no pretranslation; original scraped text only)...')
