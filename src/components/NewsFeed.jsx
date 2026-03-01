@@ -40,6 +40,7 @@ const NewsFeed = ({
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [hardFailure, setHardFailure] = useState(false)
   const [selectedSources, setSelectedSources] = useState(["reddit"])
   const [showSettings, setShowSettings] = useState(false)
   const [apiStatus, setApiStatus] = useState({})
@@ -195,6 +196,7 @@ const NewsFeed = ({
         setOffset(0)
       }
       setError(null)
+      setHardFailure(false)
 
       try {
         // Cache mode doesn't use backend/API status checks.
@@ -324,6 +326,7 @@ const NewsFeed = ({
         // Show error instead of fallback to ensure real news only
         if (!isLoadMore) {
           setPosts([])
+          setHardFailure(import.meta.env.VITE_NEWS_MODE === 'hybrid')
         }
       } finally {
         if (isLoadMore) {
@@ -776,7 +779,28 @@ const NewsFeed = ({
 
 
       {/* Error State */}
-      {error && !loading && (
+      {hardFailure && error && !loading && (
+        <div className="bg-red-100 border-2 border-red-300 rounded-lg p-6 text-center">
+          <div className="text-red-800 font-semibold mb-2">
+            Feed Unavailable
+          </div>
+          <div className="text-red-700 text-sm mb-4">
+            Live feed and cache fallback both failed. Please retry.
+          </div>
+          <button
+            onClick={() => {
+              setHardFailure(false)
+              loadPosts()
+            }}
+            className="bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-800 transition-colors flex items-center space-x-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Retry Feed</span>
+          </button>
+        </div>
+      )}
+
+      {error && !loading && !hardFailure && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <div className="text-red-700 font-medium mb-2">
             Error Loading Posts
