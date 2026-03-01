@@ -55,12 +55,16 @@ const EnhancedCommentSystem = ({
   const [showGrammarCheck, setShowGrammarCheck] = useState(false)
   const [grammarCheckResult, setGrammarCheckResult] = useState(null)
   const [isCheckingGrammar, setIsCheckingGrammar] = useState(false)
+  const aiSuggestionsRequestRef = useRef(0)
+  const grammarRequestRef = useRef(0)
 
   // All comments come from user-submitted comments state
   const allComments = comments
 
   // Fetch AI suggestions
   const fetchAISuggestions = async () => {
+    const requestId = aiSuggestionsRequestRef.current + 1
+    aiSuggestionsRequestRef.current = requestId
     setIsLoadingAI(true)
     try {
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
@@ -73,6 +77,7 @@ const EnhancedCommentSystem = ({
         numberOfSuggestions: 3,
         targetLanguage,
       })
+      if (requestId !== aiSuggestionsRequestRef.current) return
 
       if (data?.suggestions && data.suggestions.length > 0) {
         setAiSuggestions(data.suggestions)
@@ -111,10 +116,13 @@ const EnhancedCommentSystem = ({
         }
       ]
       console.log('Using catch block fallbacks:', fallbackSuggestions)
+      if (requestId !== aiSuggestionsRequestRef.current) return
       setAiSuggestions(fallbackSuggestions)
       setAiModel('WebLLM (fallback)')
     }
-    setIsLoadingAI(false)
+    if (requestId === aiSuggestionsRequestRef.current) {
+      setIsLoadingAI(false)
+    }
   }
 
   const handleShowAIHelp = () => {
@@ -146,6 +154,8 @@ const EnhancedCommentSystem = ({
     return () => {
       unsubscribe?.()
       window.removeEventListener("storage", onStorage)
+      aiSuggestionsRequestRef.current += 1
+      grammarRequestRef.current += 1
     }
   }, [])
 
@@ -434,6 +444,8 @@ const EnhancedCommentSystem = ({
       return
     }
 
+    const requestId = grammarRequestRef.current + 1
+    grammarRequestRef.current = requestId
     setIsCheckingGrammar(true)
     try {
       const targetLanguage = userProfile?.targetLanguage || 'Japanese'
@@ -444,6 +456,7 @@ const EnhancedCommentSystem = ({
         commentText: commentText.trim(),
         targetLanguage,
       })
+      if (requestId !== grammarRequestRef.current) return
 
       setGrammarCheckResult({
         ...data,
@@ -458,6 +471,7 @@ const EnhancedCommentSystem = ({
         postCommentDirectly()
       }
     } catch (error) {
+      if (requestId !== grammarRequestRef.current) return
       console.error('Failed to check grammar locally:', error)
       emitToast({
         message: 'Grammar check unavailable. Posting anyway.',
@@ -466,7 +480,9 @@ const EnhancedCommentSystem = ({
       // On error, allow posting anyway
       postCommentDirectly()
     }
-    setIsCheckingGrammar(false)
+    if (requestId === grammarRequestRef.current) {
+      setIsCheckingGrammar(false)
+    }
   }
 
   // Actually post the comment (called after grammar check passes or user confirms)
