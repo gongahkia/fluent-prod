@@ -531,6 +531,7 @@ const NewsFeed = ({
     }
 
     setSavingPost(article.id)
+    setSavedPostIds((prev) => new Set([...prev, article.id]))
 
     try {
       const postData = {
@@ -549,12 +550,21 @@ const NewsFeed = ({
       const result = await savePost(currentUser.id, postData)
 
       if (result.success) {
-        setSavedPostIds(prev => new Set([...prev, article.id]))
         showFeedback('Post saved!', '')
       } else {
+        setSavedPostIds((prev) => {
+          const next = new Set(prev)
+          next.delete(article.id)
+          return next
+        })
         alert('Failed to save post: ' + result.error)
       }
     } catch (error) {
+      setSavedPostIds((prev) => {
+        const next = new Set(prev)
+        next.delete(article.id)
+        return next
+      })
       console.error('Error saving post:', error)
       alert('Failed to save post')
     } finally {
