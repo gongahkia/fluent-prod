@@ -48,6 +48,12 @@ const NewsFeed = ({
   const [loadingMore, setLoadingMore] = useState(false)
   const [offset, setOffset] = useState(0)
   const [totalCachedPosts, setTotalCachedPosts] = useState(0)
+  const feedTelemetryRef = useRef({
+    attempts: 0,
+    successes: 0,
+    fallbacks: 0,
+    emptyStates: 0,
+  })
 
   const [settingsModalPost, setSettingsModalPost] = useState(null)
   const [hiddenPosts, setHiddenPosts] = useState(new Set())
@@ -177,6 +183,7 @@ const NewsFeed = ({
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
+      feedTelemetryRef.current.attempts += 1
       const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
 
       if (isLoadMore) {
@@ -289,6 +296,28 @@ const NewsFeed = ({
           setPosts(enhancedPosts)
           setOffset(enhancedPosts.length)
         }
+
+        feedTelemetryRef.current.successes += 1
+        if (metadata?.fallback === 'cache') {
+          feedTelemetryRef.current.fallbacks += 1
+        }
+        if (enhancedPosts.length === 0) {
+          feedTelemetryRef.current.emptyStates += 1
+        }
+
+        const t = feedTelemetryRef.current
+        const successRate = t.attempts > 0 ? t.successes / t.attempts : 0
+        const fallbackRate = t.successes > 0 ? t.fallbacks / t.successes : 0
+        const emptyStateRate = t.successes > 0 ? t.emptyStates / t.successes : 0
+        console.log('[NewsFeed][Telemetry]', {
+          attempts: t.attempts,
+          successes: t.successes,
+          fallbacks: t.fallbacks,
+          emptyStates: t.emptyStates,
+          successRate,
+          fallbackRate,
+          emptyStateRate,
+        })
       } catch (err) {
         setError(err.message)
         console.error("Error loading posts:", err)
