@@ -107,6 +107,94 @@ const deriveKey = async (userId, salt) => {
   )
 }
 
+const deriveLegacyTokenKey = async (userToken) => {
+  const encoder = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(userToken),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"]
+  )
+
+  const tokenSalt = encoder.encode(userToken.substring(0, 16).padEnd(16, "0"))
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: tokenSalt,
+      iterations: KEY_DERIVATION_ITERATIONS,
+      hash: KEY_DERIVATION_HASH,
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  )
+}
+
+async function tryDecryptVersionedPayload(encryptedData, stableUserId) {
+  const parsedPayload = decodeVersionedPayload(encryptedData)
+  if (
+    !parsedPayload ||
+    parsedPayload.version !== ENCRYPTION_PAYLOAD_VERSION ||
+    parsedPayload.salt.length !== SALT_LENGTH ||
+    parsedPayload.iv.length !== IV_LENGTH
+  ) {
+    return null
+  }
+
+  const key = await deriveKey(stableUserId, parsedPayload.salt)
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: parsedPayload.iv,
+    },
+    key,
+    parsedPayload.ciphertext
+  )
+  return new TextDecoder().decode(decryptedData)
+}
+
+async function tryDecryptUnversionedSaltedPayload(encryptedData, stableUserId) {
+  const combined = base64ToBytes(encryptedData)
+  if (combined.length <= SALT_LENGTH + IV_LENGTH) return null
+
+  const salt = combined.slice(0, SALT_LENGTH)
+  const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
+  const ciphertext = combined.slice(SALT_LENGTH + IV_LENGTH)
+  const key = await deriveKey(stableUserId, salt)
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv,
+    },
+    key,
+    ciphertext
+  )
+  return new TextDecoder().decode(decryptedData)
+}
+
+async function tryDecryptLegacyTokenPayload(encryptedData, userIdentity) {
+  const token = String(userIdentity || "").trim()
+  if (!token.includes(".")) return null
+
+  const combined = base64ToBytes(encryptedData)
+  if (combined.length <= IV_LENGTH) return null
+
+  const iv = combined.slice(0, IV_LENGTH)
+  const ciphertext = combined.slice(IV_LENGTH)
+  const key = await deriveLegacyTokenKey(token)
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv,
+    },
+    key,
+    ciphertext
+  )
+  return new TextDecoder().decode(decryptedData)
+}
+
 /**
  * Encrypt data using AES-GCM
  * @param {string} data - The data to encrypt
@@ -164,28 +252,36 @@ export const decryptData = async (encryptedData, userIdentity) => {
     const stableUserId = resolveStableUserId(userIdentity)
     if (!stableUserId) return null
 
-    const parsedPayload = decodeVersionedPayload(encryptedData)
-    if (
-      !parsedPayload ||
-      parsedPayload.version !== ENCRYPTION_PAYLOAD_VERSION ||
-      parsedPayload.salt.length !== SALT_LENGTH ||
-      parsedPayload.iv.length !== IV_LENGTH
-    ) {
-      return null
+    try {
+      const versioned = await tryDecryptVersionedPayload(
+        encryptedData,
+        stableUserId
+      )
+      if (versioned !== null) return versioned
+    } catch {
+      // fall through to migration-compatible legacy formats
     }
 
-    const key = await deriveKey(stableUserId, parsedPayload.salt)
+    try {
+      const unversioned = await tryDecryptUnversionedSaltedPayload(
+        encryptedData,
+        stableUserId
+      )
+      if (unversioned !== null) return unversioned
+    } catch {
+      // fall through to oldest token-derived format
+    }
 
-    const decryptedData = await crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: parsedPayload.iv,
-      },
-      key,
-      parsedPayload.ciphertext
-    )
-
-    return new TextDecoder().decode(decryptedData)
+    try {
+      const legacy = await tryDecryptLegacyTokenPayload(
+        encryptedData,
+        userIdentity
+      )
+      if (legacy !== null) return legacy
+      return null
+    } catch {
+      return null
+    }
   } catch (error) {
     console.error("Decryption error:", error)
     return null
