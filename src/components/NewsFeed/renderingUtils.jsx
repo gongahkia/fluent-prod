@@ -86,11 +86,65 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
   const lines = cleaned.split('\n')
   const elements = []
 
-  lines.forEach((line, lineIndex) => {
+  const isMarkdownTableSeparator = (line) => /^\s*\|?[\s:-]+\|[\s|:-]*\|?\s*$/.test(line)
+  const parseMarkdownTableRow = (line) => line
+    .split('|')
+    .map((cell) => cell.trim())
+    .filter((cell, idx, arr) => {
+      // Remove boundary empties from leading/trailing pipes.
+      if (idx === 0 && cell === '' && arr.length > 1) return false
+      if (idx === arr.length - 1 && cell === '' && arr.length > 1) return false
+      return true
+    })
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex]
     if (line.trim() === '') {
       // Empty line - add spacing
       elements.push(<br key={`br-${lineIndex}`} />)
-      return
+      continue
+    }
+
+    const nextLine = lines[lineIndex + 1] || ''
+    const hasPipe = line.includes('|')
+    if (hasPipe && isMarkdownTableSeparator(nextLine)) {
+      const headers = parseMarkdownTableRow(line)
+      const rowData = []
+      let rowCursor = lineIndex + 2
+      while (rowCursor < lines.length && lines[rowCursor].includes('|')) {
+        rowData.push(parseMarkdownTableRow(lines[rowCursor]))
+        rowCursor += 1
+      }
+
+      elements.push(
+        <div key={`table-wrap-${lineIndex}`} className="overflow-x-auto my-3">
+          <table className="min-w-full border border-gray-200 text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {headers.map((header, idx) => (
+                  <th key={`th-${lineIndex}-${idx}`} className="px-3 py-2 border-b border-gray-200 text-left font-semibold">
+                    {renderClickableText(header, postId)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rowData.map((row, rowIdx) => (
+                <tr key={`tr-${lineIndex}-${rowIdx}`} className="border-b border-gray-100">
+                  {row.map((cell, cellIdx) => (
+                    <td key={`td-${lineIndex}-${rowIdx}-${cellIdx}`} className="px-3 py-2 align-top">
+                      {renderClickableText(cell, postId)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+
+      lineIndex = rowCursor - 1
+      continue
     }
 
     // Regular line - process normally (markdown already stripped by backend)
@@ -100,7 +154,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
         {lineIndex < lines.length - 1 && <br />}
       </span>
     )
-  })
+  }
 
   return elements
 }
