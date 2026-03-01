@@ -12,6 +12,7 @@ import SavedPosts from "./components/SavedPosts";
 import AuthBlockedWarning from "./components/AuthBlockedWarning";
 import MobileBottomBar from "./components/MobileBottomBar";
 import LoadingScreen from "./components/ui/LoadingScreen";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { FluentLogo } from "./components/ui/FluentLogo";
 import Toast from "./components/ui/Toast";
 import { useAuth } from "./contexts/AuthContext";
@@ -567,36 +568,38 @@ function App() {
           }}
         />
       )}
-      <Routes>
-        {/* Main App */}
-        <Route
-          path="*"
-          element={
-            <MainApp
-              currentUser={currentUser}
-              userProfile={userProfile}
-              showOnboarding={showOnboarding}
-              currentView={currentView}
-              userDictionary={userDictionary}
-              firebaseError={firebaseError}
-              notifications={notifications}
-              dismissNotification={dismissNotification}
-              lastSeenNotificationsAt={lastSeenNotificationsAt}
-              markNotificationsSeen={markNotificationsSeen}
-              setCurrentView={setCurrentView}
-              handleNavigation={handleNavigation}
-              handleLogout={handleLogout}
-              handleAuthComplete={handleAuthComplete}
-              handleOnboardingComplete={handleOnboardingComplete}
-              handleProfileUpdate={handleProfileUpdate}
-              addWordToDictionary={addWordToDictionary}
-              removeWordFromDictionary={removeWordFromDictionary}
-              setFirebaseError={setFirebaseError}
-              isGuest={isGuest}
-            />
-          }
-        />
-      </Routes>
+      <ErrorBoundary onError={(error) => console.error("App render error:", error)}>
+        <Routes>
+          {/* Main App */}
+          <Route
+            path="*"
+            element={
+              <MainApp
+                currentUser={currentUser}
+                userProfile={userProfile}
+                showOnboarding={showOnboarding}
+                currentView={currentView}
+                userDictionary={userDictionary}
+                firebaseError={firebaseError}
+                notifications={notifications}
+                dismissNotification={dismissNotification}
+                lastSeenNotificationsAt={lastSeenNotificationsAt}
+                markNotificationsSeen={markNotificationsSeen}
+                setCurrentView={setCurrentView}
+                handleNavigation={handleNavigation}
+                handleLogout={handleLogout}
+                handleAuthComplete={handleAuthComplete}
+                handleOnboardingComplete={handleOnboardingComplete}
+                handleProfileUpdate={handleProfileUpdate}
+                addWordToDictionary={addWordToDictionary}
+                removeWordFromDictionary={removeWordFromDictionary}
+                setFirebaseError={setFirebaseError}
+                isGuest={isGuest}
+              />
+            }
+          />
+        </Routes>
+      </ErrorBoundary>
     </>
   );
 }
