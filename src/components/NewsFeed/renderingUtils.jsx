@@ -1,4 +1,5 @@
 import React from "react"
+import translationService from "@/services/translationService"
 import { decodeHTMLEntities, segmentJapaneseText } from "./utils/textParsing"
 
 function isValidVocabularyWord(word) {
@@ -26,6 +27,28 @@ function sanitizeRenderText(input) {
       String.fromCharCode(Number.parseInt(hex, 16))
     )
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+}
+
+function resolveSentenceActionPostId(postId) {
+  const safePostId = String(postId || "")
+  return safePostId.replace(/-combined(?:-title|-content)?$/, "")
+}
+
+function splitIntoSentences(text) {
+  const safeText = sanitizeRenderText(text)
+  const matches = safeText.match(/[^.!?。！？]+[.!?。！？]?/g)
+  if (!matches) return []
+  return matches
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+}
+
+function detectSentenceDirection(sentence) {
+  const hasJapanese = /[\u3040-\u30FF\u4E00-\u9FAF]/.test(sentence)
+  if (hasJapanese) {
+    return { fromLang: "ja", toLang: "en" }
+  }
+  return { fromLang: "en", toLang: "ja" }
 }
 
 // Parse plaintext content (markdown already stripped by backend)
@@ -172,6 +195,99 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
 // Parse inline content - only handle plain URLs (markdown already stripped by backend)
 export const parseLineContent = (text, postId = null, renderClickableText) => {
   const safeText = sanitizeRenderText(text)
+  const sentenceTranslationOptions = renderClickableText?.sentenceTranslationOptions
+  const resolvedPostId = resolveSentenceActionPostId(postId)
+  const shouldShowSentenceActions = Boolean(
+    resolvedPostId && sentenceTranslationOptions?.sentenceTranslateStates?.[resolvedPostId]
+  )
+
+  if (shouldShowSentenceActions) {
+    const sentences = splitIntoSentences(safeText)
+    if (sentences.length === 0) {
+      return renderClickableText(safeText, postId)
+    }
+
+    return (
+      <span className="inline-flex flex-col gap-2">
+        {sentences.map((sentence, sentenceIndex) => {
+          const sentenceKey = `${resolvedPostId}|${sentenceIndex}`
+          const isLoading = Boolean(sentenceTranslationOptions?.sentenceTranslationLoading?.[sentenceKey])
+          const translationEntry = sentenceTranslationOptions?.sentenceTranslationResults?.[sentenceKey]
+
+          const handleSentenceTranslateClick = async (event) => {
+            event.stopPropagation()
+            const trimmedSentence = String(sentence || "").trim()
+            if (!trimmedSentence) return
+
+            sentenceTranslationOptions?.setSentenceTranslationLoading?.((prev) => ({
+              ...prev,
+              [sentenceKey]: true,
+            }))
+
+            try {
+              const { fromLang, toLang } = detectSentenceDirection(trimmedSentence)
+              const translatedSentence = await translationService.translateText(
+                trimmedSentence,
+                fromLang,
+                toLang
+              )
+
+              sentenceTranslationOptions?.setSentenceTranslationResults?.((prev) => ({
+                ...prev,
+                [sentenceKey]: {
+                  original: trimmedSentence,
+                  translated: translatedSentence,
+                  fromLang,
+                  toLang,
+                },
+              }))
+            } catch (error) {
+              sentenceTranslationOptions?.setSentenceTranslationResults?.((prev) => ({
+                ...prev,
+                [sentenceKey]: {
+                  original: trimmedSentence,
+                  translated: "",
+                  error: error?.message || "Sentence translation failed",
+                },
+              }))
+            } finally {
+              sentenceTranslationOptions?.setSentenceTranslationLoading?.((prev) => ({
+                ...prev,
+                [sentenceKey]: false,
+              }))
+            }
+          }
+
+          return (
+            <span key={`${sentenceKey}-${sentence}`}>
+              <span>{renderClickableText(sentence, postId)}</span>
+              <button
+                type="button"
+                onClick={handleSentenceTranslateClick}
+                className="ml-2 text-xs font-medium text-orange-600 hover:text-orange-700 underline"
+              >
+                Translate sentence
+              </button>
+              {isLoading && (
+                <span className="ml-2 text-xs text-gray-500">Translating...</span>
+              )}
+              {!isLoading && translationEntry?.translated && (
+                <span className="ml-2 text-xs text-gray-600">
+                  {translationEntry.translated}
+                </span>
+              )}
+              {!isLoading && translationEntry?.error && (
+                <span className="ml-2 text-xs text-red-600">
+                  {translationEntry.error}
+                </span>
+              )}
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
+
   const parts = []
   let keyCounter = 0
 
@@ -222,8 +338,15 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
 }
 
 // Create renderClickableText function factory
-export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese', allWordTranslations = {}) => {
-  return (text, postId = null) => {
+export const createRenderClickableText = (
+  translationStates,
+  toggleTranslation,
+  handleWordClick,
+  targetLanguage = 'Japanese',
+  allWordTranslations = {},
+  sentenceTranslationOptions = {}
+) => {
+  const renderClickableText = (text, postId = null) => {
     if (!text) return ""
     const safeInput = sanitizeRenderText(text)
 
@@ -530,4 +653,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       return <span key={segmentIndex}>{segment}</span>
     })
   }
+
+  renderClickableText.sentenceTranslationOptions = sentenceTranslationOptions
+  return renderClickableText
 }

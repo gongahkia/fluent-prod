@@ -659,6 +659,8 @@ const NewsFeed = ({
 
   const [translationStates, setTranslationStates] = useState({})
   const [sentenceTranslateStates, setSentenceTranslateStates] = useState({})
+  const [sentenceTranslationResults, setSentenceTranslationResults] = useState({})
+  const [sentenceTranslationLoading, setSentenceTranslationLoading] = useState({})
 
   // Toggle post expansion
   const togglePostExpansion = (postId) => {
@@ -684,7 +686,20 @@ const NewsFeed = ({
   }
 
   // Create renderClickableText function using the factory
-  const renderClickableText = createRenderClickableText(translationStates, toggleTranslation, handleWordClick, userProfile?.targetLanguage || 'Japanese')
+  const renderClickableText = createRenderClickableText(
+    translationStates,
+    toggleTranslation,
+    handleWordClick,
+    userProfile?.targetLanguage || 'Japanese',
+    {},
+    {
+      sentenceTranslateStates,
+      sentenceTranslationResults,
+      setSentenceTranslationResults,
+      sentenceTranslationLoading,
+      setSentenceTranslationLoading,
+    }
+  )
 
   const scrollMargin = listRef.current?.offsetTop ?? 0
   const postVirtualizer = useWindowVirtualizer({
