@@ -10,7 +10,10 @@ function json(res, status, payload) {
 const PROVIDER_TIMEOUT_MS = 3000
 const CACHE_TTL_MS = Number.parseInt(process.env.TRANSLATE_CACHE_TTL_MS || "600000", 10)
 const CACHE_MAX_ENTRIES = Number.parseInt(process.env.TRANSLATE_CACHE_MAX_ENTRIES || "500", 10)
+const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_WINDOW_MS || "60000", 10)
+const RATE_LIMIT_MAX_REQUESTS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_MAX_REQUESTS || "60", 10)
 const translationCache = new Map()
+const rateLimitStore = new Map()
 const requestSchema = z.object({
   text: z.string().trim().min(1),
   fromLang: z.string().trim().min(2).max(12).optional().default("en"),
@@ -131,9 +134,37 @@ async function translateWithLibreTranslate(text, fromLang, toLang) {
   return data?.translatedText || ""
 }
 
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"]
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    return forwarded.split(",")[0].trim()
+  }
+
+  return req.socket?.remoteAddress || "unknown"
+}
+
+function isRateLimited(ip) {
+  const now = Date.now()
+  const record = rateLimitStore.get(ip)
+
+  if (!record || now - record.windowStart >= RATE_LIMIT_WINDOW_MS) {
+    rateLimitStore.set(ip, { windowStart: now, count: 1 })
+    return false
+  }
+
+  record.count += 1
+  rateLimitStore.set(ip, record)
+  return record.count > RATE_LIMIT_MAX_REQUESTS
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed" })
+  }
+
+  const ip = getClientIp(req)
+  if (isRateLimited(ip)) {
+    return json(res, 429, { error: "Rate limit exceeded" })
   }
 
   let body = req.body
