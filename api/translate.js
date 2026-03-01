@@ -18,10 +18,13 @@ const CACHE_MAX_ENTRIES = Number.parseInt(process.env.TRANSLATE_CACHE_MAX_ENTRIE
 const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_WINDOW_MS || "60000", 10)
 const RATE_LIMIT_MAX_REQUESTS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_MAX_REQUESTS || "60", 10)
 const LATENCY_SAMPLE_SIZE = Number.parseInt(process.env.TRANSLATE_LATENCY_SAMPLE_SIZE || "500", 10)
+const CIRCUIT_BREAKER_FAIL_THRESHOLD = Number.parseInt(process.env.TRANSLATE_CB_FAIL_THRESHOLD || "3", 10)
+const CIRCUIT_BREAKER_COOLDOWN_MS = Number.parseInt(process.env.TRANSLATE_CB_COOLDOWN_MS || "60000", 10)
 const translationCache = new Map()
 const rateLimitStore = new Map()
 const requestLatencySamples = []
 const VALID_PROVIDERS = new Set(["lingva", "mymemory", "libretranslate"])
+const providerCircuitState = new Map()
 
 function createProviderError(code, message, extras = {}) {
   const error = new Error(message)
@@ -150,6 +153,34 @@ function writeToCache(key, value) {
     const oldestKey = translationCache.keys().next().value
     translationCache.delete(oldestKey)
   }
+}
+
+function getProviderCircuit(providerId) {
+  if (!providerCircuitState.has(providerId)) {
+    providerCircuitState.set(providerId, { failures: 0, openUntil: 0 })
+  }
+  return providerCircuitState.get(providerId)
+}
+
+function isCircuitOpen(providerId) {
+  const state = getProviderCircuit(providerId)
+  return Date.now() < state.openUntil
+}
+
+function markProviderFailure(providerId) {
+  const state = getProviderCircuit(providerId)
+  state.failures += 1
+  if (state.failures >= CIRCUIT_BREAKER_FAIL_THRESHOLD) {
+    state.openUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS
+  }
+  providerCircuitState.set(providerId, state)
+}
+
+function markProviderSuccess(providerId) {
+  const state = getProviderCircuit(providerId)
+  state.failures = 0
+  state.openUntil = 0
+  providerCircuitState.set(providerId, state)
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -308,6 +339,9 @@ export default async function handler(req, res) {
 
     let lastError = null
     for (const provider of providers) {
+      if (isCircuitOpen(provider.id)) {
+        continue
+      }
       const providerStartedAt = Date.now()
       try {
         const translation = await provider.run(text, fromLang, toLang)
@@ -319,6 +353,7 @@ export default async function handler(req, res) {
           })
 
           writeToCache(cacheKey, parsedResponse)
+          markProviderSuccess(provider.id)
           recordProviderSuccess(provider.id)
           if (provider.id !== "lingva") {
             recordFallback()
@@ -340,6 +375,7 @@ export default async function handler(req, res) {
           return json(res, 200, parsedResponse)
         }
       } catch (error) {
+        markProviderFailure(provider.id)
         recordProviderFailure(provider.id, error?.code || "UNKNOWN")
         logEvent("translate.provider.error", {
           provider: provider.id,
