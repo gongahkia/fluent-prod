@@ -475,6 +475,14 @@ class TranslationService {
         successProvider = 'proxy'
         return proxyResult
       } catch {
+      emitTranslationEvent({
+        state: 'fallback',
+        source: 'proxy',
+        provider: null,
+        fromLang,
+        toLang,
+        cacheHit: false,
+      })
       const result = await runFallbackProviders({
         providers,
         runProvider: async (provider) => {
