@@ -25,3 +25,22 @@ export function addToastListener(handler) {
   window.addEventListener(TOAST_EVENT_NAME, wrapped)
   return () => window.removeEventListener(TOAST_EVENT_NAME, wrapped)
 }
+
+export async function captureAsyncError(operation, {
+  message = "An unexpected error occurred.",
+  icon = "⚠️",
+  duration = 2500,
+  onError,
+  rethrow = false,
+} = {}) {
+  try {
+    return await operation()
+  } catch (error) {
+    emitToast({ message, icon, duration })
+    if (typeof onError === "function") {
+      onError(error)
+    }
+    if (rethrow) throw error
+    return null
+  }
+}
