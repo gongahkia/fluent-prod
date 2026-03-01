@@ -1,4 +1,3 @@
-import { z } from "zod"
 import crypto from "node:crypto"
 
 function json(res, status, payload) {
@@ -16,22 +15,61 @@ const LATENCY_SAMPLE_SIZE = Number.parseInt(process.env.TRANSLATE_LATENCY_SAMPLE
 const translationCache = new Map()
 const rateLimitStore = new Map()
 const requestLatencySamples = []
-const requestSchema = z.object({
-  text: z.string().trim().min(1),
-  fromLang: z.string().trim().min(2).max(12).optional().default("en"),
-  toLang: z.string().trim().min(2).max(12).optional().default("ja"),
-})
-
-const responseSchema = z.object({
-  translation: z.string().trim().min(1),
-  provider: z.enum(["lingva", "mymemory", "libretranslate"]),
-})
+const VALID_PROVIDERS = new Set(["lingva", "mymemory", "libretranslate"])
 
 function createProviderError(code, message, extras = {}) {
   const error = new Error(message)
   error.code = code
   Object.assign(error, extras)
   return error
+}
+
+async function loadZod() {
+  try {
+    const module = await import("zod")
+    return module.z
+  } catch {
+    return null
+  }
+}
+
+async function parseRequestBody(input) {
+  const z = await loadZod()
+  if (z) {
+    const requestSchema = z.object({
+      text: z.string().trim().min(1),
+      fromLang: z.string().trim().min(2).max(12).optional().default("en"),
+      toLang: z.string().trim().min(2).max(12).optional().default("ja"),
+    })
+    return requestSchema.safeParse(input || {})
+  }
+
+  const text = String(input?.text || "").trim()
+  const fromLang = String(input?.fromLang || "en").trim()
+  const toLang = String(input?.toLang || "ja").trim()
+  if (!text) return { success: false, error: { issues: [{ message: "text is required" }] } }
+  if (fromLang.length < 2 || toLang.length < 2) {
+    return { success: false, error: { issues: [{ message: "Invalid language code" }] } }
+  }
+  return { success: true, data: { text, fromLang, toLang } }
+}
+
+async function parseResponseBody(input) {
+  const z = await loadZod()
+  if (z) {
+    const responseSchema = z.object({
+      translation: z.string().trim().min(1),
+      provider: z.enum(["lingva", "mymemory", "libretranslate"]),
+    })
+    return responseSchema.parse(input)
+  }
+
+  const translation = String(input?.translation || "").trim()
+  const provider = String(input?.provider || "").trim()
+  if (!translation || !VALID_PROVIDERS.has(provider)) {
+    throw new Error("Invalid response payload")
+  }
+  return { translation, provider }
 }
 
 function logEvent(event, payload = {}) {
@@ -227,7 +265,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const parsedRequest = requestSchema.safeParse(body || {})
+  const parsedRequest = await parseRequestBody(body || {})
   if (!parsedRequest.success) {
     return json(res, 400, {
       error: "Invalid request body",
@@ -248,7 +286,7 @@ export default async function handler(req, res) {
       p50Ms: latencies.p50Ms,
       p95Ms: latencies.p95Ms,
     })
-    return json(res, 200, responseSchema.parse({
+    return json(res, 200, await parseResponseBody({
       translation: cached.translation,
       provider: cached.provider,
     }))
@@ -268,7 +306,7 @@ export default async function handler(req, res) {
         const translation = await provider.run(text, fromLang, toLang)
         const sanitizedTranslation = sanitizeTranslation(translation)
         if (sanitizedTranslation && sanitizedTranslation !== text) {
-          const parsedResponse = responseSchema.parse({
+          const parsedResponse = await parseResponseBody({
             translation: sanitizedTranslation,
             provider: provider.id,
           })
