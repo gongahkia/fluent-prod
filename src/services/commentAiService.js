@@ -14,10 +14,35 @@ const DEFAULT_MAX_CHARS = {
   comment: 1200,
 }
 
-function truncateText(text, maxChars) {
+const promptTruncationMetrics = {
+  calls: 0,
+  truncations: 0,
+  byField: {
+    postTitle: 0,
+    postContent: 0,
+    comment: 0,
+    other: 0,
+  },
+}
+
+function truncateText(text, maxChars, field = "other") {
+  promptTruncationMetrics.calls += 1
   if (!text) return ""
   if (text.length <= maxChars) return text
+  promptTruncationMetrics.truncations += 1
+  if (field in promptTruncationMetrics.byField) {
+    promptTruncationMetrics.byField[field] += 1
+  } else {
+    promptTruncationMetrics.byField.other += 1
+  }
   return `${text.slice(0, maxChars)}…`
+}
+
+export function getPromptTruncationMetrics() {
+  return {
+    ...promptTruncationMetrics,
+    byField: { ...promptTruncationMetrics.byField },
+  }
 }
 
 function extractJsonCandidate(text) {
@@ -305,8 +330,8 @@ export async function generateCommentSuggestionsLocal({
   numberOfSuggestions = 3,
   model = DEFAULT_WEBLLM_MODEL,
 } = {}) {
-  const title = truncateText(postTitle || "", DEFAULT_MAX_CHARS.postTitle)
-  const content = truncateText(postContent || "", DEFAULT_MAX_CHARS.postContent)
+  const title = truncateText(postTitle || "", DEFAULT_MAX_CHARS.postTitle, "postTitle")
+  const content = truncateText(postContent || "", DEFAULT_MAX_CHARS.postContent, "postContent")
   const language = targetLanguage || "Japanese"
 
   const system =
@@ -402,7 +427,7 @@ export async function checkGrammarLocal({
   ).format({
     language,
     detected: detected || "",
-    comment: truncateText(text, DEFAULT_MAX_CHARS.comment),
+    comment: truncateText(text, DEFAULT_MAX_CHARS.comment, "comment"),
     format_instructions: grammarParser.getFormatInstructions(),
   })
 
