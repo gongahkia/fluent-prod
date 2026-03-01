@@ -1,4 +1,3 @@
-(B) Add payload schema guards for saved post writes in `src/services/firebase/schemas.js`. +data +stability +dx
 (B) Implement `comments` collection helpers in `src/services/firebase/commentsService.js`. +comments +data +stability
 (B) Implement `createComment` in `commentsService` with `postHash`, `userId`, `content`, and timestamps. +comments +data +stability
 (B) Implement `listCommentsByPost` in `commentsService` with cursor pagination and newest-first order. +comments +data +scaling

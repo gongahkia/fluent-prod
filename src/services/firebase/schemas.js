@@ -32,6 +32,19 @@ const dictionaryWriteSchema = z
   })
   .passthrough()
 
+const savedPostWriteSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    postId: z.string().trim().min(1),
+    postHash: z.string().trim().min(1),
+    userId: z.string().trim().min(1),
+    title: z.string().max(500).optional(),
+    content: z.string().max(20000).optional(),
+    source: z.string().max(120).optional(),
+    url: z.string().max(3000).optional(),
+  })
+  .passthrough()
+
 function buildSchemaError(errorCode, issues) {
   const error = new Error("Invalid Firestore payload")
   error.code = errorCode
@@ -66,6 +79,17 @@ export function validateDictionaryWritePayload(payload) {
   if (!parsed.success) {
     throw buildSchemaError(
       "FIRESTORE_SCHEMA_DICTIONARY_WRITE",
+      parsed.error.issues
+    )
+  }
+  return parsed.data
+}
+
+export function validateSavedPostWritePayload(payload) {
+  const parsed = savedPostWriteSchema.safeParse(payload)
+  if (!parsed.success) {
+    throw buildSchemaError(
+      "FIRESTORE_SCHEMA_SAVED_POST_WRITE",
       parsed.error.issues
     )
   }

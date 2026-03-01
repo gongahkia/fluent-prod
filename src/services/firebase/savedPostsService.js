@@ -1,5 +1,6 @@
 import { mapFirestoreError } from "./errorMapper"
 import { createFirestoreId, sanitizeFirestoreId } from "./idUtils"
+import { validateSavedPostWritePayload } from "./schemas"
 import {
   deleteDoc,
   doc,
@@ -76,11 +77,14 @@ export const savePost = async (userId, postData) => {
       updatedAt: nowIso(),
       updatedAtTs: serverTimestamp(),
     })
+    const validatedPayload = validateSavedPostWritePayload(payload)
 
     await withFirestoreWrite("set:savedPost", () =>
-      setDoc(doc(savedPostsCol(userId), postId), payload, { merge: true })
+      setDoc(doc(savedPostsCol(userId), postId), validatedPayload, {
+        merge: true,
+      })
     )
-    return { success: true, data: payload }
+    return { success: true, data: validatedPayload }
   } catch (error) {
     console.error("Error saving post:", error)
     const mapped = mapFirestoreError(error)
