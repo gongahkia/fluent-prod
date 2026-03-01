@@ -151,49 +151,59 @@ class PronunciationService {
       return Promise.resolve();
     }
 
-    // Stop any ongoing speech
-    this.stop();
-
     const languageCode = this.getLanguageCode(language);
-    const voice = this.getVoiceForLanguage(languageCode);
+    const primaryVoice = this.getVoiceForLanguage(languageCode);
+    const fallbackVoice = this.getAvailableVoices().find(
+      (voice) => !primaryVoice || voice.name !== primaryVoice.name
+    ) || null;
 
-    return new Promise((resolve, reject) => {
-      const utterance = new SpeechSynthesisUtterance(text);
+    const speakWithVoice = (voice, attempt = 1) =>
+      new Promise((resolve, reject) => {
+        this.stop();
+        const utterance = new SpeechSynthesisUtterance(text);
 
-      // Set voice
-      if (voice) {
-        utterance.voice = voice;
-      }
-      utterance.lang = languageCode;
-
-      // Set options
-      utterance.rate = options.rate || 1;
-      utterance.pitch = options.pitch || 1;
-      utterance.volume = options.volume !== undefined ? options.volume : 1;
-
-      // Event handlers
-      utterance.onstart = () => {
-        if (options.onStart) options.onStart();
-      };
-
-      utterance.onend = () => {
-        this.currentUtterance = null;
-        if (options.onEnd) options.onEnd();
-        resolve();
-      };
-
-      utterance.onerror = (event) => {
-        this.currentUtterance = null;
-        console.error('Speech synthesis error:', event);
-        if (options.onError) {
-          options.onError(event);
+        if (voice) {
+          utterance.voice = voice;
         }
-        reject(event);
-      };
+        utterance.lang = languageCode;
+        utterance.rate = options.rate || 1;
+        utterance.pitch = options.pitch || 1;
+        utterance.volume = options.volume !== undefined ? options.volume : 1;
 
-      this.currentUtterance = utterance;
-      this.synth.speak(utterance);
-    });
+        utterance.onstart = () => {
+          if (attempt === 1 && options.onStart) options.onStart();
+        };
+
+        utterance.onend = () => {
+          this.currentUtterance = null;
+          if (options.onEnd) options.onEnd();
+          resolve();
+        };
+
+        utterance.onerror = (event) => {
+          this.currentUtterance = null;
+          reject(event);
+        };
+
+        this.currentUtterance = utterance;
+        this.synth.speak(utterance);
+      });
+
+    try {
+      await speakWithVoice(primaryVoice, 1);
+    } catch (firstError) {
+      if (!fallbackVoice) {
+        if (options.onError) options.onError(firstError);
+        throw firstError;
+      }
+
+      try {
+        await speakWithVoice(fallbackVoice, 2);
+      } catch (secondError) {
+        if (options.onError) options.onError(secondError);
+        throw secondError;
+      }
+    }
   }
 
   /**
