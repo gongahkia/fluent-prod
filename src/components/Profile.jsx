@@ -171,6 +171,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
     setIsLoading(true)
 
     try {
+      const enforcedTargetLanguage = "Japanese"
       // Get user's auth token for encryption
       const token = await currentUser.getIdToken()
 
@@ -196,7 +197,7 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
         email: formData.email,
         bio: formData.bio,
         nativeLanguage: formData.nativeLanguage,
-        targetLanguage: formData.targetLanguage,
+        targetLanguage: enforcedTargetLanguage,
         level: parseInt(formData.learningLevel),
         location: formData.location,
         website: formData.website,
@@ -221,7 +222,10 @@ const Profile = ({ userProfile, onProfileUpdate, onBack }) => {
       await updateUserProfile(currentUser.id, profileUpdates)
 
       // Update parent component
-      onProfileUpdate(formData)
+      onProfileUpdate({
+        ...formData,
+        targetLanguage: enforcedTargetLanguage,
+      })
 
       setIsLoading(false)
 
