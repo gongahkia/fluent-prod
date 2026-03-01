@@ -169,6 +169,11 @@ class TranslationService {
     return this.providerCircuitState.get(key)
   }
 
+  isProviderCircuitOpen(providerId) {
+    const state = this.getProviderCircuitState(providerId)
+    return Date.now() < state.openUntil
+  }
+
   assertSupportedTranslationPair(fromLang, toLang) {
     const pairKey = `${fromLang}-${toLang}`
     const pair = this.mappings.translationPairs[pairKey]
@@ -249,6 +254,10 @@ class TranslationService {
       const result = await runFallbackProviders({
         providers,
         runProvider: async (provider) => {
+        if (this.isProviderCircuitOpen(provider)) {
+          return null
+        }
+
         let result = null
         if (provider === 'lingva') {
           result = await withRetry(
