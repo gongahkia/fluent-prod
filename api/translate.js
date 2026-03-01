@@ -12,8 +12,10 @@ const CACHE_TTL_MS = Number.parseInt(process.env.TRANSLATE_CACHE_TTL_MS || "6000
 const CACHE_MAX_ENTRIES = Number.parseInt(process.env.TRANSLATE_CACHE_MAX_ENTRIES || "500", 10)
 const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_WINDOW_MS || "60000", 10)
 const RATE_LIMIT_MAX_REQUESTS = Number.parseInt(process.env.TRANSLATE_RATE_LIMIT_MAX_REQUESTS || "60", 10)
+const LATENCY_SAMPLE_SIZE = Number.parseInt(process.env.TRANSLATE_LATENCY_SAMPLE_SIZE || "500", 10)
 const translationCache = new Map()
 const rateLimitStore = new Map()
+const requestLatencySamples = []
 const requestSchema = z.object({
   text: z.string().trim().min(1),
   fromLang: z.string().trim().min(2).max(12).optional().default("en"),
@@ -34,6 +36,25 @@ function createProviderError(code, message, extras = {}) {
 
 function logEvent(event, payload = {}) {
   console.log(JSON.stringify({ event, ...payload }))
+}
+
+function getPercentile(samples, percentile) {
+  if (!samples.length) return 0
+  const sorted = [...samples].sort((a, b) => a - b)
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.ceil((percentile / 100) * sorted.length) - 1))
+  return sorted[index]
+}
+
+function recordRequestLatency(durationMs) {
+  requestLatencySamples.push(durationMs)
+  if (requestLatencySamples.length > LATENCY_SAMPLE_SIZE) {
+    requestLatencySamples.shift()
+  }
+
+  return {
+    p50Ms: getPercentile(requestLatencySamples, 50),
+    p95Ms: getPercentile(requestLatencySamples, 95),
+  }
 }
 
 function sanitizeTranslation(rawText) {
@@ -218,10 +239,14 @@ export default async function handler(req, res) {
 
   const cached = readFromCache(cacheKey)
   if (cached) {
+    const requestDurationMs = Date.now() - requestStartedAt
+    const latencies = recordRequestLatency(requestDurationMs)
     logEvent("translate.request.success", {
       provider: cached.provider,
       status: 200,
-      durationMs: Date.now() - requestStartedAt,
+      durationMs: requestDurationMs,
+      p50Ms: latencies.p50Ms,
+      p95Ms: latencies.p95Ms,
     })
     return json(res, 200, responseSchema.parse({
       translation: cached.translation,
@@ -249,6 +274,8 @@ export default async function handler(req, res) {
           })
 
           writeToCache(cacheKey, parsedResponse)
+          const requestDurationMs = Date.now() - requestStartedAt
+          const latencies = recordRequestLatency(requestDurationMs)
           logEvent("translate.provider.success", {
             provider: provider.id,
             status: 200,
@@ -257,7 +284,9 @@ export default async function handler(req, res) {
           logEvent("translate.request.success", {
             provider: provider.id,
             status: 200,
-            durationMs: Date.now() - requestStartedAt,
+            durationMs: requestDurationMs,
+            p50Ms: latencies.p50Ms,
+            p95Ms: latencies.p95Ms,
           })
           return json(res, 200, parsedResponse)
         }
@@ -274,10 +303,14 @@ export default async function handler(req, res) {
 
     throw lastError || createProviderError("NO_PROVIDER_SUCCESS", "No provider returned a translation")
   } catch (error) {
+    const requestDurationMs = Date.now() - requestStartedAt
+    const latencies = recordRequestLatency(requestDurationMs)
     logEvent("translate.request.error", {
       status: 502,
       code: error?.code || "NO_PROVIDER_SUCCESS",
-      durationMs: Date.now() - requestStartedAt,
+      durationMs: requestDurationMs,
+      p50Ms: latencies.p50Ms,
+      p95Ms: latencies.p95Ms,
     })
     return json(res, 502, {
       error: "Translation provider request failed",
