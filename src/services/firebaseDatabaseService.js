@@ -46,6 +46,30 @@ async function withFirestoreTiming(operation, fn) {
   }
 }
 
+function isTransientReadError(error) {
+  const code = String(error?.code || '')
+  return code === 'aborted' ||
+    code === 'deadline-exceeded' ||
+    code === 'internal' ||
+    code === 'resource-exhausted' ||
+    code === 'unavailable'
+}
+
+async function withFirestoreReadRetry(operation, fn, maxRetries = 2) {
+  let attempt = 0
+  while (attempt <= maxRetries) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (!isTransientReadError(error) || attempt >= maxRetries) throw error
+      const delayMs = 150 * (2 ** attempt)
+      console.warn('[FirestoreRetry]', { operation, attempt: attempt + 1, delayMs, code: error?.code })
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      attempt += 1
+    }
+  }
+}
+
 function stripUndefinedDeep(value) {
   if (value === undefined) return undefined
   if (value === null) return null
@@ -147,7 +171,9 @@ export const createUserProfile = async (userId, profileData) => {
 
 export const getUserProfile = async (userId) => {
   try {
-    const snap = await withFirestoreTiming("get:userProfile", () => getDoc(userDoc(userId)))
+    const snap = await withFirestoreTiming("get:userProfile", () =>
+      withFirestoreReadRetry('get:userProfile', () => getDoc(userDoc(userId)))
+    )
     if (!snap.exists()) return { success: false, error: 'User profile not found' }
     return { success: true, data: snap.data() }
   } catch (error) {
@@ -197,7 +223,9 @@ export const updateUserCredentials = async (userId, encryptedData) => {
 
 export const getUserCredentials = async (userId) => {
   try {
-    const snap = await withFirestoreTiming("get:userCredentials", () => getDoc(credentialsDoc(userId)))
+    const snap = await withFirestoreTiming("get:userCredentials", () =>
+      withFirestoreReadRetry('get:userCredentials', () => getDoc(credentialsDoc(userId)))
+    )
     if (!snap.exists()) return { success: true, data: null }
     return { success: true, data: snap.data()?.encryptedData ?? null }
   } catch (error) {
@@ -267,7 +295,9 @@ export const getUserDictionary = async (userId, language = null) => {
       ? query(base, where('language', '==', language), orderBy('createdAt', 'desc'))
       : query(base, orderBy('createdAt', 'desc'))
 
-    const snap = await withFirestoreTiming("get:dictionaryWords", () => getDocs(q))
+    const snap = await withFirestoreTiming("get:dictionaryWords", () =>
+      withFirestoreReadRetry('get:dictionaryWords', () => getDocs(q))
+    )
     const words = snap.docs.map((d) => d.data())
     return { success: true, data: words }
   } catch (error) {
@@ -309,7 +339,9 @@ export const onDictionaryChange = (userId, callback, language = null) => {
 
 export const getFlashcardProgress = async (userId) => {
   try {
-    const snap = await getDocs(query(flashcardsCol(userId)))
+    const snap = await withFirestoreReadRetry('get:flashcards', () =>
+      getDocs(query(flashcardsCol(userId)))
+    )
     const progress = {}
     for (const d of snap.docs) {
       progress[d.id] = d.data()
@@ -347,7 +379,7 @@ export const migrateFlashcardData = async () => {
 export const getSavedPosts = async (userId) => {
   try {
     const q = query(savedPostsCol(userId), orderBy('savedAt', 'desc'))
-    const snap = await getDocs(q)
+    const snap = await withFirestoreReadRetry('get:savedPosts', () => getDocs(q))
     const posts = snap.docs.map((d) => d.data())
     return { success: true, data: posts }
   } catch (error) {
@@ -428,7 +460,9 @@ export const createCollection = async (userId, collectionData) => {
 
 export const getCollections = async (userId) => {
   try {
-    const snap = await getDocs(query(collectionsCol(userId), orderBy('createdAt', 'desc')))
+    const snap = await withFirestoreReadRetry('get:collections', () =>
+      getDocs(query(collectionsCol(userId), orderBy('createdAt', 'desc')))
+    )
     const collections = snap.docs.map((d) => d.data())
     return { success: true, data: collections }
   } catch (error) {
@@ -494,7 +528,9 @@ export const removeWordFromCollection = async (userId, collectionId, wordId) => 
 
 export const isFollowing = async (userId, targetUserId) => {
   try {
-    const snap = await getDoc(doc(followingCol(userId), targetUserId))
+    const snap = await withFirestoreReadRetry('get:isFollowing', () =>
+      getDoc(doc(followingCol(userId), targetUserId))
+    )
     return { success: true, isFollowing: snap.exists() }
   } catch (error) {
     console.error('Error checking follow status:', error)
@@ -534,13 +570,15 @@ export const unfollowUser = async (userId, targetUserId) => {
 
 export const getUserFollowers = async (userId) => {
   try {
-    const snap = await getDocs(query(followersCol(userId), fbLimit(200)))
+    const snap = await withFirestoreReadRetry('get:followers', () =>
+      getDocs(query(followersCol(userId), fbLimit(200)))
+    )
     const followerIds = snap.docs.map((d) => d.id)
 
     // Resolve basic user profiles
     const profiles = await Promise.all(
       followerIds.map(async (fid) => {
-        const p = await getDoc(userDoc(fid))
+        const p = await withFirestoreReadRetry('get:followerProfile', () => getDoc(userDoc(fid)))
         return p.exists() ? p.data() : { userId: fid }
       })
     )
@@ -554,12 +592,14 @@ export const getUserFollowers = async (userId) => {
 
 export const getUserFollowing = async (userId) => {
   try {
-    const snap = await getDocs(query(followingCol(userId), fbLimit(200)))
+    const snap = await withFirestoreReadRetry('get:following', () =>
+      getDocs(query(followingCol(userId), fbLimit(200)))
+    )
     const targetIds = snap.docs.map((d) => d.id)
 
     const profiles = await Promise.all(
       targetIds.map(async (tid) => {
-        const p = await getDoc(userDoc(tid))
+        const p = await withFirestoreReadRetry('get:followingProfile', () => getDoc(userDoc(tid)))
         return p.exists() ? p.data() : { userId: tid }
       })
     )
@@ -616,19 +656,23 @@ export const searchUsers = async (searchTerm) => {
     // Implement prefix search on nameLower and emailLower.
     const end = term + '\uf8ff'
 
-    const byName = await getDocs(query(
-      collection(firestore, 'users'),
-      where('nameLower', '>=', term),
-      where('nameLower', '<=', end),
-      fbLimit(25)
-    ))
+    const byName = await withFirestoreReadRetry('searchUsers:byName', () =>
+      getDocs(query(
+        collection(firestore, 'users'),
+        where('nameLower', '>=', term),
+        where('nameLower', '<=', end),
+        fbLimit(25)
+      ))
+    )
 
-    const byEmail = await getDocs(query(
-      collection(firestore, 'users'),
-      where('emailLower', '>=', term),
-      where('emailLower', '<=', end),
-      fbLimit(25)
-    ))
+    const byEmail = await withFirestoreReadRetry('searchUsers:byEmail', () =>
+      getDocs(query(
+        collection(firestore, 'users'),
+        where('emailLower', '>=', term),
+        where('emailLower', '<=', end),
+        fbLimit(25)
+      ))
+    )
 
     const merged = new Map()
     for (const d of [...byName.docs, ...byEmail.docs]) {
