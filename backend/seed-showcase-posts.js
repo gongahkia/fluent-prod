@@ -144,6 +144,12 @@ if (!SUBREDDITS.length) {
 }
 
 const OUT_PATH = join(CACHE_DIR, OUT_FILE)
+const SUBREDDIT_QUALITY_WEIGHTS = {
+  LearnJapanese: 1.25,
+  japanese: 1.15,
+  japaneselanguage: 1.2,
+  NHKNewsEasy: 1.2,
+}
 
 // Reddit fetching: unauthenticated requests often get 403 from CI/cloud IPs.
 // If REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are provided, use OAuth.
@@ -310,9 +316,11 @@ function computePostQualityScore(post) {
   const combined = `${title} ${content}`.trim()
   const lengthScore = Math.min(combined.length, 1200) / 1200
   const japaneseDensity = computeJapaneseDensity(combined)
+  const subreddit = String(post?.subreddit || '')
+  const subredditWeight = SUBREDDIT_QUALITY_WEIGHTS[subreddit] || 1
 
   // Prefer medium-to-high quality learning text with meaningful Japanese coverage.
-  return (japaneseDensity * 0.65) + (lengthScore * 0.35)
+  return ((japaneseDensity * 0.65) + (lengthScore * 0.35)) * subredditWeight
 }
 
 async function run() {
