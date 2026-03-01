@@ -61,6 +61,19 @@ function writeToTranslationCache(key, value) {
   }
 }
 
+function createTranslationCacheKey(text, fromLang, toLang, options = {}) {
+  const postHash = String(options?.postHash || '').trim()
+  const sentenceIndex = Number.isInteger(options?.sentenceIndex)
+    ? options.sentenceIndex
+    : Number.NaN
+
+  if (postHash && Number.isInteger(sentenceIndex) && sentenceIndex >= 0) {
+    return `${postHash}|${sentenceIndex}|${fromLang}|${toLang}`
+  }
+
+  return `${fromLang}|${toLang}|${text}`
+}
+
 function isTransientError(error) {
   const message = String(error?.message || '').toLowerCase()
   return (
@@ -251,14 +264,14 @@ class TranslationService {
    * @param {string} toLang - Target language code
    * @returns {Promise<string>} Translated text
    */
-  async translateText(text, fromLang = 'en', toLang = 'ja') {
+  async translateText(text, fromLang = 'en', toLang = 'ja', options = {}) {
     const { pair } = this.assertSupportedTranslationPair(fromLang, toLang)
     const providers = pair?.apiProviders || ['lingva', 'mymemory', 'libretranslate']
 
     const timeoutMs = 5000
     const trimmed = String(text ?? '')
     if (!trimmed) return ''
-    const requestKey = `${fromLang}|${toLang}|${trimmed}`
+    const requestKey = createTranslationCacheKey(trimmed, fromLang, toLang, options)
     const cachedValue = readFromTranslationCache(requestKey)
     if (cachedValue) {
       return cachedValue

@@ -229,7 +229,11 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
               const translatedSentence = await translationService.translateText(
                 trimmedSentence,
                 fromLang,
-                toLang
+                toLang,
+                {
+                  postHash: resolvedPostId,
+                  sentenceIndex,
+                }
               )
 
               sentenceTranslationOptions?.setSentenceTranslationResults?.((prev) => ({
