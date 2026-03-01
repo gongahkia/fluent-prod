@@ -16,12 +16,24 @@ function cleanEnglishToken(token) {
   return token.trim().replace(/^[^a-zA-Z]+/, "").replace(/[^a-zA-Z]+$/, "")
 }
 
+function sanitizeRenderText(input) {
+  if (input == null) return ""
+  return String(input)
+    .replace(/\\"/g, "\"")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16))
+    )
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+}
+
 // Parse plaintext content (markdown already stripped by backend)
 export const parseMarkdownContent = (text, postId = null, renderClickableText) => {
   if (!text) return ""
 
   // Decode HTML entities
-  let cleaned = decodeHTMLEntities(text)
+  let cleaned = sanitizeRenderText(decodeHTMLEntities(text))
 
   // Check if content is JSON from translation service - extract and render the text
   let parsedData = null
@@ -30,7 +42,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
       parsedData = JSON.parse(cleaned)
       if (parsedData.text && parsedData.wordMetadata !== undefined) {
         // Extract the text (markdown already stripped by backend)
-        cleaned = parsedData.text
+        cleaned = sanitizeRenderText(parsedData.text)
       } else {
         console.warn('JSON structure invalid - missing text or wordMetadata')
         parsedData = null
@@ -47,11 +59,13 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
     console.error('Content is not a string:', cleaned)
     // Try to extract text if it's an object with text property
     if (cleaned && typeof cleaned === 'object' && cleaned.text) {
-      cleaned = cleaned.text
+      cleaned = sanitizeRenderText(cleaned.text)
     } else {
       return String(cleaned || '')
     }
   }
+
+  cleaned = sanitizeRenderText(cleaned)
 
   // If we had JSON with wordMetadata, pass it to renderClickableText
   if (parsedData && parsedData.wordMetadata !== undefined) {
@@ -93,6 +107,7 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
 
 // Parse inline content - only handle plain URLs (markdown already stripped by backend)
 export const parseLineContent = (text, postId = null, renderClickableText) => {
+  const safeText = sanitizeRenderText(text)
   const parts = []
   let keyCounter = 0
 
@@ -101,10 +116,10 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
   let lastIndex = 0
   let match
 
-  while ((match = urlRegex.exec(text)) !== null) {
+  while ((match = urlRegex.exec(safeText)) !== null) {
     // Add text before match - make it clickable for translation
     if (match.index > lastIndex) {
-      const textBeforeUrl = text.substring(lastIndex, match.index)
+      const textBeforeUrl = safeText.substring(lastIndex, match.index)
       parts.push(
         <span key={`text-${keyCounter++}`}>
           {renderClickableText(textBeforeUrl, postId)}
@@ -130,8 +145,8 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
   }
 
   // Add remaining text - make it clickable for translation
-  if (lastIndex < text.length) {
-    const remainingText = text.substring(lastIndex)
+  if (lastIndex < safeText.length) {
+    const remainingText = safeText.substring(lastIndex)
     parts.push(
       <span key={`text-${keyCounter++}`}>
         {renderClickableText(remainingText, postId)}
@@ -139,13 +154,14 @@ export const parseLineContent = (text, postId = null, renderClickableText) => {
     )
   }
 
-  return parts.length > 0 ? parts : renderClickableText(text, postId)
+  return parts.length > 0 ? parts : renderClickableText(safeText, postId)
 }
 
 // Create renderClickableText function factory
 export const createRenderClickableText = (translationStates, toggleTranslation, handleWordClick, targetLanguage = 'Japanese', allWordTranslations = {}) => {
   return (text, postId = null) => {
     if (!text) return ""
+    const safeInput = sanitizeRenderText(text)
 
     const englishHoverOnlyClasses =
       "fluent-word fluent-word-hover-lightbg cursor-pointer hover:bg-orange-50 hover:shadow-sm border-b-2 border-transparent hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block"
@@ -153,8 +169,8 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
     // Check if text is JSON from translation service
     let parsedData = null
     try {
-      if (text.trim().startsWith("{") && text.includes('"wordMetadata"')) {
-        parsedData = JSON.parse(text)
+      if (safeInput.trim().startsWith("{") && safeInput.includes('"wordMetadata"')) {
+        parsedData = JSON.parse(safeInput)
       }
     } catch (e) {
       // Not JSON, continue with normal processing
@@ -167,7 +183,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
       const vocabularyWords = parsedData.vocabularyWords || []
 
       // Process text with word metadata
-      let processedText = parsedData.text
+      let processedText = sanitizeRenderText(parsedData.text)
 
       // Ensure processedText is a string
       if (typeof processedText !== 'string') {
@@ -365,7 +381,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
 
     // Split by spaces and punctuation, preserving them
     // Split by spaces + common punctuation (keep apostrophes/hyphens inside words)
-    const segments = text.split(/(\s+|[.,!?;:"()[\]{}—–])/)
+    const segments = safeInput.split(/(\s+|[.,!?;:"()[\]{}—–])/)
 
     return segments.map((segment, segmentIndex) => {
       // Keep whitespace and punctuation as-is
@@ -403,7 +419,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
                       ? "fluent-word fluent-word-lightbg cursor-pointer hover:bg-orange-200 border-b-2 border-orange-400 hover:border-orange-600 rounded px-1 py-0.5 transition-all duration-200 inline-block font-medium bg-orange-50"
                       : "fluent-word fluent-word-lightbg cursor-pointer hover:bg-yellow-200 hover:shadow-sm border-b-2 border-yellow-400 hover:border-orange-400 rounded px-1 py-0.5 transition-all duration-200 inline-block bg-yellow-50"
                   }
-                  onClick={(e) => handleWordClick(text, isTargetLanguage, { text, postHash: postId, postId }, e)}
+                  onClick={(e) => handleWordClick(text, isTargetLanguage, { text: safeInput, postHash: postId, postId }, e)}
                   title={
                     isTranslatedWord
                       ? `Japanese: Click to see English "${text}"`
@@ -437,7 +453,7 @@ export const createRenderClickableText = (translationStates, toggleTranslation, 
           <span key={segmentIndex}>
             <span
               className={vocabularyClasses}
-              onClick={(e) => handleWordClick(cleanWord, false, { text, postHash: postId, postId }, e)}
+              onClick={(e) => handleWordClick(cleanWord, false, { text: safeInput, postHash: postId, postId }, e)}
               title={vocabularyTitle}
               style={{ textDecoration: "none" }}
             >
