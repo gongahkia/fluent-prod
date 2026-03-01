@@ -246,6 +246,19 @@ function normalizeRedditPost(post) {
   }
 }
 
+function isLowValuePost(rawPost) {
+  const rawTitle = String(rawPost?.title || '').trim()
+  const rawContent = String(rawPost?.selftext || '').trim()
+  const combined = `${rawTitle} ${rawContent}`.trim()
+  const lowerContent = rawContent.toLowerCase()
+
+  const deletedBody = lowerContent === '[deleted]' || lowerContent === '[removed]'
+  const linkOnly = rawContent.length === 0 && /^https?:\/\//i.test(String(rawPost?.url || ''))
+  const ultraShort = combined.length < 25
+
+  return deletedBody || linkOnly || ultraShort
+}
+
 /**
  * Fetch posts from a single subreddit
  */
@@ -261,6 +274,7 @@ async function fetchFromSubreddit(subreddit, limit = POSTS_PER_SUBREDDIT) {
     const posts = (data?.data?.children || [])
       .map((child) => child.data)
       .filter((post) => !post.stickied && (post.selftext?.length > 20 || post.title))
+      .filter((post) => !isLowValuePost(post))
       .map(post => normalizeRedditPost(post))
       .filter((post) => hasTargetLanguageContent(`${post.title} ${post.content}`, TARGET_LANG))
       .slice(0, limit)
