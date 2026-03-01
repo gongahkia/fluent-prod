@@ -16,8 +16,10 @@ const TRANSLATION_CACHE_MAX_ENTRIES = 1500
 const memoryCache = new Map()
 const inFlight = new Map()
 const lastClickAtByKey = new Map()
+const japaneseReadingCache = new Map()
 let persistentCacheLoaded = false
 let persistTimer = null
+let kuromojinTokenizerPromise = null
 
 // Rate limiting (per tab/session)
 const requestTimestamps = []
@@ -26,6 +28,52 @@ const CLICK_DEBOUNCE_MS = 250
 
 function nowMs() {
   return Date.now()
+}
+
+function katakanaToHiragana(text) {
+  if (!text) return ""
+  return String(text).replace(/[\u30A1-\u30F6]/g, (char) =>
+    String.fromCharCode(char.charCodeAt(0) - 0x60)
+  )
+}
+
+async function getKuromojinTokenizer() {
+  if (!kuromojinTokenizerPromise) {
+    kuromojinTokenizerPromise = import("kuromojin")
+      .then((module) => module.getTokenizer())
+      .catch((error) => {
+        kuromojinTokenizerPromise = null
+        throw error
+      })
+  }
+  return kuromojinTokenizerPromise
+}
+
+async function parseJapaneseReading(word) {
+  const safeWord = String(word || "").trim()
+  if (!safeWord) return null
+
+  const cached = japaneseReadingCache.get(safeWord)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  try {
+    const tokenizer = await getKuromojinTokenizer()
+    const tokens = await tokenizer.tokenize(safeWord)
+    const reading = tokens
+      .map((token) => token?.reading || "")
+      .join("")
+      .trim()
+
+    const normalized = reading ? katakanaToHiragana(reading) : null
+    japaneseReadingCache.set(safeWord, normalized)
+    return normalized
+  } catch (error) {
+    console.warn("Failed to parse Japanese reading via kuromojin:", error)
+    japaneseReadingCache.set(safeWord, null)
+    return null
+  }
 }
 
 function hasLocalStorage() {
@@ -315,7 +363,8 @@ export const handleWordClick = async (
       const cached = getCachedTranslation(clickKey)
       if (cached?.translation) {
         const translation = cached.translation
-        const pronunciation = isTargetLang ? cleanWord : translation
+        const reading = isTargetLang ? await parseJapaneseReading(cleanWord) : null
+        const pronunciation = isTargetLang ? (reading || cleanWord) : translation
 
         const level = cleanWord.length <= 4 ? 3 : cleanWord.length <= 7 ? 5 : 7
         const wordData = {
@@ -347,7 +396,8 @@ export const handleWordClick = async (
     if (isTargetLang) {
       // Target language to English
       translation = (await translateWithCache(cleanWord, fromLang, toLang)).translation
-      pronunciation = cleanWord // Use the original text as pronunciation
+      const reading = await parseJapaneseReading(cleanWord)
+      pronunciation = reading || cleanWord
 
       if (contextText && !contextTranslation) {
         contextTranslationResult = await translationService.translateText(
