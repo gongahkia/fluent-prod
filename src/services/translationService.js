@@ -6,6 +6,7 @@
 // according to config/translationMappings.json.
 import translationMappings from '@config/translationMappings.json'
 const TRANSLATE_API_URL = import.meta.env.VITE_TRANSLATE_API_URL || '/api/translate'
+const inFlightTranslations = new Map()
 
 function normalizeTranslationText(input) {
   let text = String(input ?? '')
@@ -182,21 +183,35 @@ class TranslationService {
     const timeoutMs = 5000
     const trimmed = String(text ?? '')
     if (!trimmed) return ''
+    const requestKey = `${fromLang}|${toLang}|${trimmed}`
 
-    try {
-      return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
-    } catch {
-      for (const provider of providers) {
-        let result = null
-        if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
-        else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
-        else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
-
-        if (result) return normalizeTranslationText(result)
-      }
+    if (inFlightTranslations.has(requestKey)) {
+      return inFlightTranslations.get(requestKey)
     }
 
-    throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
+    const task = (async () => {
+      try {
+        return await translateViaApiProxy(trimmed, fromLang, toLang, timeoutMs)
+      } catch {
+        for (const provider of providers) {
+          let result = null
+          if (provider === 'lingva') result = await tryLingva(trimmed, fromLang, toLang, timeoutMs)
+          else if (provider === 'mymemory') result = await tryMyMemory(trimmed, fromLang, toLang, timeoutMs)
+          else if (provider === 'libretranslate') result = await tryLibreTranslate(trimmed, fromLang, toLang, timeoutMs)
+
+          if (result) return normalizeTranslationText(result)
+        }
+      }
+
+      throw new Error('Translation failed (proxy and fallback providers unsuccessful).')
+    })()
+
+    inFlightTranslations.set(requestKey, task)
+    try {
+      return await task
+    } finally {
+      inFlightTranslations.delete(requestKey)
+    }
   }
 
   /**
