@@ -32,6 +32,10 @@ function createProviderError(code, message, extras = {}) {
   return error
 }
 
+function logEvent(event, payload = {}) {
+  console.log(JSON.stringify({ event, ...payload }))
+}
+
 function sanitizeTranslation(rawText) {
   let text = String(rawText || "")
 
@@ -182,12 +186,14 @@ function isRateLimited(ip) {
 }
 
 export default async function handler(req, res) {
+  const requestStartedAt = Date.now()
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed" })
   }
 
   const ip = getClientIp(req)
   if (isRateLimited(ip)) {
+    logEvent("translate.request.rate_limited", { ip })
     return json(res, 429, { error: "Rate limit exceeded" })
   }
 
@@ -212,6 +218,11 @@ export default async function handler(req, res) {
 
   const cached = readFromCache(cacheKey)
   if (cached) {
+    logEvent("translate.request.success", {
+      provider: cached.provider,
+      status: 200,
+      durationMs: Date.now() - requestStartedAt,
+    })
     return json(res, 200, responseSchema.parse({
       translation: cached.translation,
       provider: cached.provider,
@@ -227,6 +238,7 @@ export default async function handler(req, res) {
 
     let lastError = null
     for (const provider of providers) {
+      const providerStartedAt = Date.now()
       try {
         const translation = await provider.run(text, fromLang, toLang)
         const sanitizedTranslation = sanitizeTranslation(translation)
@@ -237,15 +249,36 @@ export default async function handler(req, res) {
           })
 
           writeToCache(cacheKey, parsedResponse)
+          logEvent("translate.provider.success", {
+            provider: provider.id,
+            status: 200,
+            durationMs: Date.now() - providerStartedAt,
+          })
+          logEvent("translate.request.success", {
+            provider: provider.id,
+            status: 200,
+            durationMs: Date.now() - requestStartedAt,
+          })
           return json(res, 200, parsedResponse)
         }
       } catch (error) {
+        logEvent("translate.provider.error", {
+          provider: provider.id,
+          status: error?.status || 502,
+          code: error?.code || "UNKNOWN",
+          durationMs: Date.now() - providerStartedAt,
+        })
         lastError = error
       }
     }
 
     throw lastError || createProviderError("NO_PROVIDER_SUCCESS", "No provider returned a translation")
   } catch (error) {
+    logEvent("translate.request.error", {
+      status: 502,
+      code: error?.code || "NO_PROVIDER_SUCCESS",
+      durationMs: Date.now() - requestStartedAt,
+    })
     return json(res, 502, {
       error: "Translation provider request failed",
       code: error?.code || "NO_PROVIDER_SUCCESS",
