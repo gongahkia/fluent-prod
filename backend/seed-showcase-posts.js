@@ -116,6 +116,19 @@ function loadSubredditsFromConfig(queryKey) {
   }
 }
 
+function resolveQueryKeyForTargetLang(targetLang) {
+  try {
+    if (!existsSync(SUBREDDITS_CONFIG_PATH)) return null
+    const raw = readFileSync(SUBREDDITS_CONFIG_PATH, 'utf-8')
+    const cfg = JSON.parse(raw)
+    const entries = Object.entries(cfg?.queries || {})
+    const match = entries.find(([, q]) => String(q?.targetLang || '').toLowerCase() === String(targetLang || '').toLowerCase())
+    return match ? match[0] : null
+  } catch {
+    return null
+  }
+}
+
 // Config (swappable via args/env)
 const argv = parseArgs(process.argv.slice(2))
 const presetName = String(argv.preset || process.env.CACHE_PRESET || 'showcase')
@@ -134,7 +147,8 @@ if (TARGET_LANG !== 'ja') {
   throw err;
 }
 
-const queryKey = String(argv.query || process.env.QUERY || 'japan')
+const inferredQueryKey = resolveQueryKeyForTargetLang(TARGET_LANG)
+const queryKey = String(argv.query || process.env.QUERY || inferredQueryKey || 'japan')
 
 const subredditsArg = argv.subreddits || process.env.SUBREDDITS
 const SUBREDDITS = subredditsArg
