@@ -1,28 +1,34 @@
+import { useWindowVirtualizer } from "@tanstack/react-virtual"
+import Fuse from "fuse.js"
 import {
   Bookmark,
   Globe,
   Languages,
   MessageCircle,
+  MoreVertical,
   RefreshCw,
   Share,
   UserCheck,
   UserPlus,
-  MoreVertical,
 } from "lucide-react"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useWindowVirtualizer } from "@tanstack/react-virtual"
-import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
-import { checkApiConfiguration, fetchPosts } from "../services/newsService"
-import { savePost, getSavedPosts } from "../services/firebaseDatabaseService"
 import { useAuth } from "../contexts/AuthContext"
+import { handleWordClick as sharedHandleWordClick } from "../lib/wordDatabase"
+import { getSavedPosts, savePost } from "../services/firebaseDatabaseService"
+import { fetchPosts } from "../services/newsService"
 import EnhancedCommentSystem from "./EnhancedCommentSystem"
+import {
+  createRenderClickableText,
+  parseMarkdownContent,
+} from "./NewsFeed/renderingUtils"
+import {
+  shouldTruncateContent,
+  truncateContent,
+} from "./NewsFeed/utils/textParsing"
 import WordLearningPopup from "./NewsFeed/WordLearningPopup"
 import PostSettingsModal from "./PostSettingsModal"
-import { createRenderClickableText, parseMarkdownContent } from "./NewsFeed/renderingUtils"
-import { shouldTruncateContent, truncateContent } from "./NewsFeed/utils/textParsing"
 import LoadingSpinner from "./ui/LoadingSpinner"
 import { FeedSkeleton } from "./ui/skeleton"
-import Fuse from "fuse.js"
 
 const NewsFeed = ({
   selectedCountry,
@@ -36,15 +42,11 @@ const NewsFeed = ({
   const [showComments, setShowComments] = useState({})
   const [selectedWord, setSelectedWord] = useState(null)
   const [feedbackMessage, setFeedbackMessage] = useState(null)
-  const [subscribedSources, setSubscribedSources] = useState(new Set())
   const [isTranslating, setIsTranslating] = useState(false)
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [hardFailure, setHardFailure] = useState(false)
-  const [selectedSources, setSelectedSources] = useState(["reddit"])
-  const [showSettings, setShowSettings] = useState(false)
-  const [apiStatus, setApiStatus] = useState({})
   const [, setCurrentPage] = useState(1)
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -104,7 +106,11 @@ const NewsFeed = ({
     if (lowered.startsWith("@")) {
       const q = lowered.slice(1).trim()
       if (!q) return { posts: unhidden, mode: "none" }
-      const exact = unhidden.filter((p) => String(p.author || "").toLowerCase().includes(q))
+      const exact = unhidden.filter((p) =>
+        String(p.author || "")
+          .toLowerCase()
+          .includes(q)
+      )
       if (exact.length > 0) return { posts: exact, mode: "match" }
       const relaxed = fuseSearch(q, 0.65).slice(0, 10)
       return { posts: ensureAtLeastOne(relaxed), mode: "fallback" }
@@ -112,7 +118,11 @@ const NewsFeed = ({
     if (lowered.startsWith("r/")) {
       const q = lowered.slice(2).trim()
       if (!q) return { posts: unhidden, mode: "none" }
-      const exact = unhidden.filter((p) => String(p.subreddit || "").toLowerCase().includes(q))
+      const exact = unhidden.filter((p) =>
+        String(p.subreddit || "")
+          .toLowerCase()
+          .includes(q)
+      )
       if (exact.length > 0) return { posts: exact, mode: "match" }
       const relaxed = fuseSearch(q, 0.65).slice(0, 10)
       return { posts: ensureAtLeastOne(relaxed), mode: "fallback" }
@@ -137,59 +147,24 @@ const NewsFeed = ({
       try {
         const result = await getSavedPosts(currentUser.id)
         if (result.success) {
-          const savedIds = new Set(result.data.map((post) => post.postHash || post.postId || post.id))
+          const savedIds = new Set(
+            result.data.map((post) => post.postHash || post.postId || post.id)
+          )
           setSavedPostIds(savedIds)
         }
       } catch (error) {
-        console.error('Failed to load saved posts:', error)
+        console.error("Failed to load saved posts:", error)
       }
     }
 
     loadSavedPosts()
   }, [currentUser, isGuest])
-  useEffect(() => {
-    if (import.meta.env.VITE_NEWS_MODE === 'cache') {
-      // No backend in cache mode
-      return
-    }
-
-    const loadApiStatus = async (retryCount = 0) => {
-      const MAX_RETRIES = 3
-      const RETRY_DELAY = 2000 // 2 seconds
-
-      try {
-        const sources = await checkApiConfiguration()
-        // Convert array to object keyed by source id
-        const statusMap = {}
-        sources.forEach(source => {
-          statusMap[source.id] = source
-        })
-        setApiStatus(statusMap)
-        console.log('API configuration loaded successfully:', statusMap)
-      } catch (error) {
-        console.error(`Failed to load API status (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, error)
-
-        // Retry logic - backend might still be starting up
-        if (retryCount < MAX_RETRIES) {
-          console.log(`Retrying in ${RETRY_DELAY / 1000} seconds...`)
-          setTimeout(() => loadApiStatus(retryCount + 1), RETRY_DELAY)
-        } else {
-          // All retries exhausted - show error
-          setError('Failed to connect to backend API. Please ensure the server is running.')
-          setLoading(false)
-        }
-      }
-    }
-    loadApiStatus()
-  }, [])
-
   // Load real posts from APIs
   const loadPosts = useCallback(
     async (isLoadMore = false) => {
       if (isLoadMore && loadMoreInFlightRef.current) return
       if (isLoadMore) loadMoreInFlightRef.current = true
       feedTelemetryRef.current.attempts += 1
-      const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
 
       if (isLoadMore) {
         setLoadingMore(true)
@@ -203,25 +178,13 @@ const NewsFeed = ({
       setHardFailure(false)
 
       try {
-        // Cache mode doesn't use backend/API status checks.
-        const enabledSources = isCacheMode
-          ? selectedSources
-          : selectedSources.filter(
-              (source) => apiStatus[source]?.enabled && apiStatus[source]?.configured
-            )
-
-        if (!isCacheMode && enabledSources.length === 0) {
-          throw new Error(
-            "No enabled sources available. Please check your API configuration."
-          )
-        }
+        const enabledSources = ["reddit"]
 
         if (import.meta.env.DEV) {
-          console.log('[NewsFeed] loadPosts start', {
-            mode: isCacheMode ? 'cache' : 'api',
+          console.log("[NewsFeed] loadPosts start", {
+            mode: "cache",
             isLoadMore,
             enabledSources,
-            selectedSources,
             offset: isLoadMore ? offset : 0,
             targetLanguage: userProfile?.targetLanguage || null,
             learningLevel: userProfile?.learningLevel || null,
@@ -229,16 +192,16 @@ const NewsFeed = ({
         }
 
         // Japanese-only
-        const defaultQuery = 'japan'
+        const defaultQuery = "japan"
 
         // Load 50 posts initially, then 25 more each time
-        const initialPostLimit = 50;
-        const loadMorePostLimit = 25;
+        const initialPostLimit = 50
+        const loadMorePostLimit = 25
 
-        const currentOffset = isLoadMore ? offset : 0;
+        const currentOffset = isLoadMore ? offset : 0
 
         // Determine target language code
-        const targetLangCode = 'ja';
+        const targetLangCode = "ja"
 
         const result = await fetchPosts({
           sources: enabledSources,
@@ -248,12 +211,12 @@ const NewsFeed = ({
           searchQuery: null,
           offset: currentOffset,
           userLevel: userProfile?.learningLevel || null,
-          targetLang: targetLangCode
+          targetLang: targetLangCode,
         })
 
         if (import.meta.env.DEV) {
-          console.log('[NewsFeed] fetchPosts result', {
-            mode: isCacheMode ? 'cache' : 'api',
+          console.log("[NewsFeed] fetchPosts result", {
+            mode: "cache",
             postsCount: result?.posts?.length || 0,
             totalCount: result?.metadata?.totalCount,
             hasMore: result?.metadata?.hasMore,
@@ -287,7 +250,9 @@ const NewsFeed = ({
           // Filter out duplicates when loading more
           setPosts((prev) => {
             const existingUrls = new Set(prev.map((post) => post.url))
-            const newPosts = enhancedPosts.filter((post) => !existingUrls.has(post.url))
+            const newPosts = enhancedPosts.filter(
+              (post) => !existingUrls.has(post.url)
+            )
 
             if (newPosts.length === 0) {
               setHasMorePosts(false)
@@ -304,7 +269,7 @@ const NewsFeed = ({
         }
 
         feedTelemetryRef.current.successes += 1
-        if (metadata?.fallback === 'cache') {
+        if (metadata?.fallback === "cache") {
           feedTelemetryRef.current.fallbacks += 1
         }
         if (enhancedPosts.length === 0) {
@@ -315,7 +280,7 @@ const NewsFeed = ({
         const successRate = t.attempts > 0 ? t.successes / t.attempts : 0
         const fallbackRate = t.successes > 0 ? t.fallbacks / t.successes : 0
         const emptyStateRate = t.successes > 0 ? t.emptyStates / t.successes : 0
-        console.log('[NewsFeed][Telemetry]', {
+        console.log("[NewsFeed][Telemetry]", {
           attempts: t.attempts,
           successes: t.successes,
           fallbacks: t.fallbacks,
@@ -330,7 +295,7 @@ const NewsFeed = ({
         // Show error instead of fallback to ensure real news only
         if (!isLoadMore) {
           setPosts([])
-          setHardFailure(import.meta.env.VITE_NEWS_MODE === 'hybrid')
+          setHardFailure(false)
         }
       } finally {
         if (isLoadMore) {
@@ -343,13 +308,7 @@ const NewsFeed = ({
         }
       }
     },
-    [
-      selectedSources,
-      apiStatus,
-      offset,
-      userProfile?.learningLevel,
-      userProfile?.targetLanguage,
-    ]
+    [offset, userProfile?.learningLevel, userProfile?.targetLanguage]
   )
 
   // Load posts when sources, API status, user level, target language, or search changes
@@ -357,55 +316,51 @@ const NewsFeed = ({
   const shouldReloadRef = useRef(true)
   const listRef = useRef(null)
   const prevDepsRef = useRef({
-    selectedSources: [],
-    apiStatusKeys: [],
     learningLevel: null,
     targetLanguage: null,
   })
 
   useEffect(() => {
-    const isCacheMode = import.meta.env.VITE_NEWS_MODE === 'cache'
-    if (!isCacheMode && Object.keys(apiStatus).length === 0) return
-
     // Check if dependencies actually changed
     const currentDeps = {
-      selectedSources: selectedSources.join(','),
-      apiStatusKeys: isCacheMode ? 'cache-mode' : Object.keys(apiStatus).sort().join(','),
       learningLevel: userProfile?.learningLevel,
       targetLanguage: userProfile?.targetLanguage,
     }
 
     const prevDeps = prevDepsRef.current
     const depsChanged =
-      currentDeps.selectedSources !== prevDeps.selectedSources ||
-      currentDeps.apiStatusKeys !== prevDeps.apiStatusKeys ||
       currentDeps.learningLevel !== prevDeps.learningLevel ||
       currentDeps.targetLanguage !== prevDeps.targetLanguage
 
     if (depsChanged || shouldReloadRef.current) {
       if (import.meta.env.DEV) {
-        console.log('[NewsFeed] deps change -> loadPosts', {
-          mode: isCacheMode ? 'cache' : 'api',
+        console.log("[NewsFeed] deps change -> loadPosts", {
+          mode: "cache",
           depsChanged,
           currentDeps,
         })
       }
       // Log language change for debugging
-      if (currentDeps.targetLanguage !== prevDeps.targetLanguage && prevDeps.targetLanguage) {
-        console.log(`Language changed: ${prevDeps.targetLanguage} -> ${currentDeps.targetLanguage}`)
+      if (
+        currentDeps.targetLanguage !== prevDeps.targetLanguage &&
+        prevDeps.targetLanguage
+      ) {
+        console.log(
+          `Language changed: ${prevDeps.targetLanguage} -> ${currentDeps.targetLanguage}`
+        )
         // Clear posts immediately on language change for better UX
         setPosts([])
       }
-      
-      console.log('Dependencies changed, reloading posts:', {
+
+      console.log("Dependencies changed, reloading posts:", {
         targetLanguage: currentDeps.targetLanguage,
-        learningLevel: currentDeps.learningLevel
+        learningLevel: currentDeps.learningLevel,
       })
       loadPosts()
       prevDepsRef.current = currentDeps
       shouldReloadRef.current = false
     }
-  }, [selectedSources, apiStatus, userProfile?.learningLevel, userProfile?.targetLanguage, loadPosts])
+  }, [userProfile?.learningLevel, userProfile?.targetLanguage, loadPosts])
 
   const rawSearchQuery = String(searchQuery || "").trim()
   const isSearchActive = Boolean(rawSearchQuery)
@@ -420,8 +375,8 @@ const NewsFeed = ({
 
   const handleAddToDictionary = () => {
     if (isGuest) {
-      showFeedback("Sign up to save words!", "🔒");
-      return;
+      showFeedback("Sign up to save words!", "🔒")
+      return
     }
     if (selectedWord) {
       let wordToAdd
@@ -453,7 +408,9 @@ const NewsFeed = ({
         }
       }
 
-      const exists = userDictionary.some((word) => word.japanese === wordToAdd.japanese)
+      const exists = userDictionary.some(
+        (word) => word.japanese === wordToAdd.japanese
+      )
 
       if (!exists) {
         onAddWordToDictionary(wordToAdd)
@@ -468,47 +425,10 @@ const NewsFeed = ({
     showFeedback("Sugoi!", "")
   }
 
-  const handleSourceSubscribeToggle = (sourceName) => {
-    if (isGuest) {
-      showFeedback("Sign up to subscribe!", "🔒");
-      return;
-    }
-    setSubscribedSources((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(sourceName)) {
-        newSet.delete(sourceName)
-        // Optionally: Save to Firebase or localStorage
-        showFeedback(`Unsubscribed from ${sourceName}`, '')
-      } else {
-        newSet.add(sourceName)
-        // Optionally: Save to Firebase or localStorage
-        showFeedback(`Subscribed to ${sourceName}`, '')
-      }
-      return newSet
-    })
-  }
-
-  const handleSourceToggle = (sourceId) => {
-    setSelectedSources((prev) =>
-      prev.includes(sourceId)
-        ? prev.filter((id) => id !== sourceId)
-        : [...prev, sourceId]
-    )
-  }
-
-  const getSourceBadgeColor = (source) => {
-    const colors = {
-      reddit: "bg-red-500",
-      newsapi: "bg-orange-500",
-      guardian: "bg-orange-700",
-    }
-    return colors[source] || "bg-gray-500"
-  }
-
   const toggleComments = (articleId) => {
     if (isGuest) {
-      showFeedback("Sign up to view comments!", "🔒");
-      return;
+      showFeedback("Sign up to view comments!", "🔒")
+      return
     }
     setShowComments((prev) => ({
       ...prev,
@@ -518,16 +438,16 @@ const NewsFeed = ({
 
   const handleSavePost = async (article) => {
     if (isGuest) {
-      showFeedback("Sign up to save posts!", "🔒");
-      return;
+      showFeedback("Sign up to save posts!", "🔒")
+      return
     }
     if (!currentUser) {
-      alert('Please sign in to save posts')
+      alert("Please sign in to save posts")
       return
     }
 
     if (savedPostIds.has(article.id)) {
-      alert('Post already saved!')
+      alert("Post already saved!")
       return
     }
 
@@ -551,14 +471,14 @@ const NewsFeed = ({
       const result = await savePost(currentUser.id, postData)
 
       if (result.success) {
-        showFeedback('Post saved!', '')
+        showFeedback("Post saved!", "")
       } else {
         setSavedPostIds((prev) => {
           const next = new Set(prev)
           next.delete(article.id)
           return next
         })
-        alert('Failed to save post: ' + result.error)
+        alert("Failed to save post: " + result.error)
       }
     } catch (error) {
       setSavedPostIds((prev) => {
@@ -566,8 +486,8 @@ const NewsFeed = ({
         next.delete(article.id)
         return next
       })
-      console.error('Error saving post:', error)
-      alert('Failed to save post')
+      console.error("Error saving post:", error)
+      alert("Failed to save post")
     } finally {
       setSavingPost(null)
     }
@@ -582,13 +502,13 @@ const NewsFeed = ({
       try {
         await navigator.share({
           title: shareTitle,
-          url: shareUrl
+          url: shareUrl,
         })
-        showFeedback('Post shared!', '')
+        showFeedback("Post shared!", "")
       } catch (error) {
         // User cancelled or error - ignore
-        if (error.name !== 'AbortError') {
-          console.error('Share failed:', error)
+        if (error.name !== "AbortError") {
+          console.error("Share failed:", error)
           // Fallback to clipboard
           copyToClipboard(shareUrl)
         }
@@ -602,10 +522,10 @@ const NewsFeed = ({
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text)
-      showFeedback('Link copied to clipboard!', '')
+      showFeedback("Link copied to clipboard!", "")
     } catch (error) {
-      console.error('Failed to copy:', error)
-      showFeedback('Failed to copy link', '')
+      console.error("Failed to copy:", error)
+      showFeedback("Failed to copy link", "")
     }
   }
 
@@ -618,12 +538,12 @@ const NewsFeed = ({
   }
 
   const handleNotInterested = (postId) => {
-    setHiddenPosts(prev => new Set([...prev, postId]))
+    setHiddenPosts((prev) => new Set([...prev, postId]))
     setSettingsModalPost(null)
   }
 
   const handleReportPost = (postId) => {
-    console.log('Post reported:', postId)
+    console.log("Post reported:", postId)
     // In a real app, this would send a report to the backend
   }
 
@@ -633,7 +553,12 @@ const NewsFeed = ({
     return 0
   }
 
-  const handleWordClick = async (word, isJapanese, context = null, event = null) => {
+  const handleWordClick = async (
+    word,
+    isJapanese,
+    context = null,
+    event = null
+  ) => {
     // Capture click position if event is provided
     const anchorEl = event?.currentTarget || event?.target || null
     const clickPosition = anchorEl
@@ -652,21 +577,25 @@ const NewsFeed = ({
       context,
       null,
       setIsTranslating,
-      userProfile?.targetLanguage || 'Japanese',
+      userProfile?.targetLanguage || "Japanese",
       clickPosition
     )
   }
 
   const [translationStates, setTranslationStates] = useState({})
   const [sentenceTranslateStates, setSentenceTranslateStates] = useState({})
-  const [sentenceTranslationResults, setSentenceTranslationResults] = useState({})
-  const [sentenceTranslationLoading, setSentenceTranslationLoading] = useState({})
+  const [sentenceTranslationResults, setSentenceTranslationResults] = useState(
+    {}
+  )
+  const [sentenceTranslationLoading, setSentenceTranslationLoading] = useState(
+    {}
+  )
 
   // Toggle post expansion
   const togglePostExpansion = (postId) => {
-    setExpandedPosts(prev => ({
+    setExpandedPosts((prev) => ({
       ...prev,
-      [postId]: !prev[postId]
+      [postId]: !prev[postId],
     }))
   }
 
@@ -690,7 +619,7 @@ const NewsFeed = ({
     translationStates,
     toggleTranslation,
     handleWordClick,
-    userProfile?.targetLanguage || 'Japanese',
+    userProfile?.targetLanguage || "Japanese",
     {},
     {
       sentenceTranslateStates,
@@ -759,48 +688,6 @@ const NewsFeed = ({
 
   return (
     <div className="space-y-6">
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          {/* Sources Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              News Sources
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(apiStatus).map(([sourceId, config]) => (
-                <label
-                  key={sourceId}
-                  className="flex items-center space-x-2"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedSources.includes(sourceId)}
-                    onChange={() => handleSourceToggle(sourceId)}
-                    disabled={!config.enabled || !config.hasApiKey}
-                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                  />
-                  <span
-                    className={`text-sm ${
-                      !config.enabled || !config.hasApiKey
-                        ? "text-gray-400"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {config.name}
-                    {(!config.enabled || !config.hasApiKey) && sourceId !== 'reddit' && (
-                      <span className="text-xs text-red-500 ml-1">
-                        (API key needed)
-                      </span>
-                    )}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Word Learning Popup */}
       {(selectedWord || isTranslating) && (
         <WordLearningPopup
@@ -816,7 +703,6 @@ const NewsFeed = ({
           onAddToDictionary={handleAddToDictionary}
         />
       )}
-
 
       {/* Error State */}
       {hardFailure && error && !loading && (
@@ -857,17 +743,21 @@ const NewsFeed = ({
       )}
 
       {/* Loading Skeletons */}
-      {loading && !error && (
-        <FeedSkeleton count={5} />
-      )}
+      {loading && !error && <FeedSkeleton count={5} />}
 
       {/* Search fallback notice */}
-      {!loading && !error && String(searchQuery || "").trim() && searchResult.mode === "fallback" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-600">
-          No matches for <span className="font-medium text-gray-900">“{String(searchQuery || "").trim()}”</span>.
-          Showing the closest posts instead.
-        </div>
-      )}
+      {!loading &&
+        !error &&
+        String(searchQuery || "").trim() &&
+        searchResult.mode === "fallback" && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-600">
+            No matches for{" "}
+            <span className="font-medium text-gray-900">
+              “{String(searchQuery || "").trim()}”
+            </span>
+            . Showing the closest posts instead.
+          </div>
+        )}
 
       {/* Posts - Unified Feed with Separator Lines */}
       {!loading && !error && displayedPosts.length > 0 && (
@@ -906,7 +796,8 @@ const NewsFeed = ({
                       </span>
                       <span className="text-gray-400 text-sm">•</span>
                       <span className="text-gray-500 text-sm">
-                        {article.time || new Date(article.publishedAt).toLocaleDateString()}
+                        {article.time ||
+                          new Date(article.publishedAt).toLocaleDateString()}
                       </span>
                     </div>
                     {/* Action buttons - right side */}
@@ -924,7 +815,13 @@ const NewsFeed = ({
                         onClick={() => handleSavePost(article)}
                         disabled={savingPost === article.id || isGuest}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                        title={isGuest ? "Sign up to save posts" : (savedPostIds.has(article.id) ? "Already saved" : "Save post")}
+                        title={
+                          isGuest
+                            ? "Sign up to save posts"
+                            : savedPostIds.has(article.id)
+                              ? "Already saved"
+                              : "Save post"
+                        }
                       >
                         {savedPostIds.has(article.id) ? (
                           <Bookmark className="w-5 h-5 text-orange-600 fill-current" />
@@ -941,7 +838,10 @@ const NewsFeed = ({
                     {(() => {
                       const titleText = article.title || ""
                       const contentText = article.content || ""
-                      const combinedText = titleText + (titleText && contentText ? ". " : "") + contentText
+                      const combinedText =
+                        titleText +
+                        (titleText && contentText ? ". " : "") +
+                        contentText
                       const combinedId = `${article.id}-combined`
                       const shouldTruncate = shouldTruncateContent(combinedText)
                       const isExpanded = expandedPosts[article.id]
@@ -957,25 +857,39 @@ const NewsFeed = ({
                             {/* Title portion with emphasis */}
                             {titleText && (
                               <div className="post-title">
-                                {parseMarkdownContent(titleText, `${combinedId}-title`, renderClickableText)}
+                                {parseMarkdownContent(
+                                  titleText,
+                                  `${combinedId}-title`,
+                                  renderClickableText
+                                )}
                               </div>
                             )}
                             {/* Content portion */}
                             {contentText && (
                               <div>
-                                {parseMarkdownContent(contentText, `${combinedId}-content`, renderClickableText)}
+                                {parseMarkdownContent(
+                                  contentText,
+                                  `${combinedId}-content`,
+                                  renderClickableText
+                                )}
                               </div>
                             )}
                             {!titleText &&
                               !contentText &&
-                              parseMarkdownContent(combinedText, combinedId, renderClickableText)}
+                              parseMarkdownContent(
+                                combinedText,
+                                combinedId,
+                                renderClickableText
+                              )}
                           </div>
                           {shouldTruncate && (
                             <button
                               onClick={() => togglePostExpansion(article.id)}
                               className="text-orange-600 hover:text-orange-700 font-medium mt-3 inline-flex items-center space-x-1 transition-all duration-300 hover:translate-x-1"
                             >
-                              <span>{isExpanded ? "See Less" : "See More"}</span>
+                              <span>
+                                {isExpanded ? "See Less" : "See More"}
+                              </span>
                               <svg
                                 className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
                                 fill="none"
@@ -993,7 +907,9 @@ const NewsFeed = ({
                           )}
 
                           <button
-                            onClick={() => toggleSentenceTranslateAction(article.id)}
+                            onClick={() =>
+                              toggleSentenceTranslateAction(article.id)
+                            }
                             className={`mt-3 inline-flex items-center space-x-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
                               sentenceTranslateStates[article.id]
                                 ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100"
@@ -1003,7 +919,9 @@ const NewsFeed = ({
                           >
                             <Languages className="w-4 h-4" />
                             <span>
-                              {sentenceTranslateStates[article.id] ? "Sentence Translate On" : "Translate Sentences"}
+                              {sentenceTranslateStates[article.id]
+                                ? "Sentence Translate On"
+                                : "Translate Sentences"}
                             </span>
                           </button>
                         </>
@@ -1028,11 +946,15 @@ const NewsFeed = ({
                         onClick={() => toggleComments(article.id)}
                         className="flex items-center space-x-1.5 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:hover:text-gray-600"
                         disabled={isGuest}
-                        title={isGuest ? "Sign up to view comments" : "View comments"}
+                        title={
+                          isGuest ? "Sign up to view comments" : "View comments"
+                        }
                       >
                         <MessageCircle className="w-4 h-4" />
                         <span>
-                          View Comments ({article.comments || getCommentCount(article.id) || 0})
+                          View Comments (
+                          {article.comments || getCommentCount(article.id) || 0}
+                          )
                         </span>
                       </button>
                     </div>
@@ -1044,7 +966,11 @@ const NewsFeed = ({
                         rel="noopener noreferrer"
                         className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors text-sm font-medium"
                       >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
                           <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
                         </svg>
                       </a>
