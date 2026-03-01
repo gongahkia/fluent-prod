@@ -105,6 +105,16 @@ export const parseMarkdownContent = (text, postId = null, renderClickableText) =
       continue
     }
 
+    if (/^\s*---+\s*$/.test(line) || /^\s*\*\*\*+\s*$/.test(line)) {
+      elements.push(
+        <hr
+          key={`hr-${lineIndex}`}
+          className="my-3 border-0 border-t border-gray-300"
+        />
+      )
+      continue
+    }
+
     const nextLine = lines[lineIndex + 1] || ''
     const hasPipe = line.includes('|')
     if (hasPipe && isMarkdownTableSeparator(nextLine)) {
